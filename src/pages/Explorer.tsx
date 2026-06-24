@@ -12,6 +12,7 @@ import { LockBadge } from "@/components/explorer/LockBadge"
 import { TokenSearchBar } from "@/components/explorer/TokenSearchBar"
 import { explorerLink } from "@/lib/stellar"
 import { formatAmount, formatDate, formatUsd, shortAddress } from "@/lib/utils"
+import { CopyButton } from "@/components/ui/CopyButton"
 
 export function Explorer() {
   const { t } = useTranslation()
@@ -48,15 +49,18 @@ export function Explorer() {
                   <h1 className="text-2xl font-bold">{data.token.name}</h1>
                   <Badge variant="primary">{data.token.symbol}</Badge>
                 </div>
-                <a
-                  href={explorerLink(data.token.address)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-1 inline-flex items-center gap-1.5 font-mono text-sm text-muted-foreground transition-colors hover:text-primary"
-                >
-                  {shortAddress(data.token.address, 8, 8)}
-                  <ExternalLink className="h-3.5 w-3.5" />
-                </a>
+                <div className="flex items-center gap-1">
+                  <a
+                    href={explorerLink(data.token.address)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-1 inline-flex items-center gap-1.5 font-mono text-sm text-muted-foreground transition-colors hover:text-primary"
+                  >
+                    {shortAddress(data.token.address, 8, 8)}
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                  <CopyButton text={data.token.address} />
+                </div>
               </div>
             </div>
             <div className="flex items-center gap-2 rounded-xl border border-success/40 bg-success/10 px-4 py-3">

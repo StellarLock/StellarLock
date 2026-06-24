@@ -7,6 +7,7 @@ import { DexBadge } from "@/components/ui/DexBadge"
 import { CountdownTimer } from "@/components/ui/CountdownTimer"
 import { Badge } from "@/components/ui/Badge"
 import { formatAmount, formatDate, formatUsd, shortAddress } from "@/lib/utils"
+import { CopyButton } from "@/components/ui/CopyButton"
 
 export function TokenLockList({ locks }: { locks: Lock[] }) {
   const sorted = [...locks].sort((a, b) => a.unlockAt - b.unlockAt)
@@ -39,9 +40,10 @@ export function TokenLockList({ locks }: { locks: Lock[] }) {
               </span>
             </div>
 
-            <div className="col-span-3 font-mono text-sm">
+            <div className="col-span-3 flex items-center gap-1 font-mono text-sm">
               <span className="md:hidden text-xs text-muted-foreground">Beneficiary: </span>
               {shortAddress(lock.beneficiary, 6, 6)}
+              <CopyButton text={lock.beneficiary} />
             </div>
 
             <div className="col-span-2 text-sm text-muted-foreground">

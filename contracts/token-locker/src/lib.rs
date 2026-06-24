@@ -1,6 +1,6 @@
 #![no_std]
 use soroban_sdk::{
-    contract, contractimpl, contracttype, token, vec,
+    contract, contracterror, contractimpl, contracttype, token, vec,
     Address, Env, Vec, Symbol,
 };
 
@@ -13,6 +13,20 @@ pub enum DataKey {
     ByCreator(Address),
     ByBeneficiary(Address),
     ByToken(Address),
+}
+
+// ── Error types ───────────────────────────────────────────────────────────────
+
+#[contracterror]
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum ContractError {
+    AmountMustBePositive = 1,
+    UnlockMustBeFuture   = 2,
+    AlreadyWithdrawn     = 3,
+    StillLocked          = 4,
+    NothingToRelease     = 5,
+    CanOnlyExtend        = 6,
+    VestingEndBeforeStart = 7,
 }
 
 // ── On-chain types ────────────────────────────────────────────────────────────
@@ -113,15 +127,21 @@ impl TokenLocker {
         beneficiary: Address,
         unlock_at: u64,
         vesting: Option<Vesting>,
-    ) -> u64 {
+    ) -> Result<u64, ContractError> {
         creator.require_auth();
 
-        assert!(amount > 0, "amount must be positive");
+        if amount <= 0 {
+            return Err(ContractError::AmountMustBePositive);
+        }
         let now = env.ledger().timestamp();
-        assert!(unlock_at > now, "unlock_at must be in the future");
+        if unlock_at <= now {
+            return Err(ContractError::UnlockMustBeFuture);
+        }
 
         if let Some(ref v) = vesting {
-            assert!(v.end > v.start, "vesting end must be after start");
+            if v.end <= v.start {
+                return Err(ContractError::VestingEndBeforeStart);
+            }
         }
 
         token::Client::new(&env, &token).transfer(
@@ -150,17 +170,21 @@ impl TokenLocker {
         push_index(&env, DataKey::ByToken(token), id);
 
         env.events().publish((Symbol::new(&env, "lock_created"),), id);
-        id
+        Ok(id)
     }
 
     /// Withdraw locked tokens. Callable by the beneficiary after unlock_at.
-    pub fn withdraw(env: Env, id: u64) {
+    pub fn withdraw(env: Env, id: u64) -> Result<(), ContractError> {
         let mut lock = load_lock(&env, id);
         lock.beneficiary.require_auth();
 
-        assert!(!lock.withdrawn, "already withdrawn");
+        if lock.withdrawn {
+            return Err(ContractError::AlreadyWithdrawn);
+        }
         let now = env.ledger().timestamp();
-        assert!(now >= lock.unlock_at, "still locked");
+        if now < lock.unlock_at {
+            return Err(ContractError::StillLocked);
+        }
 
         let releasable = if let Some(ref mut v) = lock.vesting {
             let elapsed = now.saturating_sub(v.start) as i128;
@@ -177,7 +201,9 @@ impl TokenLocker {
             lock.amount
         };
 
-        assert!(releasable > 0, "nothing to release");
+        if releasable <= 0 {
+            return Err(ContractError::NothingToRelease);
+        }
 
         token::Client::new(&env, &lock.token).transfer(
             &env.current_contract_address(),
@@ -192,29 +218,37 @@ impl TokenLocker {
 
         save_lock(&env, &lock);
         env.events().publish((Symbol::new(&env, "withdrawn"),), id);
+        Ok(())
     }
 
     /// Extend the unlock date. Creator only, can only increase.
-    pub fn extend(env: Env, id: u64, new_unlock_at: u64) {
+    pub fn extend(env: Env, id: u64, new_unlock_at: u64) -> Result<(), ContractError> {
         let mut lock = load_lock(&env, id);
         lock.creator.require_auth();
 
-        assert!(!lock.withdrawn, "already withdrawn");
-        assert!(new_unlock_at > lock.unlock_at, "can only extend, not shorten");
+        if lock.withdrawn {
+            return Err(ContractError::AlreadyWithdrawn);
+        }
+        if new_unlock_at <= lock.unlock_at {
+            return Err(ContractError::CanOnlyExtend);
+        }
 
         lock.unlock_at = new_unlock_at;
         lock.extended_count += 1;
 
         save_lock(&env, &lock);
         env.events().publish((Symbol::new(&env, "extended"),), id);
+        Ok(())
     }
 
     /// Transfer the beneficiary role to a new address. Current beneficiary only.
-    pub fn transfer_beneficiary(env: Env, id: u64, new_beneficiary: Address) {
+    pub fn transfer_beneficiary(env: Env, id: u64, new_beneficiary: Address) -> Result<(), ContractError> {
         let mut lock = load_lock(&env, id);
         lock.beneficiary.require_auth();
 
-        assert!(!lock.withdrawn, "already withdrawn");
+        if lock.withdrawn {
+            return Err(ContractError::AlreadyWithdrawn);
+        }
 
         remove_from_index(&env, DataKey::ByBeneficiary(lock.beneficiary.clone()), id);
         push_index(&env, DataKey::ByBeneficiary(new_beneficiary.clone()), id);
@@ -223,6 +257,7 @@ impl TokenLocker {
         save_lock(&env, &lock);
 
         env.events().publish((Symbol::new(&env, "beneficiary_transferred"),), id);
+        Ok(())
     }
 
     // ── Read methods ──────────────────────────────────────────────────────────

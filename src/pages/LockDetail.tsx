@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/Badge"
 import { TokenAvatar } from "@/components/ui/TokenAvatar"
 import { StatusBadge } from "@/components/ui/StatusBadge"
 import { DexBadge } from "@/components/ui/DexBadge"
+import { CopyButton } from "@/components/ui/CopyButton"
 import { CountdownTimer } from "@/components/ui/CountdownTimer"
 import { LockProgressBar } from "@/components/ui/LockProgressBar"
 import { NotificationSettings } from "@/components/locks/NotificationSettings"
@@ -199,6 +200,7 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
           </Field>
           <Field label={t("lockDetail.lockId")} className="bg-card">
             <span className="font-mono">#{lock.id}</span>
+            <CopyButton text={lock.id} className="ml-1" />
             {lock.extendedCount > 0 && (
               <span className="ml-3 inline-flex items-center gap-1 text-xs text-muted-foreground">
                 <Repeat className="h-3 w-3" />
@@ -214,10 +216,12 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
           </Field>
           <Field label={t("lockDetail.creator")} className="bg-card">
             <span className="font-mono">{shortAddress(lock.creator)}</span>
+            <CopyButton text={lock.creator} className="ml-1" />
             {isCreator && <Badge className="ml-2">{t("common.you")}</Badge>}
           </Field>
           <Field label={t("lockDetail.beneficiary")} className="bg-card">
             <span className="font-mono">{shortAddress(lock.beneficiary)}</span>
+            <CopyButton text={lock.beneficiary} className="ml-1" />
             {isBeneficiary && <Badge className="ml-2">{t("common.you")}</Badge>}
           </Field>
         </div>

@@ -1,6 +1,6 @@
 #![no_std]
 use soroban_sdk::{
-    contract, contractimpl, contracttype, token, vec,
+    contract, contracterror, contractimpl, contracttype, token, vec,
     Address, Env, Symbol, Vec,
 };
 
@@ -12,6 +12,18 @@ pub enum DataKey {
     NextId,
     ByCreator(Address),
     ByBeneficiary(Address),
+}
+
+// ── Error types ───────────────────────────────────────────────────────────────
+
+#[contracterror]
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum ContractError {
+    AmountMustBePositive = 1,
+    UnlockMustBeFuture   = 2,
+    AlreadyWithdrawn     = 3,
+    StillLocked          = 4,
+    CanOnlyExtend        = 5,
 }
 
 // ── On-chain types ────────────────────────────────────────────────────────────
@@ -116,12 +128,16 @@ impl LpLocker {
         amount: i128,
         beneficiary: Address,
         unlock_at: u64,
-    ) -> u64 {
+    ) -> Result<u64, ContractError> {
         creator.require_auth();
 
-        assert!(amount > 0, "amount must be positive");
+        if amount <= 0 {
+            return Err(ContractError::AmountMustBePositive);
+        }
         let now = env.ledger().timestamp();
-        assert!(unlock_at > now, "unlock_at must be in the future");
+        if unlock_at <= now {
+            return Err(ContractError::UnlockMustBeFuture);
+        }
 
         token::Client::new(&env, &pool_share).transfer(
             &creator,
@@ -150,16 +166,20 @@ impl LpLocker {
         push_index(&env, DataKey::ByBeneficiary(beneficiary), id);
 
         env.events().publish((Symbol::new(&env, "lp_lock_created"),), id);
-        id
+        Ok(id)
     }
 
     /// Withdraw pool-share tokens. Callable by beneficiary after unlock_at.
-    pub fn withdraw(env: Env, id: u64) {
+    pub fn withdraw(env: Env, id: u64) -> Result<(), ContractError> {
         let mut lock = load_lock(&env, id);
         lock.beneficiary.require_auth();
 
-        assert!(!lock.withdrawn, "already withdrawn");
-        assert!(env.ledger().timestamp() >= lock.unlock_at, "still locked");
+        if lock.withdrawn {
+            return Err(ContractError::AlreadyWithdrawn);
+        }
+        if env.ledger().timestamp() < lock.unlock_at {
+            return Err(ContractError::StillLocked);
+        }
 
         token::Client::new(&env, &lock.pool_share).transfer(
             &env.current_contract_address(),
@@ -170,29 +190,37 @@ impl LpLocker {
         lock.withdrawn = true;
         save_lock(&env, &lock);
         env.events().publish((Symbol::new(&env, "lp_withdrawn"),), id);
+        Ok(())
     }
 
     /// Extend the unlock date. Creator only, can only increase.
-    pub fn extend(env: Env, id: u64, new_unlock_at: u64) {
+    pub fn extend(env: Env, id: u64, new_unlock_at: u64) -> Result<(), ContractError> {
         let mut lock = load_lock(&env, id);
         lock.creator.require_auth();
 
-        assert!(!lock.withdrawn, "already withdrawn");
-        assert!(new_unlock_at > lock.unlock_at, "can only extend, not shorten");
+        if lock.withdrawn {
+            return Err(ContractError::AlreadyWithdrawn);
+        }
+        if new_unlock_at <= lock.unlock_at {
+            return Err(ContractError::CanOnlyExtend);
+        }
 
         lock.unlock_at = new_unlock_at;
         lock.extended_count += 1;
 
         save_lock(&env, &lock);
         env.events().publish((Symbol::new(&env, "lp_extended"),), id);
+        Ok(())
     }
 
     /// Transfer the beneficiary role to a new address. Current beneficiary only.
-    pub fn transfer_beneficiary(env: Env, id: u64, new_beneficiary: Address) {
+    pub fn transfer_beneficiary(env: Env, id: u64, new_beneficiary: Address) -> Result<(), ContractError> {
         let mut lock = load_lock(&env, id);
         lock.beneficiary.require_auth();
 
-        assert!(!lock.withdrawn, "already withdrawn");
+        if lock.withdrawn {
+            return Err(ContractError::AlreadyWithdrawn);
+        }
 
         remove_from_index(&env, DataKey::ByBeneficiary(lock.beneficiary.clone()), id);
         push_index(&env, DataKey::ByBeneficiary(new_beneficiary.clone()), id);
@@ -201,6 +229,7 @@ impl LpLocker {
         save_lock(&env, &lock);
 
         env.events().publish((Symbol::new(&env, "beneficiary_transferred"),), id);
+        Ok(())
     }
 
     // ── Read methods ──────────────────────────────────────────────────────────

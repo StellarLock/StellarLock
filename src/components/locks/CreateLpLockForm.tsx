@@ -9,6 +9,7 @@ import { cn, formatDate } from "@/lib/utils"
 import { useWallet } from "@/hooks/useWallet"
 import { createLpLock } from "@/lib/lp-locker"
 import { trackEvent } from "@/lib/analytics"
+import { ConfirmLockModal } from "@/components/locks/ConfirmLockModal"
 
 const DAY = 86_400_000
 
@@ -24,6 +25,7 @@ export function CreateLpLockForm() {
   const [amount, setAmount] = useState("")
   const [unlockDate, setUnlockDate] = useState("")
   const [submitting, setSubmitting] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
 
   const dexes: { value: Dex; label: string; desc: string }[] = [
     { value: "aquarius", label: t("lpForm.aquarius"), desc: t("lpForm.aquariusDesc") },
@@ -53,6 +55,10 @@ export function CreateLpLockForm() {
   async function submit(e: FormEvent) {
     e.preventDefault()
     if (!valid) return
+    setShowConfirm(true)
+  }
+
+  async function confirmLock() {
     setSubmitting(true)
     try {
       const { id } = await createLpLock(
@@ -76,6 +82,7 @@ export function CreateLpLockForm() {
   }
 
   return (
+    <>
     <form onSubmit={submit} className="flex flex-col gap-5">
       <fieldset className="flex flex-col gap-2">
         <legend className="text-sm font-medium text-foreground">{t("lpForm.dex")}</legend>
@@ -204,5 +211,23 @@ export function CreateLpLockForm() {
         {t("lpForm.submit")}
       </Button>
     </form>
+
+    {showConfirm && (
+      <ConfirmLockModal
+        data={{
+          tokenAddress: poolShareAddress.trim(),
+          amount: amount,
+          beneficiary: address!,
+          unlockDate: unlockDate,
+          isLp: true,
+          dex: dex,
+          poolShareAddress: poolShareAddress.trim(),
+        }}
+        onConfirm={confirmLock}
+        onCancel={() => setShowConfirm(false)}
+        loading={submitting}
+      />
+    )}
+  </>
   )
 }

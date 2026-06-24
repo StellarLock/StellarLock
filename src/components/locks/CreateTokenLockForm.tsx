@@ -9,6 +9,7 @@ import { useTokenBalance } from "@/hooks/useLocks"
 import { createTokenLock } from "@/lib/token-locker"
 import { trackEvent } from "@/lib/analytics"
 import { formatDate } from "@/lib/utils"
+import { ConfirmLockModal } from "@/components/locks/ConfirmLockModal"
 
 const DAY = 86_400_000
 
@@ -24,6 +25,7 @@ export function CreateTokenLockForm() {
   const [vesting, setVesting] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showConfirm, setShowConfirm] = useState(false)
 
   const validTokenAddress = tokenAddress.trim().length === 56 && tokenAddress.trim().startsWith("C")
     ? tokenAddress.trim()
@@ -45,10 +47,14 @@ export function CreateTokenLockForm() {
     setUnlockDate(new Date(Date.now() + days * DAY).toISOString().slice(0, 10))
   }
 
-  async function submit(e: FormEvent) {
+  function submit(e: FormEvent) {
     e.preventDefault()
     if (!valid) return
     setError(null)
+    setShowConfirm(true)
+  }
+
+  async function confirmLock() {
     setSubmitting(true)
     try {
       const { id } = await createTokenLock(
@@ -68,6 +74,7 @@ export function CreateTokenLockForm() {
       navigate(`/app/lock/${id}`)
     } catch (err: unknown) {
       console.error("[createLock error]", err)
+      setShowConfirm(false)
       if (err instanceof Error) {
         setError(err.message)
       } else if (typeof err === "object" && err !== null) {
@@ -81,6 +88,7 @@ export function CreateTokenLockForm() {
   }
 
   return (
+    <>
     <form onSubmit={submit} className="flex flex-col gap-5">
       <div className="flex flex-col gap-2">
         <Label htmlFor="token">{t("tokenForm.tokenAddress")}</Label>
@@ -214,5 +222,21 @@ export function CreateTokenLockForm() {
         {t("tokenForm.submit")}
       </Button>
     </form>
+
+    {showConfirm && (
+      <ConfirmLockModal
+        data={{
+          tokenAddress: tokenAddress.trim(),
+          amount: amount,
+          beneficiary: beneficiary.trim() || address!,
+          unlockDate: unlockDate,
+          vesting,
+        }}
+        onConfirm={confirmLock}
+        onCancel={() => setShowConfirm(false)}
+        loading={submitting}
+      />
+    )}
+  </>
   )
 }
