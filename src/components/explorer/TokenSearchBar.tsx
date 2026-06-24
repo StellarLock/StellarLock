@@ -1,9 +1,8 @@
-import { useState, type FormEvent } from "react"
+﻿import { useState, type FormEvent } from "react"
 import { useNavigate } from "react-router-dom"
 import { Search } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/Button"
-import { TOKENS, findToken } from "@/lib/mock-data"
 import { trackEvent } from "@/lib/analytics"
 import { cn } from "@/lib/utils"
 
@@ -16,9 +15,8 @@ export function TokenSearchBar({ className, autoFocus }: { className?: string; a
     e.preventDefault()
     const value = query.trim()
     if (!value) return
-    const match = findToken(value)
     trackEvent("explorer_search")
-    navigate(`/explore/${match ? match.address : value}`)
+    navigate(`/explore/${value}`)
   }
 
   return (
@@ -40,21 +38,6 @@ export function TokenSearchBar({ className, autoFocus }: { className?: string; a
           {t("search.submit")}
         </Button>
       </form>
-
-      <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-        <span>{t("search.try")}</span>
-        {Object.values(TOKENS)
-          .slice(0, 3)
-          .map((tok) => (
-            <button
-              key={tok.symbol}
-              onClick={() => navigate(`/explore/${tok.address}`)}
-              className="rounded-full border border-border bg-secondary px-2.5 py-1 font-medium text-foreground transition-colors hover:border-primary/40 cursor-pointer"
-            >
-              {tok.symbol}
-            </button>
-          ))}
-      </div>
     </div>
   )
 }
