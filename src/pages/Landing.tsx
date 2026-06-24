@@ -15,13 +15,6 @@ import { TokenSearchBar } from "@/components/explorer/TokenSearchBar"
 import { Button } from "@/components/ui/Button"
 import { Badge } from "@/components/ui/Badge"
 import { Card } from "@/components/ui/Card"
-import { formatUsd } from "@/lib/utils"
-import { MOCK_LOCKS } from "@/lib/mock-data"
-
-const totalSecured = MOCK_LOCKS.filter((l) => l.status !== "withdrawn").reduce(
-  (s, l) => s + l.usdValue,
-  0,
-)
 
 export function Landing() {
   const { t } = useTranslation()
@@ -70,9 +63,7 @@ export function Landing() {
 
       {/* Stats strip */}
       <section className="border-y border-border bg-card/40">
-        <div className="mx-auto grid max-w-6xl grid-cols-2 gap-px px-4 sm:grid-cols-4">
-          <Stat label={t("landing.valueSecured")} value={formatUsd(totalSecured)} />
-          <Stat label={t("landing.activeLocks")} value={String(MOCK_LOCKS.filter((l) => l.status !== "withdrawn").length)} />
+        <div className="mx-auto grid max-w-6xl grid-cols-2 gap-px px-4">
           <Stat label={t("landing.supportedDexs")} value="2" hint={t("landing.dexHint")} />
           <Stat label={t("landing.network")} value={t("landing.networkValue")} hint={t("common.testnet")} />
         </div>
