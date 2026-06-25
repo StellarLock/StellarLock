@@ -130,6 +130,49 @@ export async function submitCall(
   }
 }
 
+// ── Cost estimation ───────────────────────────────────────────────────────────
+
+export interface LockCostEstimate {
+  networkFee: number  // in XLM
+  resourceFee: number // in XLM (storage deposit + compute)
+  total: number       // in XLM
+}
+
+export async function estimateLockCost(
+  contractId: string,
+  method: string,
+  args: xdr.ScVal[],
+): Promise<LockCostEstimate> {
+  const rpc = getRpc()
+
+  const dummySource = {
+    accountId: () => "GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN",
+    sequenceNumber: () => "0",
+    incrementSequenceNumber: () => {},
+  }
+
+  const contract = new Contract(contractId)
+  const tx = new TransactionBuilder(dummySource, {
+    fee: BASE_FEE,
+    networkPassphrase: NETWORK.passphrase,
+  })
+    .addOperation(contract.call(method, ...args))
+    .setTimeout(30)
+    .build()
+
+  const result = await rpc.simulateTransaction(tx)
+  if (import.meta.env.DEV) console.log("[estimateLockCost]", method, result)
+
+  if (SorobanRpc.Api.isSimulationError(result)) {
+    throw new Error(`Cost simulation failed: ${simError(result)}`)
+  }
+
+  const minResourceFee = Number((result as { minResourceFee?: string }).minResourceFee ?? "0")
+  const networkFee = Number(BASE_FEE) / 1e7
+  const resourceFee = minResourceFee / 1e7
+  return { networkFee, resourceFee, total: networkFee + resourceFee }
+}
+
 // ── Token helpers ────────────────────────────────────────────────────────────
 
 export async function getTokenBalance(tokenAddress: string, owner: string): Promise<number> {

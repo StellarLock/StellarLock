@@ -2,6 +2,7 @@ import { useMemo, useState, type FormEvent } from "react"
 import { useNavigate } from "react-router-dom"
 import { Droplets, Info } from "lucide-react"
 import { Trans, useTranslation } from "react-i18next"
+import { Address, nativeToScVal, xdr } from "@stellar/stellar-sdk"
 import type { Dex } from "@/types/lock"
 import { Input, Label } from "@/components/ui/Input"
 import { Button } from "@/components/ui/Button"
@@ -9,7 +10,9 @@ import { cn, formatDate } from "@/lib/utils"
 import { useWallet } from "@/hooks/useWallet"
 import { createLpLock } from "@/lib/lp-locker"
 import { trackEvent } from "@/lib/analytics"
+import { CONTRACTS } from "@/lib/stellar"
 import { ConfirmLockModal } from "@/components/locks/ConfirmLockModal"
+import { CostEstimate } from "@/components/locks/CostEstimate"
 
 const DAY = 86_400_000
 
@@ -47,6 +50,38 @@ export function CreateLpLockForm() {
     tokenB.trim().length > 4 &&
     Number(amount) > 0 &&
     unlockTs > Date.now()
+
+  // Build the contract args for cost estimation when form is sufficiently filled in
+  const costArgs = useMemo((): xdr.ScVal[] | null => {
+    try {
+      if (
+        !address ||
+        poolShareAddress.trim().length <= 4 ||
+        tokenA.trim().length <= 4 ||
+        tokenB.trim().length <= 4 ||
+        Number(amount) <= 0 ||
+        unlockTs <= Date.now()
+      ) {
+        return null
+      }
+      const amountStroops = BigInt(Math.round(Number(amount) * 1e7))
+      const dexScVal = xdr.ScVal.scvVec([
+        xdr.ScVal.scvSymbol(dex === "aquarius" ? "Aquarius" : "Soroswap"),
+      ])
+      return [
+        new Address(address).toScVal(),
+        new Address(poolShareAddress.trim()).toScVal(),
+        dexScVal,
+        new Address(tokenA.trim()).toScVal(),
+        new Address(tokenB.trim()).toScVal(),
+        nativeToScVal(amountStroops, { type: "i128" }),
+        new Address(address).toScVal(),
+        nativeToScVal(BigInt(Math.floor(unlockTs / 1000)), { type: "u64" }),
+      ]
+    } catch {
+      return null
+    }
+  }, [address, dex, poolShareAddress, tokenA, tokenB, amount, unlockTs])
 
   function applyPreset(days: number) {
     setUnlockDate(new Date(Date.now() + days * DAY).toISOString().slice(0, 10))
@@ -206,6 +241,12 @@ export function CreateLpLockForm() {
           )}
         </span>
       </div>
+
+      <CostEstimate
+        contractId={CONTRACTS.lpLocker}
+        method="create_lock"
+        args={costArgs}
+      />
 
       <Button type="submit" size="lg" loading={submitting} disabled={!valid}>
         <Droplets className="h-4 w-4" />
