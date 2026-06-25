@@ -18,7 +18,7 @@ export function LockCard({ lock }: { lock: Lock }) {
       <Card className="p-5 transition-colors hover:border-primary/40">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
-            <TokenAvatar symbol={lock.token.symbol} />
+            <TokenAvatar symbol={lock.token.symbol} contractId={lock.token.address} />
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <span className="font-semibold">{lock.token.symbol}</span>

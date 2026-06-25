@@ -46,7 +46,7 @@ export function Explorer() {
           {/* Header */}
           <div className="flex flex-col gap-6 rounded-2xl border border-border bg-card p-6 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-4">
-              <TokenAvatar symbol={data.token.symbol} size="lg" />
+              <TokenAvatar symbol={data.token.symbol} contractId={data.token.address} size="lg" showVerified />
               <div>
                 <div className="flex items-center gap-2">
                   <h1 className="text-2xl font-bold">{data.token.name}</h1>

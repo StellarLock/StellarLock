@@ -4,6 +4,7 @@ import { Lock, Wallet, LogOut, Menu, X } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useWallet } from "@/hooks/useWallet"
 import { Button } from "@/components/ui/Button"
+import { NotificationCenter } from "@/components/ui/NotificationCenter"
 import { shortAddress, cn } from "@/lib/utils"
 
 export function Navbar() {
@@ -55,7 +56,8 @@ export function Navbar() {
 
         <div className="flex items-center gap-2">
           {isConnected ? (
-            <div className="flex items-center gap-2">
+            <>
+              <NotificationCenter />
               <span className="hidden items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium sm:flex">
                 <span className="h-2 w-2 rounded-full bg-success" aria-hidden />
                 <span className="font-mono">{shortAddress(address!)}</span>
@@ -63,7 +65,7 @@ export function Navbar() {
               <Button variant="ghost" size="icon" onClick={disconnect} aria-label={t("nav.disconnectWallet")}>
                 <LogOut className="h-4 w-4" />
               </Button>
-            </div>
+            </>
           ) : (
             <Button onClick={connect} loading={connecting} className="hidden sm:inline-flex">
               <Wallet className="h-4 w-4" />

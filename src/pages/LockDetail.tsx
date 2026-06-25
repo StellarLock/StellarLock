@@ -173,7 +173,7 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
       <Card className="mt-4 overflow-hidden">
         <div className="flex flex-col gap-4 border-b border-border p-6 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
-            <TokenAvatar symbol={lock.token.symbol} size="lg" />
+            <TokenAvatar symbol={lock.token.symbol} contractId={lock.token.address} size="lg" showVerified />
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-2xl font-bold">{lock.token.symbol}</h1>
