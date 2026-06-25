@@ -26,12 +26,128 @@ export const CONTRACTS = {
 // Soroban transactions need a higher base fee than classic Stellar
 const SOROBAN_FEE = "1000000" // 0.1 XLM — covers resource fees
 
+const MAX_CONCURRENT = 5
+const MAX_RETRIES = 3
+const CACHE_TTL_MS = 10_000
+
 // ── RPC client ────────────────────────────────────────────────────────────────
 
-let _rpc: SorobanRpc.Server | null = null
+type SimulateArg = Parameters<SorobanRpc.Server["simulateTransaction"]>[0]
+
+class RpcClient {
+  private readonly server: SorobanRpc.Server
+  // In-flight deduplication: XDR key → promise
+  private readonly inflight = new Map<string, Promise<SorobanRpc.Api.SimulateTransactionResponse>>()
+  // Response cache: XDR key → { data, expiry }
+  private readonly cache = new Map<string, { data: SorobanRpc.Api.SimulateTransactionResponse; expiry: number }>()
+  private activeCount = 0
+  private readonly queue: Array<() => void> = []
+
+  constructor(rpcUrl: string) {
+    this.server = new SorobanRpc.Server(rpcUrl, { allowHttp: false })
+  }
+
+  getServer(): SorobanRpc.Server {
+    return this.server
+  }
+
+  private cacheKey(tx: SimulateArg): string {
+    return (tx as { toXDR(): string }).toXDR()
+  }
+
+  private async withConcurrencyLimit<T>(fn: () => Promise<T>): Promise<T> {
+    if (this.activeCount < MAX_CONCURRENT) {
+      this.activeCount++
+      try {
+        return await fn()
+      } finally {
+        this.activeCount--
+        const next = this.queue.shift()
+        if (next) next()
+      }
+    }
+    return new Promise<T>((resolve, reject) => {
+      this.queue.push(async () => {
+        this.activeCount++
+        try {
+          resolve(await fn())
+        } catch (e) {
+          reject(e)
+        } finally {
+          this.activeCount--
+          const next = this.queue.shift()
+          if (next) next()
+        }
+      })
+    })
+  }
+
+  private async retrySimulate(tx: SimulateArg): Promise<SorobanRpc.Api.SimulateTransactionResponse> {
+    let lastErr: unknown
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        return await this.withConcurrencyLimit(() => this.server.simulateTransaction(tx))
+      } catch (err) {
+        lastErr = err
+        if (attempt < MAX_RETRIES) {
+          await new Promise((r) => setTimeout(r, 1000 * 2 ** attempt))
+        }
+      }
+    }
+    throw lastErr
+  }
+
+  async simulate(tx: SimulateArg, cacheTtlMs = CACHE_TTL_MS): Promise<SorobanRpc.Api.SimulateTransactionResponse> {
+    const key = this.cacheKey(tx)
+
+    // Cache hit
+    const cached = this.cache.get(key)
+    if (cached && cached.expiry > Date.now()) {
+      return cached.data
+    }
+
+    // Dedup in-flight
+    const existing = this.inflight.get(key)
+    if (existing) return existing
+
+    const promise = this.retrySimulate(tx)
+      .then((data) => {
+        if (cacheTtlMs > 0) {
+          this.cache.set(key, { data, expiry: Date.now() + cacheTtlMs })
+        }
+        this.inflight.delete(key)
+        return data
+      })
+      .catch((err) => {
+        this.inflight.delete(key)
+        throw err
+      })
+
+    this.inflight.set(key, promise)
+    return promise
+  }
+
+  invalidateCache(): void {
+    this.cache.clear()
+    // In-flight requests are not cancelled; stale results will simply not be
+    // re-cached because the next simulate() call will miss a cold cache.
+  }
+}
+
+let _client: RpcClient | null = null
+function getClient(): RpcClient {
+  if (!_client) _client = new RpcClient(NETWORK.rpcUrl)
+  return _client
+}
+
+// Keep backward-compat export used elsewhere in the codebase
 export function getRpc(): SorobanRpc.Server {
-  if (!_rpc) _rpc = new SorobanRpc.Server(NETWORK.rpcUrl, { allowHttp: false })
-  return _rpc
+  return getClient().getServer()
+}
+
+// Invalidate read cache after mutations (create, withdraw, extend)
+export function invalidateRpcCache(): void {
+  getClient().invalidateCache()
 }
 
 function simError(result: unknown): string {
@@ -46,7 +162,7 @@ function simError(result: unknown): string {
 // ── Simulate (read-only) ──────────────────────────────────────────────────────
 
 export async function simulateCall<T>(contractId: string, method: string, args: xdr.ScVal[]): Promise<T> {
-  const rpc = getRpc()
+  const client = getClient()
 
   const dummySource = {
     accountId: () => "GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN",
@@ -63,7 +179,7 @@ export async function simulateCall<T>(contractId: string, method: string, args: 
     .setTimeout(30)
     .build()
 
-  const result = await rpc.simulateTransaction(tx)
+  const result = await client.simulate(tx)
   if (import.meta.env.DEV) console.log("[simulateCall]", method, result)
 
   if (SorobanRpc.Api.isSimulationError(result)) {
@@ -113,6 +229,9 @@ export async function submitCall(
   if (sendResult.status === "ERROR") {
     throw new Error(`Send error: ${sendResult.errorResult?.toXDR("base64") ?? "unknown"}`)
   }
+
+  // Invalidate read cache now that a mutation has been submitted successfully
+  invalidateRpcCache()
 
   const MAX_POLL_ATTEMPTS = 40
   let getResult = await rpc.getTransaction(sendResult.hash)
