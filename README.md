@@ -119,6 +119,10 @@ Same shape as Token Locker, minus vesting, plus `dex`, `token_a`, `token_b` fiel
 | ![Create](create.png) | ![Explorer](explorer.png) |
 | ![My Locks](mylocks.png) | ![Detail](detail.png) |
 
+## Security
+
+Found a security vulnerability? Please read our [Security Policy](SECURITY.md) before reporting. Do not open public issues for security vulnerabilities.
+
 ## License
 
 MIT
