@@ -1,6 +1,6 @@
 import { Address, nativeToScVal, xdr } from "@stellar/stellar-sdk"
 import type { Lock, TokenLockSummary } from "@/types/lock"
-import { CONTRACTS, simulateCall, submitCall } from "@/lib/stellar"
+import { CONTRACTS, simulateCall, submitCall, STELLAR_DECIMALS } from "@/lib/stellar"
 
 export interface CreateTokenLockArgs {
   tokenAddress: string
@@ -30,7 +30,7 @@ function toLock(raw: Record<string, unknown>): Lock {
     },
     creator: raw.creator as string,
     beneficiary: raw.beneficiary as string,
-    amount: Number(raw.amount) / 1e7,
+    amount: Number(raw.amount) / STELLAR_DECIMALS,
     usdValue: 0, // computed client-side if needed
     createdAt: Number(raw.created_at) * 1000,
     unlockAt: Number(raw.unlock_at) * 1000,
@@ -39,7 +39,7 @@ function toLock(raw: Record<string, unknown>): Lock {
       ? {
           start: Number(vestingRaw.start) * 1000,
           end: Number(vestingRaw.end) * 1000,
-          released: Number(vestingRaw.released) / 1e7,
+          released: Number(vestingRaw.released) / STELLAR_DECIMALS,
         }
       : undefined,
   }
@@ -134,7 +134,7 @@ export async function createTokenLock(
   signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>,
 ): Promise<{ id: string }> {
   const unlockAtSecs = Math.floor(args.unlockAt)
-  const amountStroops = BigInt(Math.round(args.amount * 1e7))
+  const amountStroops = BigInt(Math.round(args.amount * STELLAR_DECIMALS))
 
   const scArgs: xdr.ScVal[] = [
     addressArg(sourceAddress),

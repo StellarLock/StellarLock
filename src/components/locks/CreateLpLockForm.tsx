@@ -5,7 +5,7 @@ import { Trans, useTranslation } from "react-i18next"
 import type { Dex } from "@/types/lock"
 import { Input, Label } from "@/components/ui/Input"
 import { Button } from "@/components/ui/Button"
-import { cn, formatDate } from "@/lib/utils"
+import { cn, formatDate, isValidStellarAddress } from "@/lib/utils"
 import { useWallet } from "@/hooks/useWallet"
 import { createLpLock } from "@/lib/lp-locker"
 import { trackEvent } from "@/lib/analytics"
@@ -42,9 +42,9 @@ export function CreateLpLockForm() {
   const minDate = useMemo(() => new Date(Date.now() + DAY).toISOString().slice(0, 10), [])
   const unlockTs = unlockDate ? new Date(unlockDate).getTime() : 0
   const valid =
-    poolShareAddress.trim().length > 4 &&
-    tokenA.trim().length > 4 &&
-    tokenB.trim().length > 4 &&
+    isValidStellarAddress(poolShareAddress.trim()) &&
+    isValidStellarAddress(tokenA.trim()) &&
+    isValidStellarAddress(tokenB.trim()) &&
     Number(amount) > 0 &&
     unlockTs > Date.now()
 

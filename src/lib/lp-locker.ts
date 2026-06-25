@@ -1,6 +1,6 @@
 import { Address, nativeToScVal, xdr } from "@stellar/stellar-sdk"
 import type { Dex, Lock } from "@/types/lock"
-import { CONTRACTS, simulateCall, submitCall } from "@/lib/stellar"
+import { CONTRACTS, simulateCall, submitCall, STELLAR_DECIMALS } from "@/lib/stellar"
 
 export interface CreateLpLockArgs {
   poolShareAddress: string
@@ -57,7 +57,7 @@ function toLpLock(raw: Record<string, unknown>): Lock {
     poolPair: [tokenA, tokenB],
     creator: raw.creator as string,
     beneficiary: raw.beneficiary as string,
-    amount: Number(raw.amount) / 1e7,
+    amount: Number(raw.amount) / STELLAR_DECIMALS,
     usdValue: 0,
     createdAt: Number(raw.created_at) * 1000,
     unlockAt: Number(raw.unlock_at) * 1000,
@@ -112,7 +112,7 @@ export async function createLpLock(
     dexArg(args.dex),
     addressArg(args.tokenA),
     addressArg(args.tokenB),
-    nativeToScVal(BigInt(Math.round(args.amount * 1e7)), { type: "i128" }),
+    nativeToScVal(BigInt(Math.round(args.amount * STELLAR_DECIMALS)), { type: "i128" }),
     addressArg(args.beneficiary),
     nativeToScVal(BigInt(Math.floor(args.unlockAt)), { type: "u64" }),
   ]

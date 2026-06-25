@@ -26,6 +26,9 @@ export const CONTRACTS = {
 // Soroban transactions need a higher base fee than classic Stellar
 const SOROBAN_FEE = "1000000" // 0.1 XLM — covers resource fees
 
+export const STELLAR_DECIMALS = 1e7 // Stellar tokens use 7 decimal places
+const POLL_INTERVAL_MS = 1500
+
 // ── RPC client ────────────────────────────────────────────────────────────────
 
 let _rpc: SorobanRpc.Server | null = null
@@ -120,7 +123,7 @@ export async function submitCall(
     if (attempts >= MAX_POLL_ATTEMPTS) {
       throw new Error(`Transaction ${sendResult.hash} not found after ${MAX_POLL_ATTEMPTS} attempts (~60s)`)
     }
-    await new Promise((r) => setTimeout(r, 1500))
+    await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS))
     getResult = await rpc.getTransaction(sendResult.hash)
   }
   if (import.meta.env.DEV) console.log("[submitCall result]", getResult)
@@ -134,7 +137,7 @@ export async function submitCall(
 
 export async function getTokenBalance(tokenAddress: string, owner: string): Promise<number> {
   const raw = await simulateCall<bigint>(tokenAddress, "balance", [new Address(owner).toScVal()])
-  return Number(raw ?? 0n) / 1e7
+  return Number(raw ?? 0n) / STELLAR_DECIMALS
 }
 
 // ── Utils ─────────────────────────────────────────────────────────────────────
