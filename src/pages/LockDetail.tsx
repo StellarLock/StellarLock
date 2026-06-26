@@ -19,6 +19,7 @@ import { CopyButton } from "@/components/ui/CopyButton"
 import { CountdownTimer } from "@/components/ui/CountdownTimer"
 import { LockProgressBar } from "@/components/ui/LockProgressBar"
 import { NotificationSettings } from "@/components/locks/NotificationSettings"
+import { SkeletonLockDetail } from "@/components/ui/Skeleton"
 import { formatAmount, formatUsd, formatDateTime, shortAddress } from "@/lib/utils"
 import type { Lock } from "@/types/lock"
 
@@ -30,8 +31,15 @@ export function LockDetail() {
   if (loading) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-10 md:px-6">
-        <div className="h-8 w-32 animate-pulse rounded bg-card" />
-        <div className="mt-6 h-96 animate-pulse rounded-xl border border-border bg-card/50" />
+        <Link to="/app/locks">
+          <Button variant="ghost" size="sm">
+            <ArrowLeft className="h-4 w-4" />
+            {t("lockDetail.backToLocks")}
+          </Button>
+        </Link>
+        <div className="mt-6">
+          <SkeletonLockDetail />
+        </div>
       </div>
     )
   }

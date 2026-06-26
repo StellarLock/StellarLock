@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/Button"
 import { StatCard } from "@/components/ui/StatCard"
 import { LockCard } from "@/components/locks/LockCard"
 import { ConnectGate } from "@/components/layout/ConnectGate"
+import { SkeletonLockCard, SkeletonStatCard } from "@/components/ui/Skeleton"
 import { formatUsd } from "@/lib/utils"
 import type { Lock, LockStatus } from "@/types/lock"
 
@@ -74,17 +75,27 @@ export function MyLocks() {
         </header>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-3">
-          <StatCard
-            label={t("myLocks.locksCreated")}
-            value={String(stats.count)}
-            icon={<Layers className="h-4 w-4" />}
-          />
-          <StatCard label={t("myLocks.totalValueLocked")} value={formatUsd(stats.totalValue)} />
-          <StatCard
-            label={t("myLocks.readyToWithdraw")}
-            value={String(stats.unlockable)}
-            hint={stats.unlockable > 0 ? t("myLocks.actionAvailable") : t("myLocks.nothingUnlocked")}
-          />
+          {loading ? (
+            <>
+              <SkeletonStatCard />
+              <SkeletonStatCard />
+              <SkeletonStatCard />
+            </>
+          ) : (
+            <>
+              <StatCard
+                label={t("myLocks.locksCreated")}
+                value={String(stats.count)}
+                icon={<Layers className="h-4 w-4" />}
+              />
+              <StatCard label={t("myLocks.totalValueLocked")} value={formatUsd(stats.totalValue)} />
+              <StatCard
+                label={t("myLocks.readyToWithdraw")}
+                value={String(stats.unlockable)}
+                hint={stats.unlockable > 0 ? t("myLocks.actionAvailable") : t("myLocks.nothingUnlocked")}
+              />
+            </>
+          )}
         </div>
 
         <div className="mt-8">
@@ -173,7 +184,7 @@ function LockGrid({
     return (
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="h-52 animate-pulse rounded-xl border border-border bg-card/50" />
+          <SkeletonLockCard key={i} />
         ))}
       </div>
     )
