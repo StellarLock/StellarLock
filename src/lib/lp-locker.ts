@@ -9,7 +9,28 @@ export interface CreateLpLockArgs {
   tokenB: string
   amount: number
   beneficiary: string
-  unlockAt: number // unix seconds
+  unlockAt: number
+}
+
+export async function submitTokenApproval(
+  tokenAddress: string,
+  owner: string,
+  spender: string,
+  amount: number,
+  sourceAddress: string,
+  signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>,
+): Promise<void> {
+  const amountStroops = BigInt(Math.round(amount * 1e7))
+  const expirationLedger = 0
+
+  const scArgs: xdr.ScVal[] = [
+    new Address(owner).toScVal(),
+    new Address(spender).toScVal(),
+    nativeToScVal(amountStroops, { type: "i128" }),
+    nativeToScVal(expirationLedger, { type: "u32" }),
+  ]
+
+  await submitCall(tokenAddress, "approve", scArgs, sourceAddress, signTransaction)
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

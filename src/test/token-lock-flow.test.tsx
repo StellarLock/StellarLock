@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event"
 import { render } from "./utils"
 import { CreateTokenLockForm } from "@/components/locks/CreateTokenLockForm"
 import { mockWallet, mockLock } from "./mocks"
+import { useTokenAllowance } from "@/hooks/useLocks"
 
 // Mock the wallet context
 vi.mock("@/hooks/useWallet", () => ({
@@ -12,13 +13,22 @@ vi.mock("@/hooks/useWallet", () => ({
 }))
 
 // Mock the API calls
-vi.mock("@/lib/token-locker", () => ({
-  createTokenLock: vi.fn().mockResolvedValue({ id: "1" }),
-}))
+vi.mock("@/lib/token-locker", async (importOriginal) => {
+  const actual = await importOriginal()
+  return {
+    ...actual,
+    createTokenLock: vi.fn().mockResolvedValue({ id: "1" }),
+    submitTokenApproval: vi.fn().mockResolvedValue(undefined),
+  }
+})
 
 vi.mock("@/hooks/useLocks", () => ({
   useTokenBalance: () => ({
     data: 5000,
+    loading: false,
+  }),
+  useTokenAllowance: () => ({
+    data: 10000,
     loading: false,
   }),
 }))
@@ -26,6 +36,15 @@ vi.mock("@/hooks/useLocks", () => ({
 vi.mock("@/lib/analytics", () => ({
   trackEvent: vi.fn(),
 }))
+
+vi.mock("@/lib/token-locker", async (importOriginal) => {
+  const actual = await importOriginal()
+  return {
+    ...actual,
+    createTokenLock: vi.fn().mockResolvedValue({ id: "1" }),
+    submitTokenApproval: vi.fn().mockResolvedValue(undefined),
+  }
+})
 
 describe("Token Lock Creation Flow", () => {
   beforeEach(() => {
@@ -242,5 +261,103 @@ describe("Token Lock Creation Flow", () => {
     await waitFor(() => {
       expect(screen.getByText(/user rejected/i)).toBeInTheDocument()
     })
+  })
+
+  it("should show approve button when allowance is insufficient", async () => {
+    vi.mocked(useTokenAllowance).mockReturnValueOnce({
+      data: 50,
+      loading: false,
+      error: null,
+      reload: vi.fn(),
+    })
+
+    const user = userEvent.setup()
+    render(<CreateTokenLockForm />)
+
+    const tokenInput = screen.getByPlaceholderText(/token/i)
+    const amountInputs = screen.getAllByDisplayValue("")
+    const amountInput = amountInputs[0]
+    const dateInput = screen.getByLabelText(/unlock date/i) as HTMLInputElement
+
+    await user.type(tokenInput, "CBVOBNRDOMUMERKKXKYY3NHE4HHE4AQIZVMWUNUZKXNQPQHCSIKUBVJZ")
+    await user.type(amountInput, "100")
+
+    const futureDate = new Date()
+    futureDate.setDate(futureDate.getDate() + 30)
+    const dateStr = futureDate.toISOString().split("T")[0]
+    await user.type(dateInput, dateStr)
+
+    const submitButton = screen.getByRole("button", { name: /lock tokens/i })
+    await user.click(submitButton)
+
+    await waitFor(() => {
+      expect(screen.getByText(/approve & continue/i)).toBeInTheDocument()
+    })
+  })
+
+  it("should handle approval flow before creating lock", async () => {
+    const { submitTokenApproval } = await import("@/lib/token-locker")
+    vi.mocked(submitTokenApproval).mockResolvedValueOnce(undefined)
+
+    const user = userEvent.setup()
+    render(<CreateTokenLockForm />)
+
+    const tokenInput = screen.getByPlaceholderText(/token/i)
+    const amountInputs = screen.getAllByDisplayValue("")
+    const amountInput = amountInputs[0]
+    const dateInput = screen.getByLabelText(/unlock date/i) as HTMLInputElement
+
+    await user.type(tokenInput, "CBVOBNRDOMUMERKKXKYY3NHE4HHE4AQIZVMWUNUZKXNQPQHCSIKUBVJZ")
+    await user.type(amountInput, "100")
+
+    const futureDate = new Date()
+    futureDate.setDate(futureDate.getDate() + 30)
+    const dateStr = futureDate.toISOString().split("T")[0]
+    await user.type(dateInput, dateStr)
+
+    const submitButton = screen.getByRole("button", { name: /lock tokens/i })
+    await user.click(submitButton)
+
+    const approveButton = await screen.findByRole("button", { name: /approve & continue/i })
+    await user.click(approveButton)
+
+    await waitFor(() => {
+      expect(submitTokenApproval).toHaveBeenCalled()
+    })
+  })
+
+  it("should show insufficient balance error when balance < amount", async () => {
+    vi.mocked(useTokenBalance).mockReturnValueOnce({
+      data: 50,
+      loading: false,
+      error: null,
+      reload: vi.fn(),
+    })
+
+    const user = userEvent.setup()
+    render(<CreateTokenLockForm />)
+
+    const tokenInput = screen.getByPlaceholderText(/token/i)
+    const amountInputs = screen.getAllByDisplayValue("")
+    const amountInput = amountInputs[0]
+    const dateInput = screen.getByLabelText(/unlock date/i) as HTMLInputElement
+
+    await user.type(tokenInput, "CBVOBNRDOMUMERKKXKYY3NHE4HHE4AQIZVMWUNUZKXNQPQHCSIKUBVJZ")
+    await user.type(amountInput, "100")
+
+    const futureDate = new Date()
+    futureDate.setDate(futureDate.getDate() + 30)
+    const dateStr = futureDate.toISOString().split("T")[0]
+    await user.type(dateInput, dateStr)
+
+    const submitButton = screen.getByRole("button", { name: /lock tokens/i })
+    await user.click(submitButton)
+
+    await waitFor(() => {
+      expect(screen.getByText(/insufficient balance/i)).toBeInTheDocument()
+    })
+
+    const confirmButton = screen.getByRole("button", { name: /insufficient balance/i })
+    expect(confirmButton).toBeDisabled()
   })
 })

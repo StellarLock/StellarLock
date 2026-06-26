@@ -74,7 +74,11 @@
     "days30": "30 gün",
     "days90": "90 gün",
     "months6": "6 ay",
-    "year1": "1 yıl"
+    "year1": "1 yıl",
+    "insufficientBalance": "Yetersiz bakiye. {{balance}} var ama {{amount}} gerekli.",
+    "needsApproval": "Kilitlemeden önce sözleşmenin tokenlerinizi transfer etmesine izin vermeniz gerekiyor.",
+    "approveAndContinue": "Onayla ve Devam Et",
+    "approving": "Onaylanıyor…"
   },
   "lpForm": {
     "dex": "DEX",
@@ -95,7 +99,11 @@
     "days90": "90 gün",
     "months6": "6 ay",
     "year1": "1 yıl",
-    "years2": "2 yıl"
+    "years2": "2 yıl",
+    "insufficientBalance": "Yetersiz bakiye. {{balance}} var ama {{amount}} gerekli.",
+    "needsApproval": "Kilitlemeden önce sözleşmenin LP tokenlerinizi transfer etmesine izin vermeniz gerekiyor.",
+    "approveAndContinue": "Onayla ve Devam Et",
+    "approving": "Onaylanıyor…"
   },
   "myLocks": {
     "title": "Kilitlerim",

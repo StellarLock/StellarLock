@@ -1,5 +1,5 @@
 import { useAsync } from "@/hooks/useAsync"
-import { getTokenBalance } from "@/lib/stellar"
+import { getTokenBalance, getTokenAllowance } from "@/lib/stellar"
 import {
   getLock,
   getLocksByToken,
@@ -66,5 +66,20 @@ export function useTokenBalance(tokenAddress: string | undefined, owner: string 
   return useAsync(
     () => (tokenAddress && owner ? getTokenBalance(tokenAddress, owner) : Promise.resolve(null)),
     [tokenAddress, owner],
+  )
+}
+
+/** Fetch a user's allowance for a specific token contract and spender. */
+export function useTokenAllowance(
+  tokenAddress: string | undefined,
+  owner: string | null,
+  spender: string | undefined,
+) {
+  return useAsync(
+    () =>
+      tokenAddress && owner && spender
+        ? getTokenAllowance(tokenAddress, owner, spender)
+        : Promise.resolve(null),
+    [tokenAddress, owner, spender],
   )
 }

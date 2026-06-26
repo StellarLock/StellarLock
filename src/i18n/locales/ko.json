@@ -56,7 +56,7 @@
     "tabToken": "토큰 잠금",
     "tabLp": "LP 잠금"
   },
-  "tokenForm": {
+"tokenForm": {
     "tokenAddress": "토큰 컨트랙트 주소",
     "tokenPlaceholder": "C… (Soroban 토큰 컨트랙트)",
     "tokenHint": "잠그려는 토큰의 Soroban 컨트랙트 주소입니다.",
@@ -69,9 +69,9 @@
     "vestingTemplate": "베스팅 일정",
     "vestingTemplateHint": "미리 설정된 베스팅 일정을 선택하거나 맞춤형 잠금 해제 날짜를 설정하세요.",
     "vestingTemplateCustom": "맞춤형",
-    "vestingTemplateLinear6m": "6개월 선형",
-    "vestingTemplateLinear1y": "1년 선형",
-    "vestingTemplateLinear2y": "2년 선형",
+    "vestingTemplateLinear6m": "6 개월 선형",
+    "vestingTemplateLinear1y": "1 년 선형",
+    "vestingTemplateLinear2y": "2 년 선형",
     "vestingTemplateQuarterly": "분기별 (25% 분기)",
     "vestingStart": "베스팅 시작",
     "vestingEnd": "베스팅 종료",
@@ -80,12 +80,16 @@
     "balance": "잔액",
     "max": "최대",
     "submit": "토큰 잠금",
-    "days30": "30일",
-    "days90": "90일",
-    "months6": "6개월",
-    "year1": "1년"
+    "days30": "30 일",
+    "days90": "90 일",
+    "months6": "6 개월",
+    "year1": "1 년",
+    "insufficientBalance": "잔액이 부족합니다. {{balance}}이 있지만 {{amount}}이 필요합니다.",
+    "needsApproval": "잠그기 전에 컨트랙트가 토큰을 이체할 수 있도록 승인해야 합니다.",
+    "approveAndContinue": "승인 및 계속",
+    "approving": "승인 중…"
   },
-  "lpForm": {
+"lpForm": {
     "dex": "DEX",
     "aquarius": "Aquarius",
     "aquariusDesc": "AMM 및 SDEX 풀",
@@ -101,10 +105,14 @@
     "lockInfo": "LP 점유율을 잠그면 트레이더에게 유동성 바닥이 보호됨을 알립니다.",
     "liquidityUnlockOn": "유동성은 <1>{{date}}</1>에 잠금 해제됩니다.",
     "submit": "유동성 잠금",
-    "days90": "90일",
-    "months6": "6개월",
-    "year1": "1년",
-    "years2": "2년"
+    "days90": "90 일",
+    "months6": "6 개월",
+    "year1": "1 년",
+    "years2": "2 년",
+    "insufficientBalance": "잔액이 부족합니다. {{balance}}이 있지만 {{amount}}이 필요합니다.",
+    "needsApproval": "잠그기 전에 컨트랙트가 LP 토큰을 이체할 수 있도록 승인해야 합니다.",
+    "approveAndContinue": "승인 및 계속",
+    "approving": "승인 중…"
   },
   "myLocks": {
     "title": "내 잠금",

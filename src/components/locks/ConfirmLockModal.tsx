@@ -1,4 +1,4 @@
-import { AlertTriangle, Lock } from "lucide-react"
+import { AlertTriangle, Lock, CheckCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/Button"
 import { formatDate, shortAddress } from "@/lib/utils"
 
@@ -6,9 +6,11 @@ export interface LockConfirmData {
   tokenAddress: string
   amount: string
   beneficiary: string
-  unlockDate: string // ISO date string e.g. "2025-01-01"
+  unlockDate: string
   vesting?: boolean
-  // LP-specific
+  balance?: number | null
+  allowance?: number | null
+  needsApproval?: boolean
   isLp?: boolean
   dex?: string
   poolShareAddress?: string
@@ -17,12 +19,25 @@ export interface LockConfirmData {
 interface ConfirmLockModalProps {
   data: LockConfirmData
   onConfirm: () => void
+  onApprove?: () => void
   onCancel: () => void
   loading?: boolean
+  approving?: boolean
 }
 
-export function ConfirmLockModal({ data, onConfirm, onCancel, loading }: ConfirmLockModalProps) {
+export function ConfirmLockModal({
+  data,
+  onConfirm,
+  onApprove,
+  onCancel,
+  loading,
+  approving,
+}: ConfirmLockModalProps) {
   const unlockTs = new Date(data.unlockDate).getTime()
+  const amount = Number(data.amount)
+  const hasInsufficientBalance =
+    data.balance != null && data.balance < amount
+  const needsApproval = data.needsApproval || (data.allowance != null && data.allowance < amount)
 
   return (
     <div
@@ -54,7 +69,55 @@ export function ConfirmLockModal({ data, onConfirm, onCancel, loading }: Confirm
           {data.vesting && (
             <Row label="Vesting" value={<span className="text-primary">Linear vesting enabled</span>} />
           )}
+          {data.balance != null && (
+            <Row
+              label="Your balance"
+              value={
+                <span className={hasInsufficientBalance ? "text-destructive" : "text-foreground"}>
+                  {data.balance.toLocaleString(undefined, { maximumFractionDigits: 7 })}
+                </span>
+              }
+            />
+          )}
+          {data.allowance != null && (
+            <Row
+              label="Current allowance"
+              value={
+                <span className={needsApproval ? "text-destructive" : "text-foreground"}>
+                  {data.allowance.toLocaleString(undefined, { maximumFractionDigits: 7 })}
+                </span>
+              }
+            />
+          )}
         </dl>
+
+        {hasInsufficientBalance && (
+          <div className="mx-5 mb-5 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive-foreground">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>
+                <strong>Insufficient balance.</strong> You have{" "}
+                <span className="font-medium">{data.balance?.toLocaleString(undefined, { maximumFractionDigits: 7 })}</span>{" "}
+                but are trying to lock{" "}
+                <span className="font-medium">{amount.toLocaleString(undefined, { maximumFractionDigits: 7 })}</span>.
+              </span>
+            </div>
+          </div>
+        )}
+
+        {needsApproval && !hasInsufficientBalance && (
+          <div className="mx-5 mb-5 rounded-lg border border-primary/40 bg-primary/10 p-3 text-sm">
+            <div className="flex items-start gap-2">
+              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+              <div className="flex-1">
+                <p className="font-medium text-foreground">Approval required</p>
+                <p className="mt-1 text-muted-foreground">
+                  You need to approve the contract to transfer your tokens before locking. This is a one-time setup per token.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="flex items-start gap-2 mx-5 mb-5 rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm text-warning-foreground">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
@@ -64,13 +127,24 @@ export function ConfirmLockModal({ data, onConfirm, onCancel, loading }: Confirm
         </div>
 
         <div className="flex gap-3 border-t border-border p-5">
-          <Button variant="outline" className="flex-1" onClick={onCancel} disabled={loading}>
+          <Button variant="outline" className="flex-1" onClick={onCancel} disabled={loading || approving}>
             Cancel
           </Button>
-          <Button className="flex-1" onClick={onConfirm} loading={loading}>
-            <Lock className="h-4 w-4" />
-            Confirm & Lock
-          </Button>
+          {hasInsufficientBalance ? (
+            <Button className="flex-1" disabled>
+              Insufficient Balance
+            </Button>
+          ) : needsApproval && onApprove ? (
+            <Button className="flex-1" onClick={onApprove} loading={approving}>
+              <CheckCircle2 className="h-4 w-4" />
+              {approving ? "Approving..." : "Approve & Continue"}
+            </Button>
+          ) : (
+            <Button className="flex-1" onClick={onConfirm} loading={loading}>
+              <Lock className="h-4 w-4" />
+              Confirm & Lock
+            </Button>
+          )}
         </div>
       </div>
     </div>

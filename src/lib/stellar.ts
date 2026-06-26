@@ -5,6 +5,7 @@ import {
   rpc as SorobanRpc,
   TransactionBuilder,
   BASE_FEE,
+  nativeToScVal,
   scValToNative,
   xdr,
 } from "@stellar/stellar-sdk"
@@ -135,6 +136,39 @@ export async function submitCall(
 export async function getTokenBalance(tokenAddress: string, owner: string): Promise<number> {
   const raw = await simulateCall<bigint>(tokenAddress, "balance", [new Address(owner).toScVal()])
   return Number(raw ?? 0n) / 1e7
+}
+
+export async function getTokenAllowance(
+  tokenAddress: string,
+  owner: string,
+  spender: string,
+): Promise<number> {
+  const raw = await simulateCall<bigint>(tokenAddress, "allowance", [
+    new Address(owner).toScVal(),
+    new Address(spender).toScVal(),
+  ])
+  return Number(raw ?? 0n) / 1e7
+}
+
+export async function submitTokenApproval(
+  tokenAddress: string,
+  owner: string,
+  spender: string,
+  amount: number,
+  sourceAddress: string,
+  signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>,
+): Promise<void> {
+  const amountStroops = BigInt(Math.round(amount * 1e7))
+  const expirationLedger = 0
+
+  const scArgs: xdr.ScVal[] = [
+    new Address(owner).toScVal(),
+    new Address(spender).toScVal(),
+    nativeToScVal(amountStroops, { type: "i128" }),
+    nativeToScVal(expirationLedger, { type: "u32" }),
+  ]
+
+  await submitCall(tokenAddress, "approve", scArgs, sourceAddress, signTransaction)
 }
 
 // ── Utils ─────────────────────────────────────────────────────────────────────

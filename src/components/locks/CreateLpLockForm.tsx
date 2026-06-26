@@ -1,13 +1,15 @@
 import { useMemo, useState, type FormEvent } from "react"
 import { useNavigate } from "react-router-dom"
-import { Droplets, Info } from "lucide-react"
+import { Droplets, Info, Loader2 } from "lucide-react"
 import { Trans, useTranslation } from "react-i18next"
 import type { Dex } from "@/types/lock"
 import { Input, Label } from "@/components/ui/Input"
 import { Button } from "@/components/ui/Button"
 import { cn, formatDate } from "@/lib/utils"
 import { useWallet } from "@/hooks/useWallet"
-import { createLpLock } from "@/lib/lp-locker"
+import { useTokenBalance, useTokenAllowance } from "@/hooks/useLocks"
+import { createLpLock, submitTokenApproval } from "@/lib/lp-locker"
+import { CONTRACTS } from "@/lib/stellar"
 import { trackEvent } from "@/lib/analytics"
 import { ConfirmLockModal } from "@/components/locks/ConfirmLockModal"
 
@@ -25,6 +27,7 @@ export function CreateLpLockForm() {
   const [amount, setAmount] = useState("")
   const [unlockDate, setUnlockDate] = useState("")
   const [submitting, setSubmitting] = useState(false)
+  const [approving, setApproving] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
 
   const dexes: { value: Dex; label: string; desc: string }[] = [
@@ -47,6 +50,17 @@ export function CreateLpLockForm() {
     tokenB.trim().length > 4 &&
     Number(amount) > 0 &&
     unlockTs > Date.now()
+
+  const validPoolShareAddress =
+    poolShareAddress.trim().length === 56 && poolShareAddress.trim().startsWith("C")
+      ? poolShareAddress.trim()
+      : undefined
+  const { data: balance, loading: balanceLoading } = useTokenBalance(validPoolShareAddress, address ?? null)
+  const { data: allowance, loading: allowanceLoading } = useTokenAllowance(
+    validPoolShareAddress,
+    address ?? null,
+    CONTRACTS.lpLocker,
+  )
 
   function applyPreset(days: number) {
     setUnlockDate(new Date(Date.now() + days * DAY).toISOString().slice(0, 10))
@@ -78,6 +92,25 @@ export function CreateLpLockForm() {
       navigate(`/app/lock/${id}`)
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  async function handleApprove() {
+    setApproving(true)
+    try {
+      await submitTokenApproval(
+        poolShareAddress.trim(),
+        address!,
+        CONTRACTS.lpLocker,
+        Number(amount),
+        address!,
+        signTransaction,
+      )
+      trackEvent("token_approve")
+    } catch (err: unknown) {
+      console.error("[approve error]", err)
+    } finally {
+      setApproving(false)
     }
   }
 
@@ -153,16 +186,39 @@ export function CreateLpLockForm() {
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="lp-amount">{t("lpForm.amount")}</Label>
-        <Input
-          id="lp-amount"
-          type="number"
-          inputMode="decimal"
-          min="0"
-          step="any"
-          placeholder="0.00"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-        />
+        <div className="flex gap-2">
+          <Input
+            id="lp-amount"
+            type="number"
+            inputMode="decimal"
+            min="0"
+            step="any"
+            placeholder="0.00"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            className="flex-1"
+          />
+          {validPoolShareAddress && balance != null && balance > 0 && (
+            <button
+              type="button"
+              onClick={() => setAmount(String(balance))}
+              className="rounded-lg border border-border bg-secondary px-3 py-2 text-xs font-medium transition-colors hover:border-primary/40 cursor-pointer"
+            >
+              Max
+            </button>
+          )}
+        </div>
+        {validPoolShareAddress && (
+          <span className="flex items-center gap-1 text-xs text-muted-foreground">
+            {balanceLoading || allowanceLoading ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : balance != null ? (
+              <>
+                Balance: {balance.toLocaleString(undefined, { maximumFractionDigits: 7 })}
+              </>
+            ) : null}
+          </span>
+        )}
       </div>
 
       <div className="flex flex-col gap-2">
@@ -223,10 +279,15 @@ export function CreateLpLockForm() {
           isLp: true,
           dex: dex,
           poolShareAddress: poolShareAddress.trim(),
+          balance,
+          allowance,
+          needsApproval: allowance != null && allowance < Number(amount),
         }}
         onConfirm={confirmLock}
+        onApprove={handleApprove}
         onCancel={() => setShowConfirm(false)}
         loading={submitting}
+        approving={approving}
       />
     )}
   </>

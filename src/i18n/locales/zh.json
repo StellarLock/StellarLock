@@ -74,7 +74,11 @@
     "days30": "30 天",
     "days90": "90 天",
     "months6": "6 个月",
-    "year1": "1 年"
+    "year1": "1 年",
+    "insufficientBalance": "余额不足。你有 {{balance}}，但需要 {{amount}}。",
+    "needsApproval": "在锁定之前，你需要授权合约转移你的代币。",
+    "approveAndContinue": "授权并继续",
+    "approving": "授权中…"
   },
   "lpForm": {
     "dex": "DEX",
@@ -95,7 +99,11 @@
     "days90": "90 天",
     "months6": "6 个月",
     "year1": "1 年",
-    "years2": "2 年"
+    "years2": "2 年",
+    "insufficientBalance": "余额不足。你有 {{balance}}，但需要 {{amount}}。",
+    "needsApproval": "在锁定之前，你需要授权合约转移你的 LP 代币。",
+    "approveAndContinue": "授权并继续",
+    "approving": "授权中…"
   },
   "myLocks": {
     "title": "我的锁定",

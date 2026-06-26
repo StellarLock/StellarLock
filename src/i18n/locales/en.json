@@ -83,7 +83,11 @@
     "days30": "30 days",
     "days90": "90 days",
     "months6": "6 months",
-    "year1": "1 year"
+    "year1": "1 year",
+    "insufficientBalance": "Insufficient balance. You have {{balance}} but need {{amount}}.",
+    "needsApproval": "You need to approve the contract to transfer your tokens before locking.",
+    "approveAndContinue": "Approve & Continue",
+    "approving": "Approving…"
   },
   "lpForm": {
     "dex": "DEX",
@@ -104,7 +108,11 @@
     "days90": "90 days",
     "months6": "6 months",
     "year1": "1 year",
-    "years2": "2 years"
+    "years2": "2 years",
+    "insufficientBalance": "Insufficient balance. You have {{balance}} but need {{amount}}.",
+    "needsApproval": "You need to approve the contract to transfer your LP tokens before locking.",
+    "approveAndContinue": "Approve & Continue",
+    "approving": "Approving…"
   },
   "myLocks": {
     "title": "My Locks",

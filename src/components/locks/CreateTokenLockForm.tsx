@@ -5,8 +5,9 @@ import { Trans, useTranslation } from "react-i18next"
 import { Input, Label } from "@/components/ui/Input"
 import { Button } from "@/components/ui/Button"
 import { useWallet } from "@/hooks/useWallet"
-import { useTokenBalance } from "@/hooks/useLocks"
-import { createTokenLock } from "@/lib/token-locker"
+import { useTokenBalance, useTokenAllowance } from "@/hooks/useLocks"
+import { createTokenLock,  } from "@/lib/token-locker"
+import { CONTRACTS, submitTokenApproval } from "@/lib/stellar"
 import { trackEvent } from "@/lib/analytics"
 import { formatDate } from "@/lib/utils"
 import { ConfirmLockModal } from "@/components/locks/ConfirmLockModal"
@@ -34,6 +35,7 @@ export function CreateTokenLockForm() {
   const [vestingTemplate, setVestingTemplate] = useState<VestingTemplate>("none")
   const [vestingStartDate, setVestingStartDate] = useState("")
   const [submitting, setSubmitting] = useState(false)
+  const [approving, setApproving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showConfirm, setShowConfirm] = useState(false)
 
@@ -48,6 +50,11 @@ export function CreateTokenLockForm() {
   const validTokenAddress =
     tokenAddress.trim().length === 56 && tokenAddress.trim().startsWith("C") ? tokenAddress.trim() : undefined
   const { data: balance, loading: balanceLoading } = useTokenBalance(validTokenAddress, address ?? null)
+  const { data: allowance, loading: allowanceLoading } = useTokenAllowance(
+    validTokenAddress,
+    address ?? null,
+    CONTRACTS.tokenLocker,
+  )
 
   const presets = [
     { label: t("tokenForm.days30"), days: 30 },
@@ -123,6 +130,32 @@ export function CreateTokenLockForm() {
     }
   }
 
+  async function handleApprove() {
+    setApproving(true)
+    try {
+      await submitTokenApproval(
+        tokenAddress.trim(),
+        address!,
+        CONTRACTS.tokenLocker,
+        Number(amount),
+        address!,
+        signTransaction,
+      )
+      trackEvent("token_approve")
+    } catch (err: unknown) {
+      console.error("[approve error]", err)
+      if (err instanceof Error) {
+        setError(err.message)
+      } else if (typeof err === "object" && err !== null) {
+        setError(JSON.stringify(err, null, 2))
+      } else {
+        setError(String(err))
+      }
+    } finally {
+      setApproving(false)
+    }
+  }
+
   return (
     <>
     <form onSubmit={submit} className="flex flex-col gap-5">
@@ -143,7 +176,7 @@ export function CreateTokenLockForm() {
           <Label htmlFor="amount">{t("tokenForm.amount")}</Label>
           {validTokenAddress && (
             <span className="flex items-center gap-1 text-xs text-muted-foreground">
-              {balanceLoading ? (
+              {balanceLoading || allowanceLoading ? (
                 <Loader2 className="h-3 w-3 animate-spin" />
               ) : balance != null ? (
                 <>
@@ -324,10 +357,15 @@ export function CreateTokenLockForm() {
           beneficiary: beneficiary.trim() || address!,
           unlockDate: unlockDate,
           vesting,
+          balance,
+          allowance,
+          needsApproval: allowance != null && allowance < Number(amount),
         }}
         onConfirm={confirmLock}
+        onApprove={handleApprove}
         onCancel={() => setShowConfirm(false)}
         loading={submitting}
+        approving={approving}
       />
     )}
   </>
