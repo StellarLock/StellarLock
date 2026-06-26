@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
-# Deploy both contracts to Stellar testnet and print the contract IDs.
-# Usage: ./deploy.sh <your-stellar-account-alias>
+# Deploy both contracts to Stellar and print the contract IDs.
+# Usage: ./deploy.sh <your-stellar-account-alias> [network]
 #
 # Prerequisites:
-#   stellar keys generate --global <alias> --network testnet
-#   stellar keys fund <alias> --network testnet
+#   stellar keys generate --global <alias> --network <network>
+#   stellar keys fund <alias> --network <network>
 #
 set -euo pipefail
 
-ACCOUNT="${1:?Usage: ./deploy.sh <account-alias>}"
-NETWORK="testnet"
+ACCOUNT="${1:?Usage: ./deploy.sh <account-alias> [network]}"
+NETWORK="${2:-testnet}"
 WASM_DIR="target/wasm32v1-none/release"
 
 echo "==> Deploying token-locker..."

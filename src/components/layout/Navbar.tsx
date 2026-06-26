@@ -3,6 +3,7 @@ import { Link, NavLink, useLocation } from "react-router-dom"
 import { Lock, Wallet, LogOut, Menu, X, Sun, Moon } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useWallet } from "@/hooks/useWallet"
+import { NETWORK } from "@/lib/stellar"
 import { useTheme } from "@/hooks/useTheme"
 import { Button } from "@/components/ui/Button"
 import { NotificationCenter } from "@/components/ui/NotificationCenter"
@@ -58,6 +59,9 @@ export function Navbar() {
         </nav>
 
         <div className="flex items-center gap-2">
+          <span className="hidden rounded-md border border-border bg-card px-3 py-2 text-sm font-medium text-muted-foreground sm:inline-flex">
+            {NETWORK.displayName}
+          </span>
           {/* Accessible Theme Toggle Button */}
           <Button
             variant="ghost"

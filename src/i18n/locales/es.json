@@ -3,10 +3,12 @@
     "appName": "StellarLock",
     "tagline": "Bloqueos de tokens y LP en Stellar",
     "testnet": "Testnet",
+    "mainnet": "Mainnet",
     "loading": "Cargando…",
     "tryAgain": "Intentar de nuevo",
     "back": "Volver",
     "you": "Tú",
+    "stellar": "Stellar",
     "skipToContent": "Ir al contenido principal"
   },
   "nav": {

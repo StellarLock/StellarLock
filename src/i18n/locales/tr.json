@@ -3,10 +3,12 @@
     "appName": "StellarLock",
     "tagline": "Stellar üzerinde Token ve LP Kilitleri",
     "testnet": "Testnet",
+    "mainnet": "Mainnet",
     "loading": "Yükleniyor…",
     "tryAgain": "Tekrar dene",
     "back": "Geri",
     "you": "Sen",
+    "stellar": "Stellar",
     "skipToContent": "Ana içeriğe geç"
   },
   "nav": {

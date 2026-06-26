@@ -3,10 +3,12 @@
     "appName": "StellarLock",
     "tagline": "Stellar 上的代币和 LP 锁定",
     "testnet": "测试网",
+    "mainnet": "主网",
     "loading": "加载中…",
     "tryAgain": "重试",
     "back": "返回",
     "you": "你",
+    "stellar": "Stellar",
     "skipToContent": "跳转到主要内容"
   },
   "nav": {

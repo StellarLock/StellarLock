@@ -1,10 +1,10 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, useRef, type ReactNode } from "react"
-import { isConnected, requestAccess, getAddress, signTransaction as freighterSignTx } from "@stellar/freighter-api"
+import { getAddress, getNetwork, isConnected, requestAccess, signTransaction as freighterSignTx } from "@stellar/freighter-api"
 import { trackEvent } from "@/lib/analytics"
+import { NETWORK } from "@/lib/stellar"
 import { notify } from "../lib/utils"
 
 const STORAGE_KEY = "stellarlock:wallet"
-const NETWORK_PASSPHRASE = "Test SDF Network ; September 2015"
 const CONNECTION_CHECK_INTERVAL = 10_000
 
 interface WalletContextValue {
@@ -27,6 +27,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [connecting, setConnecting] = useState(false)
   const [disconnected, setDisconnected] = useState(false)
   const [networkChanged, setNetworkChanged] = useState(false)
+  const [walletNetwork, setWalletNetwork] = useState<string | null>(null)
   const connectionCheckIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const previousNetworkRef = useRef<string | null>(null)
 
@@ -35,12 +36,24 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     const saved = localStorage.getItem(STORAGE_KEY)
     if (!saved) return
     isConnected()
-      .then((res) => {
-        if (res.isConnected) {
-          setAddress(saved)
-        } else {
+      .then(async (res) => {
+        if (!res.isConnected) {
           localStorage.removeItem(STORAGE_KEY)
+          return
         }
+
+        const networkResult = await getNetwork()
+        const walletNetwork = networkResult.error ? null : networkResult.networkPassphrase || null
+
+        if (walletNetwork && walletNetwork !== NETWORK.passphrase) {
+          setNetworkChanged(true)
+          localStorage.removeItem(STORAGE_KEY)
+          return
+        }
+
+        previousNetworkRef.current = walletNetwork
+        setWalletNetwork(walletNetwork)
+        setAddress(saved)
       })
       .catch(() => localStorage.removeItem(STORAGE_KEY))
   }, [])
@@ -52,7 +65,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     const checkConnection = async () => {
       try {
         // Check if freighter extension is still available
-        if (typeof window !== "undefined" && !window.freighter) {
+        const win = window as Window & { freighter?: unknown }
+        if (typeof window !== "undefined" && !win.freighter) {
           setDisconnected(true)
           setAddress(null)
           localStorage.removeItem(STORAGE_KEY)
@@ -67,8 +81,18 @@ export function WalletProvider({ children }: { children: ReactNode }) {
           return
         }
 
+        const currentNetworkResult = await getNetwork()
+        const currentNetwork = currentNetworkResult.error ? "unknown" : currentNetworkResult.networkPassphrase || "unknown"
+        setWalletNetwork(currentNetwork)
+
+        if (currentNetwork !== NETWORK.passphrase) {
+          setNetworkChanged(true)
+          setAddress(null)
+          localStorage.removeItem(STORAGE_KEY)
+          return
+        }
+
         // Check for network changes
-        const currentNetwork = connected.network?.passphrase || "unknown"
         if (previousNetworkRef.current && previousNetworkRef.current !== currentNetwork) {
           setNetworkChanged(true)
           setAddress(null)
@@ -105,6 +129,18 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         notify.error("Freighter extension not found. Please install it from freighter.app")
         return
       }
+
+      const networkResult = await getNetwork()
+      if (networkResult.error) {
+        throw new Error(networkResult.error)
+      }
+      const walletNetwork = networkResult.networkPassphrase || null
+      setWalletNetwork(walletNetwork)
+      if (walletNetwork && walletNetwork !== NETWORK.passphrase) {
+        setNetworkChanged(true)
+        return
+      }
+
       // requestAccess opens the Freighter popup for the user to approve
       const accessResult = await requestAccess()
       if (accessResult.error) {
@@ -149,7 +185,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     async (xdr: string): Promise<{ signedTxXdr: string }> => {
       if (!address) throw new Error("Wallet not connected")
       const result = await freighterSignTx(xdr, {
-        networkPassphrase: NETWORK_PASSPHRASE,
+        networkPassphrase: NETWORK.passphrase,
         address,
       })
       if (import.meta.env.DEV) console.log("[signTransaction result]", result)

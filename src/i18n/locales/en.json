@@ -3,10 +3,12 @@
     "appName": "StellarLock",
     "tagline": "Token & LP locks on Stellar",
     "testnet": "Testnet",
+    "mainnet": "Mainnet",
     "loading": "Loading…",
     "tryAgain": "Try again",
     "back": "Back",
     "you": "You",
+    "stellar": "Stellar",
     "skipToContent": "Skip to main content"
   },
   "nav": {

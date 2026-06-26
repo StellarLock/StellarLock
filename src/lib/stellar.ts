@@ -9,18 +9,32 @@ import {
   xdr,
 } from "@stellar/stellar-sdk"
 
-const isMainnet = import.meta.env.VITE_NETWORK === "mainnet"
+const envNetwork = (import.meta.env.VITE_NETWORK || "testnet").toLowerCase()
+const isMainnet = envNetwork === "mainnet" || envNetwork === "public"
+
+const defaultRpcUrl = isMainnet
+  ? "https://soroban-mainnet.stellar.org"
+  : "https://soroban-testnet.stellar.org"
+const defaultHorizonUrl = isMainnet
+  ? "https://horizon.stellar.org"
+  : "https://horizon-testnet.stellar.org"
 
 export const NETWORK = {
+  id: isMainnet ? "mainnet" : "testnet",
   passphrase: isMainnet ? Networks.PUBLIC : Networks.TESTNET,
-  rpcUrl: import.meta.env.VITE_RPC_URL || "https://soroban-testnet.stellar.org",
-  horizonUrl: import.meta.env.VITE_HORIZON_URL || "https://horizon-testnet.stellar.org",
-  networkName: (isMainnet ? "public" : "testnet"),
+  rpcUrl: import.meta.env.VITE_RPC_URL || defaultRpcUrl,
+  horizonUrl: import.meta.env.VITE_HORIZON_URL || defaultHorizonUrl,
+  networkName: isMainnet ? "public" : "testnet",
+  displayName: isMainnet ? "Mainnet" : "Testnet",
 }
 
 export const CONTRACTS = {
-  tokenLocker: import.meta.env.VITE_TOKEN_LOCKER_CONTRACT || "CBFCKEOQRQIXKLGU4QBUQVOINOKFBOXJ37LXEKLKNUO6TW4FNGDU26AW",
-  lpLocker: import.meta.env.VITE_LP_LOCKER_CONTRACT || "CA3WYETNIF5IAF3VUNQ3SYKZFV45TOFBF7CEZ46I7QEBPWTRM73WLEI4",
+  tokenLocker:
+    import.meta.env.VITE_TOKEN_LOCKER_CONTRACT || import.meta.env.VITE_TOKEN_LOCKER_ID ||
+    "CBFCKEOQRQIXKLGU4QBUQVOINOKFBOXJ37LXEKLKNUO6TW4FNGDU26AW",
+  lpLocker:
+    import.meta.env.VITE_LP_LOCKER_CONTRACT || import.meta.env.VITE_LP_LOCKER_ID ||
+    "CA3WYETNIF5IAF3VUNQ3SYKZFV45TOFBF7CEZ46I7QEBPWTRM73WLEI4",
 }
 
 // Soroban transactions need a higher base fee than classic Stellar
