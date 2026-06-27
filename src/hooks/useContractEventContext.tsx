@@ -37,6 +37,8 @@ export function ContractEventProvider({ children }: { children: ReactNode }) {
   return <ContractEventContext.Provider value={value}>{children}</ContractEventContext.Provider>
 }
 
+export type { ContractEvent }
+
 export function useContractEventContext(): ContractEventContextValue {
   const ctx = useContext(ContractEventContext)
   if (!ctx) throw new Error("useContractEventContext must be used within a ContractEventProvider")

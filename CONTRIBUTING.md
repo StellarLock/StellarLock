@@ -88,3 +88,18 @@ The `main` branch is protected. Direct pushes are blocked. All changes must go t
 | `package.json`, `Cargo.toml` | `@StellarLock/core-team` |
 
 To update protection rules, a repository admin must use the GitHub UI (**Settings → Branches**) or the GitHub API. Do not bypass reviews with admin overrides on contract-touching PRs.
+
+
+## Commit Message Format
+We use [Conventional Commits](https://www.conventionalcommits.org/).
+
+Format: `type(scope): description`
+
+Allowed types: `feat`, `fix`, `docs`, `chore`, `refactor`, `test`, `ci`
+Allowed scopes: `contract`, `frontend`, `ci`, `docs`
+
+Examples:
+- `feat(frontend): add export button to My Locks page`
+- `fix(contract): prevent overflow in extend lock duration`
+
+Run `pnpm release` to generate CHANGELOG.md and tag a new version.

@@ -1,9 +1,15 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, useRef, type ReactNode } from "react"
-import { isConnected, requestAccess, getAddress, signTransaction as freighterSignTx } from "@stellar/freighter-api"
+import {
+  StellarWalletsKit,
+  WalletNetwork,
+  allowAllModules,
+} from "@creit.tech/stellar-wallets-kit"
 import { trackEvent } from "@/lib/analytics"
+import { NETWORK } from "@/lib/stellar"
+import { notify } from "../lib/utils"
 
 const STORAGE_KEY = "stellarlock:wallet"
-const NETWORK_PASSPHRASE = "Test SDF Network ; September 2015"
+const WALLET_ID_KEY = "stellarlock:wallet-id"
 const CONNECTION_CHECK_INTERVAL = 10_000
 
 interface WalletContextValue {
@@ -21,27 +27,48 @@ interface WalletContextValue {
 
 const WalletContext = createContext<WalletContextValue | null>(null)
 
+const walletNetwork = NETWORK.id === "mainnet" ? WalletNetwork.PUBLIC : WalletNetwork.TESTNET
+
 export function WalletProvider({ children }: { children: ReactNode }) {
   const [address, setAddress] = useState<string | null>(null)
   const [connecting, setConnecting] = useState(false)
   const [disconnected, setDisconnected] = useState(false)
   const [networkChanged, setNetworkChanged] = useState(false)
   const connectionCheckIntervalRef = useRef<NodeJS.Timeout | null>(null)
-  const previousNetworkRef = useRef<string | null>(null)
+  const kitRef = useRef<StellarWalletsKit | null>(null)
+
+  function getKit(): StellarWalletsKit {
+    if (!kitRef.current) {
+      const savedWalletId = localStorage.getItem(WALLET_ID_KEY) ?? ""
+      kitRef.current = new StellarWalletsKit({
+        network: walletNetwork,
+        selectedWalletId: savedWalletId,
+        modules: allowAllModules(),
+      })
+    }
+    return kitRef.current
+  }
 
   // Restore persisted session and verify it's still accessible
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY)
-    if (!saved) return
-    isConnected()
-      .then((res) => {
-        if (res.isConnected) {
+    const savedWalletId = localStorage.getItem(WALLET_ID_KEY)
+    if (!saved || !savedWalletId) return
+    const k = getKit()
+    k.setWallet(savedWalletId)
+    k.getPublicKey()
+      .then((publicKey) => {
+        if (publicKey && publicKey === saved) {
           setAddress(saved)
         } else {
           localStorage.removeItem(STORAGE_KEY)
+          localStorage.removeItem(WALLET_ID_KEY)
         }
       })
-      .catch(() => localStorage.removeItem(STORAGE_KEY))
+      .catch(() => {
+        localStorage.removeItem(STORAGE_KEY)
+        localStorage.removeItem(WALLET_ID_KEY)
+      })
   }, [])
 
   // Poll wallet connection status every 10 seconds
@@ -50,41 +77,19 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
     const checkConnection = async () => {
       try {
-        // Check if freighter extension is still available
-        if (typeof window !== "undefined" && !window.freighter) {
+        const k = getKit()
+        const publicKey = await k.getPublicKey()
+        if (!publicKey || publicKey !== address) {
           setDisconnected(true)
           setAddress(null)
           localStorage.removeItem(STORAGE_KEY)
-          return
+          localStorage.removeItem(WALLET_ID_KEY)
         }
-
-        const connected = await isConnected()
-        if (!connected.isConnected) {
-          setDisconnected(true)
-          setAddress(null)
-          localStorage.removeItem(STORAGE_KEY)
-          return
-        }
-
-        // Check for network changes
-        const currentNetwork = connected.network?.passphrase || "unknown"
-        if (previousNetworkRef.current && previousNetworkRef.current !== currentNetwork) {
-          setNetworkChanged(true)
-          setAddress(null)
-          localStorage.removeItem(STORAGE_KEY)
-          return
-        }
-        previousNetworkRef.current = currentNetwork
-
-        // Verify address is still accessible
-        const addrResult = await getAddress()
-        if (addrResult.error) {
-          setDisconnected(true)
-          setAddress(null)
-          localStorage.removeItem(STORAGE_KEY)
-        }
-      } catch (err) {
-        console.error("[wallet connection check error]", err)
+      } catch {
+        setDisconnected(true)
+        setAddress(null)
+        localStorage.removeItem(STORAGE_KEY)
+        localStorage.removeItem(WALLET_ID_KEY)
       }
     }
 
@@ -99,26 +104,33 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const connect = useCallback(async () => {
     setConnecting(true)
     try {
-      const connected = await isConnected()
-      if (!connected.isConnected) {
-        alert("Freighter extension not found. Please install it from freighter.app")
-        return
-      }
-      // requestAccess opens the Freighter popup for the user to approve
-      const accessResult = await requestAccess()
-      if (accessResult.error) {
-        throw new Error(accessResult.error)
-      }
-      const addrResult = await getAddress()
-      if (addrResult.error) {
-        throw new Error(addrResult.error)
-      }
-      setAddress(addrResult.address)
-      localStorage.setItem(STORAGE_KEY, addrResult.address)
-      trackEvent("wallet_connect")
+      const k = getKit()
+      await new Promise<void>((resolve, reject) => {
+        k.openModal({
+          onWalletSelected: async (option) => {
+            try {
+              k.setWallet(option.id)
+              const publicKey = await k.getPublicKey()
+              if (!publicKey) {
+                reject(new Error("Wallet returned no public key"))
+                return
+              }
+              setAddress(publicKey)
+              localStorage.setItem(STORAGE_KEY, publicKey)
+              localStorage.setItem(WALLET_ID_KEY, option.id)
+              trackEvent("wallet_connect")
+              resolve()
+            } catch (err) {
+              reject(err)
+            }
+          },
+          onClosed: () => resolve(),
+        })
+      })
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err)
       console.error("Wallet connect error:", msg)
+      notify.error(msg)
     } finally {
       setConnecting(false)
     }
@@ -129,6 +141,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     setDisconnected(false)
     setNetworkChanged(false)
     localStorage.removeItem(STORAGE_KEY)
+    localStorage.removeItem(WALLET_ID_KEY)
     if (connectionCheckIntervalRef.current) {
       clearInterval(connectionCheckIntervalRef.current)
       connectionCheckIntervalRef.current = null
@@ -147,19 +160,12 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const signTransaction = useCallback(
     async (xdr: string): Promise<{ signedTxXdr: string }> => {
       if (!address) throw new Error("Wallet not connected")
-      const result = await freighterSignTx(xdr, {
-        networkPassphrase: NETWORK_PASSPHRASE,
+      const k = getKit()
+      const result = await k.signTransaction(xdr, {
+        networkPassphrase: NETWORK.passphrase,
         address,
       })
-      if (import.meta.env.DEV) console.log("[signTransaction result]", result)
-      if (result.error) {
-        const errMsg =
-          typeof result.error === "string"
-            ? result.error
-            : ((result.error as { message?: string }).message ?? JSON.stringify(result.error))
-        throw new Error(errMsg)
-      }
-      if (!result.signedTxXdr) throw new Error("Freighter returned empty transaction — did you approve it?")
+      if (!result.signedTxXdr) throw new Error("Wallet returned empty transaction — did you approve it?")
       return { signedTxXdr: result.signedTxXdr }
     },
     [address],

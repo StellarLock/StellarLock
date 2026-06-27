@@ -1,0 +1,15 @@
+{
+  "nav": {
+    "createLock": "إنشاء قفل",
+    "myLocks":    "أقفالي",
+    "explorer":   "المستكشف",
+    "discover":   "اكتشف"
+  },
+  "errors": {
+    "unknown": {
+      "title":    "حدث خطأ ما",
+      "message":  "حدث خطأ غير متوقع.",
+      "recovery": "يرجى المحاولة مرة أخرى."
+    }
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "errors": {
+    "amountMustBePositive": {
+      "title":    "Invalid Amount",
+      "message":  "Lock amount must be greater than zero.",
+      "recovery": "Enter a positive amount to continue."
+    },
+    "unlockMustBeFuture": {
+      "title":    "Invalid Unlock Date",
+      "message":  "Unlock date must be in the future.",
+      "recovery": "Choose a date after today."
+    },
+    "stillLocked": {
+      "title":    "Lock Not Expired",
+      "message":  "This lock hasn't reached its unlock date yet.",
+      "recovery": "Check back on the unlock date shown on the lock card."
+    },
+    "alreadyWithdrawn": {
+      "title":    "Already Withdrawn",
+      "message":  "Tokens have already been withdrawn from this lock.",
+      "recovery": null
+    },
+    "canOnlyExtend": {
+      "title":    "Invalid Extension Date",
+      "message":  "New date must be after the current unlock date.",
+      "recovery": "Choose a later date."
+    },
+    "lockDurationTooLong": {
+      "title":    "Lock Duration Too Long",
+      "message":  "Lock duration cannot exceed 10 years.",
+      "recovery": "Choose an unlock date within 10 years from today."
+    },
+    "insufficientBalance": {
+      "title":    "Insufficient Balance",
+      "message":  "You don't have enough tokens to lock this amount.",
+      "recovery": "Reduce the amount or add funds to your wallet."
+    },
+    "wrongNetwork": {
+      "title":    "Wrong Network",
+      "message":  "Your wallet is connected to the wrong network.",
+      "recovery": "Switch to the correct network in Freighter settings."
+    },
+    "userRejected": {
+      "title":    "Transaction Cancelled",
+      "message":  "You cancelled the transaction in your wallet.",
+      "recovery": "Click the button again when you're ready to proceed."
+    },
+    "timeout": {
+      "title":    "Transaction Timed Out",
+      "message":  "The transaction took too long to confirm.",
+      "recovery": "Check Stellar Expert for the transaction status."
+    },
+    "unknown": {
+      "title":    "Something Went Wrong",
+      "message":  "An unexpected error occurred.",
+      "recovery": "Please try again. If this persists, contact support."
+    }
+  }
+}

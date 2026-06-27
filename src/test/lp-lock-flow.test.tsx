@@ -3,7 +3,7 @@ import { screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { render } from "./utils"
 import { CreateLpLockForm } from "@/components/locks/CreateLpLockForm"
-import { mockWallet } from "./mocks"
+import { mockWallet, VALID_CONTRACT_ADDRESS } from "./mocks"
 
 vi.mock("@/hooks/useWallet", () => ({
   useWallet: () => mockWallet,
@@ -60,8 +60,10 @@ describe("LP Lock Creation Flow", () => {
     await user.click(aquariusButton)
 
     // Fill amount
-    const amountInputs = screen.getAllByDisplayValue("")
-    await user.type(amountInputs[0], "100")
+    await user.type(screen.getByLabelText(/pool share token address/i), VALID_CONTRACT_ADDRESS)
+    await user.type(screen.getByLabelText(/token a address/i), VALID_CONTRACT_ADDRESS)
+    await user.type(screen.getByLabelText(/token b address/i), VALID_CONTRACT_ADDRESS)
+    await user.type(screen.getByLabelText(/lp amount/i), "100")
 
     // Fill unlock date
     const dateInput = screen.getByLabelText(/unlock date/i) as HTMLInputElement
@@ -115,8 +117,10 @@ describe("LP Lock Creation Flow", () => {
     const aquariusButton = screen.getByRole("button", { name: /aquarius/i })
     await user.click(aquariusButton)
 
-    const amountInputs = screen.getAllByDisplayValue("")
-    await user.type(amountInputs[0], "100")
+    await user.type(screen.getByLabelText(/pool share token address/i), VALID_CONTRACT_ADDRESS)
+    await user.type(screen.getByLabelText(/token a address/i), VALID_CONTRACT_ADDRESS)
+    await user.type(screen.getByLabelText(/token b address/i), VALID_CONTRACT_ADDRESS)
+    await user.type(screen.getByLabelText(/lp amount/i), "100")
 
     const dateInput = screen.getByLabelText(/unlock date/i) as HTMLInputElement
     const futureDate = new Date()
@@ -135,15 +139,32 @@ describe("LP Lock Creation Flow", () => {
     })
   })
 
-  it("should support beneficiary configuration", async () => {
+  it("should use connected wallet as beneficiary", async () => {
+    const { createLpLock } = await import("@/lib/lp-locker")
     const user = userEvent.setup()
     render(<CreateLpLockForm />)
 
-    const beneficiaryInput = screen.getByLabelText(/beneficiary/i)
-    const customBeneficiary = "GBRPYHIL2CI3WHZDTOOQFC6EB4KJJGUJMXQMGJGH3ZLNDU2TCAEUZX3"
+    await user.type(screen.getByLabelText(/pool share token address/i), VALID_CONTRACT_ADDRESS)
+    await user.type(screen.getByLabelText(/token a address/i), VALID_CONTRACT_ADDRESS)
+    await user.type(screen.getByLabelText(/token b address/i), VALID_CONTRACT_ADDRESS)
+    await user.type(screen.getByLabelText(/lp amount/i), "100")
 
-    await user.type(beneficiaryInput, customBeneficiary)
-    expect(beneficiaryInput).toHaveValue(customBeneficiary)
+    const dateInput = screen.getByLabelText(/unlock date/i) as HTMLInputElement
+    const futureDate = new Date()
+    futureDate.setDate(futureDate.getDate() + 30)
+    const dateStr = futureDate.toISOString().split("T")[0]
+    await user.type(dateInput, dateStr)
+
+    await user.click(screen.getByRole("button", { name: /lock/i }))
+    await user.click(await screen.findByText(/confirm/i))
+
+    await waitFor(() => {
+      expect(createLpLock).toHaveBeenCalledWith(
+        expect.objectContaining({ beneficiary: mockWallet.address }),
+        mockWallet.address,
+        mockWallet.signTransaction,
+      )
+    })
   })
 
   it("should handle double-submission prevention", async () => {
@@ -153,8 +174,10 @@ describe("LP Lock Creation Flow", () => {
     const aquariusButton = screen.getByRole("button", { name: /aquarius/i })
     await user.click(aquariusButton)
 
-    const amountInputs = screen.getAllByDisplayValue("")
-    await user.type(amountInputs[0], "100")
+    await user.type(screen.getByLabelText(/pool share token address/i), VALID_CONTRACT_ADDRESS)
+    await user.type(screen.getByLabelText(/token a address/i), VALID_CONTRACT_ADDRESS)
+    await user.type(screen.getByLabelText(/token b address/i), VALID_CONTRACT_ADDRESS)
+    await user.type(screen.getByLabelText(/lp amount/i), "100")
 
     const dateInput = screen.getByLabelText(/unlock date/i) as HTMLInputElement
     const futureDate = new Date()

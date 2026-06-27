@@ -1,7 +1,10 @@
 import { vi } from "vitest"
 
+export const VALID_PUBLIC_KEY = "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF"
+export const VALID_CONTRACT_ADDRESS = "CBFCKEOQRQIXKLGU4QBUQVOINOKFBOXJ37LXEKLKNUO6TW4FNGDU26AW"
+
 export const mockWallet = {
-  address: "GBRPYHIL2CI3WHZDTOOQFC6EB4KJJGUJMXQMGJGH3ZLNDU2TCAEUZX3",
+  address: VALID_PUBLIC_KEY,
   isConnected: true,
   connecting: false,
   connect: vi.fn(),
@@ -16,13 +19,13 @@ export const mockLock = {
   kind: "token" as const,
   status: "locked" as const,
   token: {
-    address: "CBVOBNRDOMUMERKKXKYY3NHE4HHE4AQIZVMWUNUZKXNQPQHCSIKUBVJZ",
+    address: VALID_CONTRACT_ADDRESS,
     symbol: "USDC",
     name: "USD Coin",
     decimals: 6,
   },
-  creator: "GBRPYHIL2CI3WHZDTOOQFC6EB4KJJGUJMXQMGJGH3ZLNDU2TCAEUZX3",
-  beneficiary: "GBRPYHIL2CI3WHZDTOOQFC6EB4KJJGUJMXQMGJGH3ZLNDU2TCAEUZX3",
+  creator: VALID_PUBLIC_KEY,
+  beneficiary: VALID_PUBLIC_KEY,
   amount: 1000,
   usdValue: 1000,
   createdAt: Date.now() - 86400000,
@@ -35,7 +38,7 @@ export const mockLpLock = {
   id: "2",
   kind: "lp" as const,
   dex: "aquarius" as const,
-  poolPair: ["CBVOBNRDOMUMERKKXKYY3NHE4HHE4AQIZVMWUNUZKXNQPQHCSIKUBVJZ", "native"],
+  poolPair: [VALID_CONTRACT_ADDRESS, "native"],
 }
 
 export function mockFetch(responses: Record<string, Response>) {

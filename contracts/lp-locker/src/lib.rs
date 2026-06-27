@@ -1,4 +1,8 @@
 #![no_std]
+
+#[cfg(test)]
+mod tests;
+
 use soroban_sdk::{
     contract, contracterror, contractimpl, contracttype, token, vec,
     Address, Env, Symbol, Vec,
@@ -19,6 +23,10 @@ pub enum DataKey {
     NextId,
     ByCreator(Address),
     ByBeneficiary(Address),
+    ByPoolShare(Address),
+    TotalLocked(Address),
+    GlobalLockCount,
+    UniquePoolShareCount,
 }
 
 // ── Error types ───────────────────────────────────────────────────────────────
@@ -34,6 +42,13 @@ pub enum ContractError {
 }
 
 // ── On-chain types ────────────────────────────────────────────────────────────
+
+#[contracttype]
+#[derive(Clone)]
+pub struct GlobalStats {
+    pub total_lock_count: u64,
+    pub unique_pool_share_count: u64,
+}
 
 /// Typed DEX enum — avoids free-form string encoding mismatches.
 #[contracttype]
@@ -176,13 +191,24 @@ impl LpLocker {
         save_lock(&env, &lock);
         push_index(&env, DataKey::ByCreator(creator.clone()), id);
         push_index(&env, DataKey::ByBeneficiary(beneficiary.clone()), id);
+        push_index(&env, DataKey::ByPoolShare(lock.pool_share.clone()), id);
+
+        // Update per-pool-share TVL and global stats
+        let current_tvl: i128 = env.storage().persistent().get(&DataKey::TotalLocked(lock.pool_share.clone())).unwrap_or(0);
+        if current_tvl == 0 {
+            let unique_count: u64 = env.storage().persistent().get(&DataKey::UniquePoolShareCount).unwrap_or(0);
+            env.storage().persistent().set(&DataKey::UniquePoolShareCount, &(unique_count + 1));
+        }
+        env.storage().persistent().set(&DataKey::TotalLocked(lock.pool_share.clone()), &(current_tvl + amount));
+        let lock_count: u64 = env.storage().persistent().get(&DataKey::GlobalLockCount).unwrap_or(0);
+        env.storage().persistent().set(&DataKey::GlobalLockCount, &(lock_count + 1));
 
         env.events().publish(
             (
                 Symbol::new(&env, "lp_lock_created"),
                 id,
                 creator,
-                pool_share,
+                lock.pool_share.clone(),
                 amount,
                 beneficiary,
                 unlock_at,
@@ -209,6 +235,11 @@ impl LpLocker {
             &lock.beneficiary,
             &lock.amount,
         );
+
+        // Decrement TVL
+        let current_tvl: i128 = env.storage().persistent().get(&DataKey::TotalLocked(lock.pool_share.clone())).unwrap_or(0);
+        let new_tvl = (current_tvl - lock.amount).max(0);
+        env.storage().persistent().set(&DataKey::TotalLocked(lock.pool_share.clone()), &new_tvl);
 
         lock.withdrawn = true;
         save_lock(&env, &lock);
@@ -315,5 +346,24 @@ impl LpLocker {
 
     pub fn get_lock_count_by_beneficiary(env: Env, beneficiary: Address) -> u32 {
         get_index(&env, DataKey::ByBeneficiary(beneficiary)).len()
+    }
+
+    pub fn get_locks_by_pool_share(env: Env, pool_share: Address, offset: u32, limit: u32) -> Vec<LpLock> {
+        let ids = get_index(&env, DataKey::ByPoolShare(pool_share));
+        collect_locks_paginated(&env, ids, offset, limit)
+    }
+
+    pub fn get_lock_count_by_pool_share(env: Env, pool_share: Address) -> u32 {
+        get_index(&env, DataKey::ByPoolShare(pool_share)).len()
+    }
+
+    pub fn get_total_locked(env: Env, pool_share: Address) -> i128 {
+        env.storage().persistent().get(&DataKey::TotalLocked(pool_share)).unwrap_or(0)
+    }
+
+    pub fn get_global_stats(env: Env) -> GlobalStats {
+        let total_lock_count: u64 = env.storage().persistent().get(&DataKey::GlobalLockCount).unwrap_or(0);
+        let unique_pool_share_count: u64 = env.storage().persistent().get(&DataKey::UniquePoolShareCount).unwrap_or(0);
+        GlobalStats { total_lock_count, unique_pool_share_count }
     }
 }

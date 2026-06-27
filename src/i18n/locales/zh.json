@@ -3,10 +3,12 @@
     "appName": "StellarLock",
     "tagline": "Stellar 上的代币和 LP 锁定",
     "testnet": "测试网",
+    "mainnet": "主网",
     "loading": "加载中…",
     "tryAgain": "重试",
     "back": "返回",
     "you": "你",
+    "stellar": "Stellar",
     "skipToContent": "跳转到主要内容"
   },
   "nav": {
@@ -16,7 +18,8 @@
     "connectWallet": "连接钱包",
     "disconnectWallet": "断开钱包",
     "openMenu": "打开菜单",
-    "closeMenu": "关闭菜单"
+    "closeMenu": "关闭菜单",
+    "history": "历史"
   },
   "landing": {
     "badge": "基于 Stellar 构建 · Soroban 智能合约",
@@ -208,5 +211,62 @@
     "unlocksIn": "解锁倒计时",
     "lock": "锁定 #{{id}}",
     "view": "查看"
+  },
+  "breadcrumbs": {
+    "home": "Home",
+    "myLocks": "My Locks",
+    "lockId": "Lock #{{id}}",
+    "discover": "Discover",
+    "createLock": "创建锁定",
+    "history": "交易历史"
+  },
+  "costEstimate": {
+    "title": "预计费用",
+    "networkFee": "交易费",
+    "storageFee": "存储押金",
+    "total": "合计",
+    "tooltip": "Soroban 需要可退还的存储押金来租用链上状态。此押金与交易费用分开。",
+    "highCostWarning": "存储费用异常偏高",
+    "estimating": "正在估算费用…",
+    "error": "无法估算费用",
+    "unit": "XLM"
+  },
+  "history": {
+    "title": "交易历史",
+    "subtitle": "此浏览器提交的所有 StellarLock 交易。",
+    "empty": "暂无交易",
+    "emptyDesc": "创建、提取、延期或转让锁定后，交易将显示在此处。",
+    "filterAll": "全部",
+    "filterType": "类型",
+    "filterStatus": "状态",
+    "colHash": "交易",
+    "colType": "类型",
+    "colStatus": "状态",
+    "colDate": "日期",
+    "colLock": "锁定",
+    "viewOnExplorer": "在 Stellar Expert 上查看",
+    "copyHash": "复制哈希",
+    "typeCreateLock": "创建锁定",
+    "typeWithdraw": "提取",
+    "typeExtend": "延期",
+    "typeTransfer": "转移受益人",
+    "typeSplitLock": "分割锁定",
+    "statusPending": "待处理",
+    "statusSuccess": "成功",
+    "statusFailed": "失败",
+    "cleanupNote": "超过 90 天的交易将自动删除。"
+  },
+  "splitLock": {
+    "toggle": "多受益人",
+    "toggleDesc": "按比例份额将此锁定分配给多个地址。",
+    "addBeneficiary": "添加受益人",
+    "removeBeneficiary": "移除",
+    "addressLabel": "地址",
+    "shareLabel": "份额 (%)",
+    "totalShare": "合计",
+    "totalShareError": "份额之和必须为 100%",
+    "minBeneficiaries": "请添加至少 2 位受益人，或使用单受益人模式。",
+    "maxBeneficiaries": "最多允许 10 位受益人。",
+    "submit": "创建分割锁定"
   }
 }

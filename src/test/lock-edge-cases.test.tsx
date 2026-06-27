@@ -3,7 +3,7 @@ import { screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { render } from "./utils"
 import { CreateTokenLockForm } from "@/components/locks/CreateTokenLockForm"
-import { mockWallet } from "./mocks"
+import { mockWallet, VALID_CONTRACT_ADDRESS } from "./mocks"
 
 vi.mock("@/hooks/useWallet", () => ({
   useWallet: () => mockWallet,
@@ -44,7 +44,7 @@ describe("Lock Creation Edge Cases", () => {
     const amountInput = amountInputs[0]
     const dateInput = screen.getByLabelText(/unlock date/i) as HTMLInputElement
 
-    await user.type(tokenInput, "CBVOBNRDOMUMERKKXKYY3NHE4HHE4AQIZVMWUNUZKXNQPQHCSIKUBVJZ")
+    await user.type(tokenInput, VALID_CONTRACT_ADDRESS)
     await user.type(amountInput, "500")
 
     const futureDate = new Date()
@@ -67,8 +67,17 @@ describe("Lock Creation Edge Cases", () => {
     const user = userEvent.setup()
     render(<CreateTokenLockForm />)
 
+    const tokenInput = screen.getByPlaceholderText(/token/i)
     const amountInput = screen.getByDisplayValue("")
+    const dateInput = screen.getByLabelText(/unlock date/i) as HTMLInputElement
+
+    await user.type(tokenInput, VALID_CONTRACT_ADDRESS)
     await user.type(amountInput, "999999999999999")
+
+    const futureDate = new Date()
+    futureDate.setDate(futureDate.getDate() + 30)
+    const dateStr = futureDate.toISOString().split("T")[0]
+    await user.type(dateInput, dateStr)
 
     const submitButton = screen.getByRole("button", { name: /lock tokens/i })
     // Button should still be functional for large amounts
@@ -84,7 +93,7 @@ describe("Lock Creation Edge Cases", () => {
     const amountInput = amountInputs[0]
     const dateInput = screen.getByLabelText(/unlock date/i) as HTMLInputElement
 
-    await user.type(tokenInput, "CBVOBNRDOMUMERKKXKYY3NHE4HHE4AQIZVMWUNUZKXNQPQHCSIKUBVJZ")
+    await user.type(tokenInput, VALID_CONTRACT_ADDRESS)
     await user.type(amountInput, "0.000001")
 
     const futureDate = new Date()
@@ -105,7 +114,7 @@ describe("Lock Creation Edge Cases", () => {
     const amountInput = amountInputs[0]
     const dateInput = screen.getByLabelText(/unlock date/i) as HTMLInputElement
 
-    await user.type(tokenInput, "CBVOBNRDOMUMERKKXKYY3NHE4HHE4AQIZVMWUNUZKXNQPQHCSIKUBVJZ")
+    await user.type(tokenInput, VALID_CONTRACT_ADDRESS)
     await user.type(amountInput, "100")
 
     const futureDate = new Date()
@@ -148,7 +157,7 @@ describe("Lock Creation Edge Cases", () => {
     const beneficiaryInput = screen.getByLabelText(/beneficiary/i)
     const dateInput = screen.getByLabelText(/unlock date/i) as HTMLInputElement
 
-    await user.type(tokenInput, "CBVOBNRDOMUMERKKXKYY3NHE4HHE4AQIZVMWUNUZKXNQPQHCSIKUBVJZ")
+    await user.type(tokenInput, VALID_CONTRACT_ADDRESS)
     await user.type(amountInput, "100")
     await user.type(beneficiaryInput, "INVALID_BENEFICIARY")
 
@@ -158,8 +167,28 @@ describe("Lock Creation Edge Cases", () => {
     await user.type(dateInput, dateStr)
 
     const submitButton = screen.getByRole("button", { name: /lock tokens/i })
-    // Form should be valid even with invalid address since validation happens server-side
-    // But the error should be caught on submission
+    expect(submitButton).toBeDisabled()
+  })
+
+  it("should accept contract addresses as beneficiaries", async () => {
+    const user = userEvent.setup()
+    render(<CreateTokenLockForm />)
+
+    const tokenInput = screen.getByPlaceholderText(/token/i)
+    const amountInput = screen.getByDisplayValue("")
+    const beneficiaryInput = screen.getByLabelText(/beneficiary/i)
+    const dateInput = screen.getByLabelText(/unlock date/i) as HTMLInputElement
+
+    await user.type(tokenInput, VALID_CONTRACT_ADDRESS)
+    await user.type(amountInput, "100")
+    await user.type(beneficiaryInput, VALID_CONTRACT_ADDRESS)
+
+    const futureDate = new Date()
+    futureDate.setDate(futureDate.getDate() + 30)
+    const dateStr = futureDate.toISOString().split("T")[0]
+    await user.type(dateInput, dateStr)
+
+    const submitButton = screen.getByRole("button", { name: /lock tokens/i })
     expect(submitButton).not.toBeDisabled()
   })
 
@@ -180,7 +209,7 @@ describe("Lock Creation Edge Cases", () => {
     const amountInput = amountInputs[0]
     const dateInput = screen.getByLabelText(/unlock date/i) as HTMLInputElement
 
-    await user.type(tokenInput, "CBVOBNRDOMUMERKKXKYY3NHE4HHE4AQIZVMWUNUZKXNQPQHCSIKUBVJZ")
+    await user.type(tokenInput, VALID_CONTRACT_ADDRESS)
     await user.type(amountInput, "100")
 
     const futureDate = new Date()
@@ -204,7 +233,7 @@ describe("Lock Creation Edge Cases", () => {
     render(<CreateTokenLockForm />)
 
     const tokenInput = screen.getByPlaceholderText(/token/i)
-    await user.type(tokenInput, "CBVOBNRDOMUMERKKXKYY3NHE4HHE4AQIZVMWUNUZKXNQPQHCSIKUBVJZ")
+    await user.type(tokenInput, VALID_CONTRACT_ADDRESS)
 
     await waitFor(() => {
       expect(screen.getByText(/balance.*100/i)).toBeInTheDocument()

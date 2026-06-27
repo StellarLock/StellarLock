@@ -1,15 +1,19 @@
 import { useState, useEffect } from "react"
 import { Link, NavLink, useLocation } from "react-router-dom"
-import { Lock, Wallet, LogOut, Menu, X } from "lucide-react"
+import { Lock, Wallet, LogOut, Menu, X, Sun, Moon } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useWallet } from "@/hooks/useWallet"
+import { NETWORK } from "@/lib/stellar"
+import { useTheme } from "@/hooks/useTheme"
 import { Button } from "@/components/ui/Button"
 import { NotificationCenter } from "@/components/ui/NotificationCenter"
 import { shortAddress, cn } from "@/lib/utils"
+import { prefetch } from "@/lib/prefetch"
 
 export function Navbar() {
   const { t } = useTranslation()
   const { address, isConnected, connecting, connect, disconnect } = useWallet()
+  const { theme, toggleTheme } = useTheme()
   const location = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
 
@@ -17,10 +21,17 @@ export function Navbar() {
     setMenuOpen(false)
   }, [location.pathname])
 
+  const isMac = /mac/i.test(navigator.platform)
+  const mod = isMac ? "⌘" : "Ctrl"
+
   const navLinks = [
-    { to: "/explore", label: t("nav.explore") },
-    { to: "/app/create", label: t("nav.createLock") },
-    { to: "/app/locks", label: t("nav.myLocks") },
+    { to: "/explore", label: t("nav.explore"), hint: `${mod}+K` },
+    { to: "/app/create", label: t("nav.createLock"), hint: `${mod}+N` },
+    { to: "/app/locks", label: t("nav.myLocks"), hint: `${mod}+L` },
+    { to: "/explore", label: t("nav.explore"), prefetchFn: prefetch.discover },
+    { to: "/app/create", label: t("nav.createLock"), prefetchFn: prefetch.createLock },
+    { to: "/app/locks", label: t("nav.myLocks"), prefetchFn: prefetch.myLocks },
+    { to: "/app/history", label: t("nav.history"), prefetchFn: prefetch.history },
   ]
 
   return (
@@ -40,6 +51,9 @@ export function Navbar() {
             <NavLink
               key={link.to}
               to={link.to}
+              title={link.hint}
+              onMouseEnter={link.prefetchFn}
+              onFocus={link.prefetchFn}
               className={({ isActive }) =>
                 cn(
                   "rounded-md px-3 py-2 text-sm font-medium transition-colors",
@@ -55,6 +69,20 @@ export function Navbar() {
         </nav>
 
         <div className="flex items-center gap-2">
+          <span className="hidden rounded-md border border-border bg-card px-3 py-2 text-sm font-medium text-muted-foreground sm:inline-flex">
+            {NETWORK.displayName}
+          </span>
+          {/* Accessible Theme Toggle Button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleTheme}
+            aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </Button>
+
           {isConnected ? (
             <>
               <NotificationCenter />
@@ -97,6 +125,8 @@ export function Navbar() {
                 key={link.to}
                 to={link.to}
                 onClick={() => setMenuOpen(false)}
+                onMouseEnter={link.prefetchFn}
+                onFocus={link.prefetchFn}
                 className={({ isActive }) =>
                   cn(
                     "rounded-md px-3 py-3 text-sm font-medium transition-colors",

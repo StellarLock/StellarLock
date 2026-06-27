@@ -1,12 +1,14 @@
+import { useState } from "react"
 import { useParams, Link } from "react-router-dom"
 import { Lock, Coins, CalendarClock, PieChart, ShieldCheck, ArrowLeft, ExternalLink, SearchX } from "lucide-react"
 import { Helmet } from "react-helmet-async"
 import { Trans, useTranslation } from "react-i18next"
-import { useLocksByToken } from "@/hooks/useLocks"
+import { useLocksByToken, useLockCountByToken } from "@/hooks/useLocks"
 import { TokenAvatar } from "@/components/ui/TokenAvatar"
 import { StatCard } from "@/components/ui/StatCard"
 import { Button } from "@/components/ui/Button"
 import { Badge } from "@/components/ui/Badge"
+import { Pagination } from "@/components/ui/Pagination"
 import { TokenLockList } from "@/components/explorer/TokenLockList"
 import { LockBadge } from "@/components/explorer/LockBadge"
 import { TokenSearchBar } from "@/components/explorer/TokenSearchBar"
@@ -14,10 +16,14 @@ import { explorerLink } from "@/lib/stellar"
 import { formatAmount, formatDate, formatUsd, shortAddress } from "@/lib/utils"
 import { CopyButton } from "@/components/ui/CopyButton"
 
+const PAGE_SIZE = 20
+
 export function Explorer() {
   const { t } = useTranslation()
   const { token } = useParams<{ token: string }>()
-  const { data, loading, error } = useLocksByToken(token)
+  const [page, setPage] = useState(1)
+  const { data, loading, error } = useLocksByToken(token, (page - 1) * PAGE_SIZE, PAGE_SIZE)
+  const { data: totalCount } = useLockCountByToken(token)
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
@@ -115,9 +121,17 @@ export function Explorer() {
           {/* Locks list */}
           <section>
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-lg font-semibold">{t("explorer.allLocks", { count: data.locks.length })}</h2>
+              <h2 className="text-lg font-semibold">
+                {t("explorer.allLocks", { count: totalCount ?? data.locks.length })}
+              </h2>
             </div>
             <TokenLockList locks={data.locks} />
+            <Pagination
+              page={page}
+              pageSize={PAGE_SIZE}
+              total={totalCount ?? 0}
+              onChange={(p) => { setPage(p); window.scrollTo({ top: 0, behavior: "smooth" }) }}
+            />
           </section>
         </div>
       )}

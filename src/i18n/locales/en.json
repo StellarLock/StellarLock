@@ -3,10 +3,12 @@
     "appName": "StellarLock",
     "tagline": "Token & LP locks on Stellar",
     "testnet": "Testnet",
+    "mainnet": "Mainnet",
     "loading": "Loading…",
     "tryAgain": "Try again",
     "back": "Back",
     "you": "You",
+    "stellar": "Stellar",
     "skipToContent": "Skip to main content"
   },
   "nav": {
@@ -16,7 +18,8 @@
     "connectWallet": "Connect Wallet",
     "disconnectWallet": "Disconnect wallet",
     "openMenu": "Open menu",
-    "closeMenu": "Close menu"
+    "closeMenu": "Close menu",
+    "history": "History"
   },
   "landing": {
     "badge": "Built on Stellar · Soroban smart contracts",
@@ -225,5 +228,63 @@
     "disconnectedDesc": "Your Freighter wallet was disconnected or the extension became unavailable. Please reconnect to continue.",
     "networkChanged": "Network changed",
     "networkChangedDesc": "Your wallet's network changed. Please reconnect to continue using StellarLock."
+  },
+  "breadcrumbs": {
+    "home": "Home",
+    "myLocks": "My Locks",
+    "lockId": "Lock #{{id}}",
+    "discover": "Discover",
+    "createLock": "Create Lock",
+    "history": "Transaction History"
+    "createLock": "Create Lock"
+  },
+  "costEstimate": {
+    "title": "Estimated Costs",
+    "networkFee": "Transaction fee",
+    "storageFee": "Storage deposit",
+    "total": "Total",
+    "tooltip": "Soroban requires a refundable storage deposit to rent on-chain state. This deposit is separate from the transaction fee.",
+    "highCostWarning": "Unusually high storage cost",
+    "estimating": "Estimating costs…",
+    "error": "Unable to estimate cost",
+    "unit": "XLM"
+  },
+  "history": {
+    "title": "Transaction History",
+    "subtitle": "All StellarLock transactions submitted from this browser.",
+    "empty": "No transactions yet",
+    "emptyDesc": "Transactions will appear here after you create, withdraw, extend, or transfer a lock.",
+    "filterAll": "All",
+    "filterType": "Type",
+    "filterStatus": "Status",
+    "colHash": "Transaction",
+    "colType": "Type",
+    "colStatus": "Status",
+    "colDate": "Date",
+    "colLock": "Lock",
+    "viewOnExplorer": "View on Stellar Expert",
+    "copyHash": "Copy hash",
+    "typeCreateLock": "Create Lock",
+    "typeWithdraw": "Withdraw",
+    "typeExtend": "Extend",
+    "typeTransfer": "Transfer Beneficiary",
+    "typeSplitLock": "Split Lock",
+    "statusPending": "Pending",
+    "statusSuccess": "Success",
+    "statusFailed": "Failed",
+    "cleanupNote": "Transactions older than 90 days are removed automatically."
+  },
+  "splitLock": {
+    "toggle": "Multiple beneficiaries",
+    "toggleDesc": "Split this lock among multiple addresses with proportional shares.",
+    "addBeneficiary": "Add beneficiary",
+    "removeBeneficiary": "Remove",
+    "addressLabel": "Address",
+    "shareLabel": "Share (%)",
+    "totalShare": "Total",
+    "totalShareError": "Shares must add up to 100%",
+    "minBeneficiaries": "Add at least 2 beneficiaries or use single-beneficiary mode.",
+    "maxBeneficiaries": "Maximum 10 beneficiaries allowed.",
+    "submit": "Create split lock"
   }
 }

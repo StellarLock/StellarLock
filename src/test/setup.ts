@@ -5,7 +5,9 @@ import "@testing-library/jest-dom/vitest"
 // Cleanup after each test
 afterEach(() => {
   cleanup()
-  localStorage.clear()
+  if (global.localStorage) {
+    global.localStorage.clear()
+  }
 })
 
 // Mock window.matchMedia
@@ -22,12 +24,3 @@ Object.defineProperty(window, "matchMedia", {
     dispatchEvent: vi.fn(),
   })),
 })
-
-// Mock localStorage
-const localStorageMock = {
-  getItem: vi.fn(),
-  setItem: vi.fn(),
-  removeItem: vi.fn(),
-  clear: vi.fn(),
-}
-global.localStorage = localStorageMock as any

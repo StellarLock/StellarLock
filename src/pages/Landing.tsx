@@ -3,6 +3,7 @@ import { Helmet } from "react-helmet-async"
 import { Trans, useTranslation } from "react-i18next"
 import { ShieldCheck, Lock, Eye, Droplets, Clock, Share2, ArrowRight, TrendingUp } from "lucide-react"
 import { TokenSearchBar } from "@/components/explorer/TokenSearchBar"
+import { NETWORK } from "@/lib/stellar"
 import { Button } from "@/components/ui/Button"
 import { Badge } from "@/components/ui/Badge"
 import { Card } from "@/components/ui/Card"
@@ -68,7 +69,7 @@ export function Landing() {
             value={String(MOCK_LOCKS.filter((l) => l.status !== "withdrawn").length)}
           />
           <Stat label={t("landing.supportedDexs")} value="2" hint={t("landing.dexHint")} />
-          <Stat label={t("landing.network")} value={t("landing.networkValue")} hint={t("common.testnet")} />
+          <Stat label={t("landing.network")} value={NETWORK.displayName} hint={t("common.stellar")} />
         </div>
       </section>
 

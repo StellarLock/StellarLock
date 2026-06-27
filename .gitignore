@@ -10,9 +10,27 @@ dist/
 .env.local
 .env*.local
 
+# TypeScript incremental build cache
+*.tsbuildinfo
+
+# Test coverage reports
+coverage/
+.nyc_output/
+
+# Vitest cache
+.vitest-cache/
+
 # Rust / Soroban build artifacts
 contracts/target/
+
+# cargo-fuzz artifacts
+fuzz/target/
+fuzz/corpus/
+fuzz/artifacts/
 
 # Editor
 .vscode/
 .idea/
+
+# OS
+Thumbs.db

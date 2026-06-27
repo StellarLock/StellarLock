@@ -3,10 +3,12 @@
     "appName": "StellarLock",
     "tagline": "Stellar üzerinde Token ve LP Kilitleri",
     "testnet": "Testnet",
+    "mainnet": "Mainnet",
     "loading": "Yükleniyor…",
     "tryAgain": "Tekrar dene",
     "back": "Geri",
     "you": "Sen",
+    "stellar": "Stellar",
     "skipToContent": "Ana içeriğe geç"
   },
   "nav": {
@@ -16,7 +18,8 @@
     "connectWallet": "Cüzdanı Bağla",
     "disconnectWallet": "Cüzdanı ayır",
     "openMenu": "Menüyü aç",
-    "closeMenu": "Menüyü kapat"
+    "closeMenu": "Menüyü kapat",
+    "history": "Geçmiş"
   },
   "landing": {
     "badge": "Stellar üzerine inşa edildi · Soroban akıllı sözleşmeleri",
@@ -208,5 +211,62 @@
     "unlocksIn": "Açılma süresi",
     "lock": "Kilit #{{id}}",
     "view": "Görüntüle"
+  },
+  "breadcrumbs": {
+    "home": "Home",
+    "myLocks": "My Locks",
+    "lockId": "Lock #{{id}}",
+    "discover": "Discover",
+    "createLock": "Kilit Oluştur",
+    "history": "İşlem Geçmişi"
+  },
+  "costEstimate": {
+    "title": "Tahmini Maliyetler",
+    "networkFee": "İşlem ücreti",
+    "storageFee": "Depolama depozitosu",
+    "total": "Toplam",
+    "tooltip": "Soroban, zincir üstü durum kiralamak için iade edilebilir bir depolama depozitosu gerektirir. Bu depozito işlem ücretinden ayrıdır.",
+    "highCostWarning": "Alışılmadık yüksek depolama maliyeti",
+    "estimating": "Maliyetler tahmin ediliyor…",
+    "error": "Maliyet tahmin edilemedi",
+    "unit": "XLM"
+  },
+  "history": {
+    "title": "İşlem Geçmişi",
+    "subtitle": "Bu tarayıcıdan gönderilen tüm StellarLock işlemleri.",
+    "empty": "Henüz işlem yok",
+    "emptyDesc": "Kilit oluşturduktan, çektikten, uzattıktan veya aktardıktan sonra işlemler burada görünecektir.",
+    "filterAll": "Tümü",
+    "filterType": "Tür",
+    "filterStatus": "Durum",
+    "colHash": "İşlem",
+    "colType": "Tür",
+    "colStatus": "Durum",
+    "colDate": "Tarih",
+    "colLock": "Kilit",
+    "viewOnExplorer": "Stellar Expert'te Görüntüle",
+    "copyHash": "Hash'i kopyala",
+    "typeCreateLock": "Kilit Oluştur",
+    "typeWithdraw": "Çek",
+    "typeExtend": "Uzat",
+    "typeTransfer": "Yararlanıcıyı Aktar",
+    "typeSplitLock": "Bölünmüş Kilit",
+    "statusPending": "Bekliyor",
+    "statusSuccess": "Başarılı",
+    "statusFailed": "Başarısız",
+    "cleanupNote": "90 günden eski işlemler otomatik olarak kaldırılır."
+  },
+  "splitLock": {
+    "toggle": "Çoklu yararlanıcı",
+    "toggleDesc": "Bu kilidi orantılı paylarla birden fazla adrese bölün.",
+    "addBeneficiary": "Yararlanıcı ekle",
+    "removeBeneficiary": "Kaldır",
+    "addressLabel": "Adres",
+    "shareLabel": "Pay (%)",
+    "totalShare": "Toplam",
+    "totalShareError": "Paylar %100'e ulaşmalıdır",
+    "minBeneficiaries": "En az 2 yararlanıcı ekleyin veya tek yararlanıcı modunu kullanın.",
+    "maxBeneficiaries": "Maksimum 10 yararlanıcıya izin verilir.",
+    "submit": "Bölünmüş kilit oluştur"
   }
 }

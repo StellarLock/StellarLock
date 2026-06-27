@@ -3,10 +3,12 @@
     "appName": "StellarLock",
     "tagline": "Stellar의 토큰 및 LP 잠금",
     "testnet": "테스트넷",
+    "mainnet": "메인넷",
     "loading": "로딩 중…",
     "tryAgain": "다시 시도",
     "back": "뒤로",
     "you": "나",
+    "stellar": "Stellar",
     "skipToContent": "주요 콘텐츠로 건너뛰기"
   },
   "nav": {
@@ -16,7 +18,8 @@
     "connectWallet": "지갑 연결",
     "disconnectWallet": "지갑 연결 해제",
     "openMenu": "메뉴 열기",
-    "closeMenu": "메뉴 닫기"
+    "closeMenu": "메뉴 닫기",
+    "history": "내역"
   },
   "landing": {
     "badge": "Stellar 기반 · Soroban 스마트 컨트랙트",
@@ -225,5 +228,62 @@
     "disconnectedDesc": "Freighter 지갑이 연결 해제되었거나 확장 프로그램을 사용할 수 없게 되었습니다. 계속하려면 다시 연결하세요.",
     "networkChanged": "네트워크 변경됨",
     "networkChangedDesc": "지갑의 네트워크가 변경되었습니다. StellarLock 사용을 계속하려면 다시 연결하세요."
+  },
+  "breadcrumbs": {
+    "home": "Home",
+    "myLocks": "My Locks",
+    "lockId": "Lock #{{id}}",
+    "discover": "Discover",
+    "createLock": "잠금 생성",
+    "history": "거래 내역"
+  },
+  "costEstimate": {
+    "title": "예상 비용",
+    "networkFee": "거래 수수료",
+    "storageFee": "스토리지 보증금",
+    "total": "합계",
+    "tooltip": "Soroban은 온체인 상태를 임대하기 위해 환불 가능한 스토리지 보증금이 필요합니다. 이 보증금은 거래 수수료와 별개입니다.",
+    "highCostWarning": "스토리지 비용이 비정상적으로 높습니다",
+    "estimating": "비용 추산 중…",
+    "error": "비용을 추산할 수 없습니다",
+    "unit": "XLM"
+  },
+  "history": {
+    "title": "거래 내역",
+    "subtitle": "이 브라우저에서 제출한 모든 StellarLock 거래입니다.",
+    "empty": "거래 없음",
+    "emptyDesc": "잠금 생성, 인출, 연장 또는 전송 후 거래가 여기에 표시됩니다.",
+    "filterAll": "전체",
+    "filterType": "유형",
+    "filterStatus": "상태",
+    "colHash": "거래",
+    "colType": "유형",
+    "colStatus": "상태",
+    "colDate": "날짜",
+    "colLock": "잠금",
+    "viewOnExplorer": "Stellar Expert에서 보기",
+    "copyHash": "해시 복사",
+    "typeCreateLock": "잠금 생성",
+    "typeWithdraw": "인출",
+    "typeExtend": "연장",
+    "typeTransfer": "수혜자 이전",
+    "typeSplitLock": "분할 잠금",
+    "statusPending": "대기 중",
+    "statusSuccess": "성공",
+    "statusFailed": "실패",
+    "cleanupNote": "90일이 지난 거래는 자동으로 삭제됩니다."
+  },
+  "splitLock": {
+    "toggle": "다중 수혜자",
+    "toggleDesc": "이 잠금을 비례 지분으로 여러 주소에 분할합니다.",
+    "addBeneficiary": "수혜자 추가",
+    "removeBeneficiary": "제거",
+    "addressLabel": "주소",
+    "shareLabel": "지분 (%)",
+    "totalShare": "합계",
+    "totalShareError": "지분의 합은 100%여야 합니다",
+    "minBeneficiaries": "수혜자를 2명 이상 추가하거나 단일 수혜자 모드를 사용하세요.",
+    "maxBeneficiaries": "최대 10명의 수혜자가 허용됩니다.",
+    "submit": "분할 잠금 생성"
   }
 }

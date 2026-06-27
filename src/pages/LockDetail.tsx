@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { Link, useNavigate, useParams } from "react-router-dom"
-import { ArrowLeft, Lock as LockIcon, Repeat, ExternalLink, ShieldCheck, UserRoundPen } from "lucide-react"
+import { ArrowLeft, Lock as LockIcon, Repeat, ExternalLink, ShieldCheck, UserRoundPen, FileDown } from "lucide-react"
 import { Helmet } from "react-helmet-async"
 import { useTranslation } from "react-i18next"
 import { useLock } from "@/hooks/useLocks"
@@ -8,6 +8,8 @@ import { useWallet } from "@/hooks/useWallet"
 import { withdrawLock, extendLock, transferBeneficiary } from "@/lib/token-locker"
 import { withdrawLpLock, extendLpLock, transferLpBeneficiary } from "@/lib/lp-locker"
 import { trackEvent } from "@/lib/analytics"
+import { type TxPhase } from "@/lib/stellar"
+import { downloadLockReport } from "@/lib/pdf-report"
 import { Card } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
@@ -18,7 +20,10 @@ import { DexBadge } from "@/components/ui/DexBadge"
 import { CopyButton } from "@/components/ui/CopyButton"
 import { CountdownTimer } from "@/components/ui/CountdownTimer"
 import { LockProgressBar } from "@/components/ui/LockProgressBar"
+import { TxProgressSteps } from "@/components/ui/TxProgressSteps"
+import { VerifiedBadge } from "@/components/ui/VerifiedBadge"
 import { NotificationSettings } from "@/components/locks/NotificationSettings"
+import { useVerifiedToken } from "@/hooks/useVerifiedToken"
 import { formatAmount, formatUsd, formatDateTime, shortAddress } from "@/lib/utils"
 import type { Lock } from "@/types/lock"
 
@@ -73,6 +78,7 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
   const { address, signTransaction } = useWallet()
   const navigate = useNavigate()
   const isLp = lock.kind === "lp"
+  const verified = useVerifiedToken(lock.token.address)
 
   const now = Date.now()
   const isBeneficiary = address === lock.beneficiary
@@ -93,6 +99,7 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
   const canTransfer = isBeneficiary && lock.status !== "withdrawn"
 
   const [busy, setBusy] = useState<"withdraw" | "extend" | "transfer" | null>(null)
+  const [txPhase, setTxPhase] = useState<TxPhase | "idle">("idle")
   const [extendOpen, setExtendOpen] = useState(false)
   const [transferOpen, setTransferOpen] = useState(false)
   const [newDate, setNewDate] = useState("")
@@ -116,14 +123,16 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
 
   async function handleWithdraw() {
     setBusy("withdraw")
+    setTxPhase("simulating")
     try {
       await (isLp
-        ? withdrawLpLock(lock.id, address!, signTransaction)
-        : withdrawLock(lock.id, address!, signTransaction))
+        ? withdrawLpLock(lock.id, address!, signTransaction, setTxPhase)
+        : withdrawLock(lock.id, address!, signTransaction, setTxPhase))
       trackEvent("lock_withdraw", { kind: lock.kind })
       onChange()
     } finally {
       setBusy(null)
+      setTxPhase("idle")
     }
   }
 
@@ -132,31 +141,35 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
     const ts = Math.floor(new Date(newDate).getTime() / 1000)
     if (ts <= Math.floor(lock.unlockAt / 1000)) return
     setBusy("extend")
+    setTxPhase("simulating")
     try {
       await (isLp
-        ? extendLpLock(lock.id, ts, address!, signTransaction)
-        : extendLock(lock.id, ts, address!, signTransaction))
+        ? extendLpLock(lock.id, ts, address!, signTransaction, setTxPhase)
+        : extendLock(lock.id, ts, address!, signTransaction, setTxPhase))
       trackEvent("lock_extend", { kind: lock.kind })
       setExtendOpen(false)
       onChange()
     } finally {
       setBusy(null)
+      setTxPhase("idle")
     }
   }
 
   async function handleTransfer() {
     if (!newBeneficiary.trim()) return
     setBusy("transfer")
+    setTxPhase("simulating")
     try {
       await (isLp
-        ? transferLpBeneficiary(lock.id, newBeneficiary.trim(), address!, signTransaction)
-        : transferBeneficiary(lock.id, newBeneficiary.trim(), address!, signTransaction))
+        ? transferLpBeneficiary(lock.id, newBeneficiary.trim(), address!, signTransaction, setTxPhase)
+        : transferBeneficiary(lock.id, newBeneficiary.trim(), address!, signTransaction, setTxPhase))
       trackEvent("lock_transfer_beneficiary", { kind: lock.kind })
       setTransferOpen(false)
       setNewBeneficiary("")
       onChange()
     } finally {
       setBusy(null)
+      setTxPhase("idle")
     }
   }
 
@@ -175,15 +188,27 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
           <div className="flex items-center gap-4">
             <TokenAvatar symbol={lock.token.symbol} contractId={lock.token.address} size="lg" showVerified />
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-2xl font-bold">{lock.token.symbol}</h1>
                 {isLp && lock.dex && <DexBadge dex={lock.dex} />}
                 <Badge variant="outline">{isLp ? t("lockDetail.lpLock") : t("lockDetail.tokenLock")}</Badge>
+                <VerifiedBadge verified={verified} showUnverified={true} />
               </div>
               <p className="text-sm text-muted-foreground">{lock.token.name}</p>
             </div>
           </div>
-          <StatusBadge status={lock.status} />
+          <div className="flex flex-col items-end gap-2">
+            <StatusBadge status={lock.status} />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => downloadLockReport(lock)}
+              title="Download lock report"
+            >
+              <FileDown className="h-4 w-4" />
+              Download Report
+            </Button>
+          </div>
         </div>
 
         <div className="grid gap-px bg-border sm:grid-cols-2">
@@ -292,7 +317,42 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
             </div>
           </div>
         )}
+        {lock.metadata && (lock.metadata.description || lock.metadata.projectUrl || lock.metadata.logoUrl) && (
+          <div className="border-t border-border p-6">
+            <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">Lock Details</h3>
+            <div className="flex flex-col gap-3">
+              {lock.metadata.logoUrl && (
+                <img
+                  src={lock.metadata.logoUrl}
+                  alt="Project logo"
+                  className="h-10 w-10 rounded-full border border-border object-cover"
+                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none" }}
+                />
+              )}
+              {lock.metadata.description && (
+                <p className="text-sm text-muted-foreground">{lock.metadata.description}</p>
+              )}
+              {lock.metadata.projectUrl && (
+                <a
+                  href={lock.metadata.projectUrl}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
+                >
+                  {lock.metadata.projectUrl}
+                </a>
+              )}
+            </div>
+          </div>
+        )}
+
         {(isBeneficiary || isCreator) && <NotificationSettings lockId={lock.id} unlockAt={lock.unlockAt} />}
+
+        {txPhase !== "idle" && (
+          <div className="border-t border-border px-6 pb-4 pt-3">
+            <TxProgressSteps phase={txPhase} />
+          </div>
+        )}
 
         {(canWithdraw || canExtend || canTransfer) && (
           <div className="flex flex-col gap-3 border-t border-border p-6 sm:flex-row">
@@ -393,6 +453,16 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
             >
               {t("lockDetail.viewExplorer")} <ExternalLink className="h-3 w-3" />
             </Link>
+          </p>
+        </div>
+      )}
+
+      {verified === false && (
+        <div className="mt-4 flex items-start gap-3 rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-4 text-sm text-yellow-700 dark:text-yellow-400">
+          <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0" />
+          <p>
+            This token is <strong>not on the StellarLock verified allowlist</strong>. Anyone can lock any token — always
+            verify the token contract address independently before trusting this lock.
           </p>
         </div>
       )}

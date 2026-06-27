@@ -1,43 +1,66 @@
-import { useMemo, useState } from "react"
+import { useMemo, useState, useCallback } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { Plus, Wallet, Layers, Search } from "lucide-react"
+import { Plus, Wallet, Layers, Search, CheckSquare } from "lucide-react"
 import { Helmet } from "react-helmet-async"
 import { useTranslation } from "react-i18next"
 import { useWallet } from "@/hooks/useWallet"
 import { useMyLocks } from "@/hooks/useLocks"
+import { extendLock, transferBeneficiary } from "@/lib/token-locker"
+import { extendLpLock, transferLpBeneficiary } from "@/lib/lp-locker"
 import { Tabs } from "@/components/ui/Tabs"
 import { Button } from "@/components/ui/Button"
 import { StatCard } from "@/components/ui/StatCard"
 import { LockCard } from "@/components/locks/LockCard"
+import { Pagination } from "@/components/ui/Pagination"
+import { BulkActionsToolbar } from "@/components/locks/BulkActionsToolbar"
+import { BulkConfirmModal } from "@/components/locks/BulkConfirmModal"
 import { ConnectGate } from "@/components/layout/ConnectGate"
 import { formatUsd } from "@/lib/utils"
 import type { Lock, LockStatus } from "@/types/lock"
 
 type Tab = "created" | "received"
 type SortKey = "unlockAt" | "amount" | "createdAt"
+type BulkAction = "extend" | "transfer" | null
+
+const PAGE_SIZE = 20
 
 export function MyLocks() {
   const { t } = useTranslation()
-  const { address } = useWallet()
+  const { address, signTransaction } = useWallet()
   const navigate = useNavigate()
-  const { data, loading, error, reload } = useMyLocks(address)
+  const [page, setPage] = useState(1)
+  const { data, loading, error, reload } = useMyLocks(address, (page - 1) * PAGE_SIZE, PAGE_SIZE)
   const [tab, setTab] = useState<Tab>("created")
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState<LockStatus | "all">("all")
   const [kindFilter, setKindFilter] = useState<"all" | "token" | "lp">("all")
   const [sortKey, setSortKey] = useState<SortKey>("unlockAt")
 
+  // Bulk selection state
+  const [selectMode, setSelectMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [bulkAction, setBulkAction] = useState<BulkAction>(null)
+
   const created = data?.created ?? []
   const received = data?.received ?? []
+  const totalCreated = data?.totalCreated ?? 0
+  const totalReceived = data?.totalReceived ?? 0
 
   const stats = useMemo(() => {
     const now = Date.now()
     const totalValue = created.reduce((sum, l) => sum + l.usdValue, 0)
     const unlockable = created.filter((l) => l.unlockAt <= now && l.status !== "withdrawn").length
-    return { count: created.length, totalValue, unlockable }
-  }, [created])
+    return { count: totalCreated, totalValue, unlockable }
+  }, [created, totalCreated])
 
   const rawList = tab === "created" ? created : received
+  const totalForTab = tab === "created" ? totalCreated : totalReceived
+
+  // Reset to page 1 when switching tabs or filters
+  function handleTabChange(v: string) {
+    setTab(v as Tab)
+    setPage(1)
+  }
 
   const filteredList = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -55,6 +78,74 @@ export function MyLocks() {
       })
   }, [rawList, search, statusFilter, kindFilter, sortKey])
 
+  const selectedLocks = useMemo(
+    () => filteredList.filter((l) => selectedIds.has(l.id)),
+    [filteredList, selectedIds],
+  )
+
+  const allSelected = filteredList.length > 0 && filteredList.every((l) => selectedIds.has(l.id))
+
+  function toggleSelect(id: string, checked: boolean) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      checked ? next.add(id) : next.delete(id)
+      return next
+    })
+  }
+
+  function handleSelectAll() {
+    if (allSelected) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(filteredList.map((l) => l.id)))
+    }
+  }
+
+  function exitSelectMode() {
+    setSelectMode(false)
+    setSelectedIds(new Set())
+  }
+
+  const handleBulkExtend = useCallback(
+    async (newDate: string) => {
+      const newUnlockSecs = Math.floor(new Date(newDate).getTime() / 1000)
+      for (const lock of selectedLocks) {
+        if (Math.floor(lock.unlockAt / 1000) >= newUnlockSecs) continue
+        try {
+          if (lock.kind === "lp") {
+            await extendLpLock(lock.id, newUnlockSecs, address!, signTransaction)
+          } else {
+            await extendLock(lock.id, newUnlockSecs, address!, signTransaction)
+          }
+        } catch {
+          // per-lock errors shown in modal
+        }
+      }
+      reload()
+      exitSelectMode()
+    },
+    [selectedLocks, address, signTransaction, reload],
+  )
+
+  const handleBulkTransfer = useCallback(
+    async (newBeneficiary: string) => {
+      for (const lock of selectedLocks) {
+        try {
+          if (lock.kind === "lp") {
+            await transferLpBeneficiary(lock.id, newBeneficiary.trim(), address!, signTransaction)
+          } else {
+            await transferBeneficiary(lock.id, newBeneficiary.trim(), address!, signTransaction)
+          }
+        } catch {
+          // per-lock errors shown in modal
+        }
+      }
+      reload()
+      exitSelectMode()
+    },
+    [selectedLocks, address, signTransaction, reload],
+  )
+
   return (
     <ConnectGate title={t("connectGate.title")}>
       <Helmet>
@@ -67,10 +158,23 @@ export function MyLocks() {
             <h1 className="text-balance text-3xl font-bold tracking-tight md:text-4xl">{t("myLocks.title")}</h1>
             <p className="mt-2 text-muted-foreground">{t("myLocks.subtitle")}</p>
           </div>
-          <Button onClick={() => navigate("/app/create")}>
-            <Plus className="h-4 w-4" />
-            {t("myLocks.newLock")}
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setSelectMode((v) => !v)
+                if (selectMode) exitSelectMode()
+              }}
+              aria-pressed={selectMode}
+            >
+              <CheckSquare className="h-4 w-4" />
+              {selectMode ? "Cancel" : "Select"}
+            </Button>
+            <Button onClick={() => navigate("/app/create")}>
+              <Plus className="h-4 w-4" />
+              {t("myLocks.newLock")}
+            </Button>
+          </div>
         </header>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-3">
@@ -90,10 +194,14 @@ export function MyLocks() {
         <div className="mt-8">
           <Tabs
             value={tab}
-            onChange={(v) => setTab(v as Tab)}
+            onChange={handleTabChange}
+            onChange={(v) => {
+              setTab(v as Tab)
+              exitSelectMode()
+            }}
             items={[
-              { value: "created", label: t("myLocks.createdByMe"), count: created.length },
-              { value: "received", label: t("myLocks.beneficiary"), count: received.length },
+              { value: "created", label: t("myLocks.createdByMe"), count: totalCreated },
+              { value: "received", label: t("myLocks.beneficiary"), count: totalReceived },
             ]}
           />
         </div>
@@ -105,7 +213,7 @@ export function MyLocks() {
             <input
               type="search"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => { setSearch(e.target.value); setPage(1) }}
               placeholder="Search by token symbol or lock ID…"
               className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
             />
@@ -113,7 +221,7 @@ export function MyLocks() {
 
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as LockStatus | "all")}
+            onChange={(e) => { setStatusFilter(e.target.value as LockStatus | "all"); setPage(1) }}
             className="rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 cursor-pointer"
             aria-label="Filter by status"
           >
@@ -125,7 +233,7 @@ export function MyLocks() {
 
           <select
             value={kindFilter}
-            onChange={(e) => setKindFilter(e.target.value as "all" | "token" | "lp")}
+            onChange={(e) => { setKindFilter(e.target.value as "all" | "token" | "lp"); setPage(1) }}
             className="rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 cursor-pointer"
             aria-label="Filter by type"
           >
@@ -147,7 +255,47 @@ export function MyLocks() {
         </div>
 
         <LockGrid locks={filteredList} loading={loading} error={error} onRetry={reload} tab={tab} hasFilters={search !== "" || statusFilter !== "all" || kindFilter !== "all"} />
+
+        <Pagination
+          page={page}
+          pageSize={PAGE_SIZE}
+          total={totalForTab}
+          onChange={setPage}
+        {/* Bulk actions toolbar */}
+        {selectMode && (
+          <BulkActionsToolbar
+            selectedCount={selectedIds.size}
+            onClear={exitSelectMode}
+            onSelectAll={handleSelectAll}
+            allSelected={allSelected}
+            onBulkExtend={() => setBulkAction("extend")}
+            onBulkTransfer={() => setBulkAction("transfer")}
+            canExtend={tab === "created"}
+            canTransfer={tab === "received"}
+          />
+        )}
+
+        <LockGrid
+          locks={filteredList}
+          loading={loading}
+          error={error}
+          onRetry={reload}
+          tab={tab}
+          hasFilters={search !== "" || statusFilter !== "all" || kindFilter !== "all"}
+          selectable={selectMode}
+          selectedIds={selectedIds}
+          onSelect={toggleSelect}
+        />
       </div>
+
+      {bulkAction && (
+        <BulkConfirmModal
+          action={bulkAction}
+          locks={selectedLocks}
+          onConfirm={bulkAction === "extend" ? handleBulkExtend : handleBulkTransfer}
+          onClose={() => setBulkAction(null)}
+        />
+      )}
     </ConnectGate>
   )
 }
@@ -159,6 +307,9 @@ function LockGrid({
   onRetry,
   tab,
   hasFilters,
+  selectable,
+  selectedIds,
+  onSelect,
 }: {
   locks: Lock[]
   loading: boolean
@@ -166,6 +317,9 @@ function LockGrid({
   onRetry: () => void
   tab: Tab
   hasFilters: boolean
+  selectable: boolean
+  selectedIds: Set<string>
+  onSelect: (id: string, checked: boolean) => void
 }) {
   const { t } = useTranslation()
 
@@ -221,7 +375,13 @@ function LockGrid({
   return (
     <div className="mt-6 grid gap-4 md:grid-cols-2">
       {locks.map((lock) => (
-        <LockCard key={lock.id} lock={lock} />
+        <LockCard
+          key={lock.id}
+          lock={lock}
+          selectable={selectable}
+          selected={selectedIds.has(lock.id)}
+          onSelect={onSelect}
+        />
       ))}
     </div>
   )

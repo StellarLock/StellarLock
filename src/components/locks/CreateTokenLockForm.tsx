@@ -1,16 +1,29 @@
-import { useMemo, useState, type FormEvent } from "react"
+import { useMemo, useState, useEffect, useRef, type FormEvent } from "react"
 import { useNavigate } from "react-router-dom"
-import { Lock, Info, Loader2, Calendar } from "lucide-react"
+import { Lock, Info, Loader2, Calendar, ChevronDown, ChevronUp } from "lucide-react"
+import { Lock, Info, Loader2, Calendar, Users } from "lucide-react"
+import { Lock, Info, Loader2, Calendar, Timer } from "lucide-react"
 import { Trans, useTranslation } from "react-i18next"
+import { Address, nativeToScVal, xdr } from "@stellar/stellar-sdk"
 import { Input, Label } from "@/components/ui/Input"
 import { Button } from "@/components/ui/Button"
+import { TxProgressSteps } from "@/components/ui/TxProgressSteps"
 import { useWallet } from "@/hooks/useWallet"
 import { useTokenBalance, useTokenAllowance } from "@/hooks/useLocks"
 import { createTokenLock,  } from "@/lib/token-locker"
 import { CONTRACTS, submitTokenApproval } from "@/lib/stellar"
+import { useTokenBalance } from "@/hooks/useLocks"
+import { createTokenLock } from "@/lib/token-locker"
+import { createSplitLock, type SplitBeneficiary } from "@/lib/split-lock"
 import { trackEvent } from "@/lib/analytics"
-import { formatDate } from "@/lib/utils"
+import { cn, formatDate, formatError, isValidStellarAddress } from "@/lib/utils"
+import { formatDate, formatError, isValidStellarAddress } from "@/lib/utils"
+import { CONTRACTS, type TxPhase } from "@/lib/stellar"
+import { CONTRACTS } from "@/lib/stellar"
 import { ConfirmLockModal } from "@/components/locks/ConfirmLockModal"
+import { isValidStellarAddress, isValidStellarContractAddress } from "@/lib/stellar"
+import { CostEstimate } from "@/components/locks/CostEstimate"
+import { MultiBeneficiaryFields } from "@/components/locks/MultiBeneficiaryFields"
 
 const DAY = 86_400_000
 
@@ -36,8 +49,51 @@ export function CreateTokenLockForm() {
   const [vestingStartDate, setVestingStartDate] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const [approving, setApproving] = useState(false)
+  const [txPhase, setTxPhase] = useState<TxPhase | "idle">("idle")
   const [error, setError] = useState<string | null>(null)
   const [showConfirm, setShowConfirm] = useState(false)
+  const [metaOpen, setMetaOpen] = useState(false)
+  const [description, setDescription] = useState("")
+  const [projectUrl, setProjectUrl] = useState("")
+  const [logoUrl, setLogoUrl] = useState("")
+  const [multiMode, setMultiMode] = useState(false)
+  const [splitBeneficiaries, setSplitBeneficiaries] = useState<SplitBeneficiary[]>([
+    { address: "", shareBps: 5000 },
+    { address: "", shareBps: 5000 },
+  ])
+  const [cooldownRemaining, setCooldownRemaining] = useState(0)
+  const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  const COOLDOWN_SECONDS = 60
+  const COOLDOWN_KEY = "stellarlock:last_lock_created_at"
+
+  useEffect(() => {
+    const stored = localStorage.getItem(COOLDOWN_KEY)
+    if (stored) {
+      const elapsed = Math.floor((Date.now() - Number(stored)) / 1000)
+      const remaining = COOLDOWN_SECONDS - elapsed
+      if (remaining > 0) setCooldownRemaining(remaining)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (cooldownRemaining <= 0) {
+      if (cooldownRef.current) clearInterval(cooldownRef.current)
+      return
+    }
+    cooldownRef.current = setInterval(() => {
+      setCooldownRemaining((prev) => {
+        if (prev <= 1) {
+          clearInterval(cooldownRef.current!)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+    return () => {
+      if (cooldownRef.current) clearInterval(cooldownRef.current)
+    }
+  }, [cooldownRemaining])
 
   const vestingTemplates: Record<VestingTemplate, VestingTemplateConfig> = {
     none: { label: t("tokenForm.vestingTemplateCustom") },
@@ -47,8 +103,10 @@ export function CreateTokenLockForm() {
     quarterly: { label: t("tokenForm.vestingTemplateQuarterly"), durationMonths: 12, releases: 4 },
   }
 
-  const validTokenAddress =
-    tokenAddress.trim().length === 56 && tokenAddress.trim().startsWith("C") ? tokenAddress.trim() : undefined
+  const trimmedTokenAddress = tokenAddress.trim()
+  const trimmedBeneficiary = beneficiary.trim()
+  const effectiveBeneficiary = trimmedBeneficiary || address || ""
+  const validTokenAddress = isValidStellarContractAddress(trimmedTokenAddress) ? trimmedTokenAddress : undefined
   const { data: balance, loading: balanceLoading } = useTokenBalance(validTokenAddress, address ?? null)
   const { data: allowance, loading: allowanceLoading } = useTokenAllowance(
     validTokenAddress,
@@ -66,7 +124,58 @@ export function CreateTokenLockForm() {
   const minDate = useMemo(() => new Date(Date.now() + DAY).toISOString().slice(0, 10), [])
   const unlockTs = unlockDate ? new Date(unlockDate).getTime() : 0
   const vestingStartTs = vestingStartDate ? new Date(vestingStartDate).getTime() : 0
-  const valid = tokenAddress.trim().length > 4 && Number(amount) > 0 && unlockTs > Date.now()
+  const tokenAddressValid = isValidStellarContractAddress(trimmedTokenAddress)
+  const beneficiaryValid = isValidStellarAddress(effectiveBeneficiary)
+  const valid = tokenAddressValid && beneficiaryValid && Number(amount) > 0 && unlockTs > Date.now()
+  const splitSharesOk =
+    splitBeneficiaries.length >= 2 &&
+    splitBeneficiaries.every((b) => isValidStellarAddress(b.address)) &&
+    splitBeneficiaries.reduce((s, b) => s + b.shareBps, 0) === 10_000
+
+  const valid =
+    isValidStellarAddress(tokenAddress.trim()) &&
+    Number(amount) > 0 &&
+    unlockTs > Date.now() &&
+    (!multiMode || splitSharesOk)
+
+  // Build the contract args for cost estimation when form is sufficiently filled in
+  const costArgs = useMemo((): xdr.ScVal[] | null => {
+    try {
+      if (!validTokenAddress || !address || Number(amount) <= 0 || unlockTs <= Date.now()) return null
+      const beneficiaryAddr = beneficiary.trim().length > 0 ? beneficiary.trim() : address
+      const amountStroops = BigInt(Math.round(Number(amount) * 1e7))
+      const args: xdr.ScVal[] = [
+        new Address(address).toScVal(),
+        new Address(validTokenAddress).toScVal(),
+        nativeToScVal(amountStroops, { type: "i128" }),
+        new Address(beneficiaryAddr).toScVal(),
+        nativeToScVal(BigInt(Math.floor(unlockTs / 1000)), { type: "u64" }),
+      ]
+      if (vesting) {
+        args.push(
+          xdr.ScVal.scvMap([
+            new xdr.ScMapEntry({
+              key: xdr.ScVal.scvSymbol("end"),
+              val: nativeToScVal(BigInt(Math.floor(unlockTs / 1000)), { type: "u64" }),
+            }),
+            new xdr.ScMapEntry({
+              key: xdr.ScVal.scvSymbol("released"),
+              val: nativeToScVal(BigInt(0), { type: "i128" }),
+            }),
+            new xdr.ScMapEntry({
+              key: xdr.ScVal.scvSymbol("start"),
+              val: nativeToScVal(BigInt(Math.floor(Date.now() / 1000)), { type: "u64" }),
+            }),
+          ]),
+        )
+      } else {
+        args.push(xdr.ScVal.scvVoid())
+      }
+      return args
+    } catch {
+      return null
+    }
+  }, [validTokenAddress, address, amount, beneficiary, unlockTs, vesting])
 
   function applyPreset(days: number) {
     setUnlockDate(new Date(Date.now() + days * DAY).toISOString().slice(0, 10))
@@ -101,7 +210,37 @@ export function CreateTokenLockForm() {
 
   async function confirmLock() {
     setSubmitting(true)
+    setTxPhase("simulating")
     try {
+      if (multiMode) {
+        await createSplitLock(
+          {
+            tokenAddress: tokenAddress.trim(),
+            totalAmount: Number(amount),
+            beneficiaries: splitBeneficiaries,
+            unlockAt: Math.floor(unlockTs / 1000),
+            vesting: vesting ? { start: Math.floor(Date.now() / 1000), end: Math.floor(unlockTs / 1000) } : undefined,
+          },
+          address!,
+          signTransaction,
+        )
+        trackEvent("lock_create_split", { count: splitBeneficiaries.length, vesting })
+        navigate("/app/locks")
+      } else {
+        const { id } = await createTokenLock(
+          {
+            tokenAddress: tokenAddress.trim(),
+            amount: Number(amount),
+            beneficiary: beneficiary.trim() || address!,
+            unlockAt: Math.floor(unlockTs / 1000),
+            vesting: vesting ? { start: Math.floor(Date.now() / 1000), end: Math.floor(unlockTs / 1000) } : undefined,
+          },
+          address!,
+          signTransaction,
+        )
+        trackEvent("lock_create_token", { vesting })
+        navigate(`/app/lock/${id}`)
+      }
       const { id } = await createTokenLock(
         {
           tokenAddress: tokenAddress.trim(),
@@ -112,21 +251,19 @@ export function CreateTokenLockForm() {
         },
         address!,
         signTransaction,
+        setTxPhase,
       )
       trackEvent("lock_create_token", { vesting })
+      localStorage.setItem(COOLDOWN_KEY, String(Date.now()))
+      setCooldownRemaining(COOLDOWN_SECONDS)
       navigate(`/app/lock/${id}`)
     } catch (err: unknown) {
       console.error("[createLock error]", err)
       setShowConfirm(false)
-      if (err instanceof Error) {
-        setError(err.message)
-      } else if (typeof err === "object" && err !== null) {
-        setError(JSON.stringify(err, null, 2))
-      } else {
-        setError(String(err))
-      }
+      setError(formatError(err))
     } finally {
       setSubmitting(false)
+      setTxPhase("idle")
     }
   }
 
@@ -167,6 +304,7 @@ export function CreateTokenLockForm() {
           value={tokenAddress}
           onChange={(e) => setTokenAddress(e.target.value)}
           className="font-mono"
+          aria-invalid={!!trimmedTokenAddress && !tokenAddressValid}
         />
         <p className="text-xs text-muted-foreground">{t("tokenForm.tokenHint")}</p>
       </div>
@@ -217,9 +355,41 @@ export function CreateTokenLockForm() {
           placeholder={address ?? "G…"}
           value={beneficiary}
           onChange={(e) => setBeneficiary(e.target.value)}
+          aria-invalid={!!trimmedBeneficiary && !beneficiaryValid}
+      {/* Multiple beneficiaries toggle */}
+      <label className={cn(
+        "flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors",
+        multiMode ? "border-primary/40 bg-primary/5" : "border-border bg-background/40",
+      )}>
+        <input
+          type="checkbox"
+          checked={multiMode}
+          onChange={(e) => setMultiMode(e.target.checked)}
+          className="mt-0.5 h-4 w-4 accent-[oklch(0.78_0.16_175)]"
         />
-        <p className="text-xs text-muted-foreground">{t("tokenForm.beneficiaryHint")}</p>
-      </div>
+        <span className="text-sm">
+          <span className="flex items-center gap-1.5 font-medium">
+            <Users className="h-3.5 w-3.5" />
+            {t("splitLock.toggle")}
+          </span>
+          <span className="block text-muted-foreground">{t("splitLock.toggleDesc")}</span>
+        </span>
+      </label>
+
+      {multiMode ? (
+        <MultiBeneficiaryFields beneficiaries={splitBeneficiaries} onChange={setSplitBeneficiaries} />
+      ) : (
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="beneficiary">{t("tokenForm.beneficiary")}</Label>
+          <Input
+            id="beneficiary"
+            placeholder={address ?? "G…"}
+            value={beneficiary}
+            onChange={(e) => setBeneficiary(e.target.value)}
+          />
+          <p className="text-xs text-muted-foreground">{t("tokenForm.beneficiaryHint")}</p>
+        </div>
+      )}
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="unlock">{t("tokenForm.unlockDate")}</Label>
@@ -313,6 +483,57 @@ export function CreateTokenLockForm() {
         </label>
       )}
 
+      {/* Lock Details (optional metadata) */}
+      <div className="rounded-lg border border-border">
+        <button
+          type="button"
+          onClick={() => setMetaOpen((v) => !v)}
+          className="flex w-full items-center justify-between px-4 py-3 text-sm font-medium transition-colors hover:bg-secondary/40"
+          aria-expanded={metaOpen}
+        >
+          <span>Lock Details <span className="ml-1 text-xs font-normal text-muted-foreground">(optional)</span></span>
+          {metaOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+        </button>
+
+        {metaOpen && (
+          <div className="flex flex-col gap-4 border-t border-border px-4 pb-4 pt-3">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="meta-desc">Description</Label>
+              <textarea
+                id="meta-desc"
+                rows={3}
+                maxLength={280}
+                placeholder="Why is this lock being created? (e.g. Team tokens locked for 2 years)"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+              <p className="text-right text-xs text-muted-foreground">{description.length}/280</p>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="meta-url">Project URL</Label>
+              <Input
+                id="meta-url"
+                type="url"
+                placeholder="https://your-project.com"
+                value={projectUrl}
+                onChange={(e) => setProjectUrl(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="meta-logo">Logo URL</Label>
+              <Input
+                id="meta-logo"
+                type="url"
+                placeholder="https://your-project.com/logo.png"
+                value={logoUrl}
+                onChange={(e) => setLogoUrl(e.target.value)}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
       <div className="flex items-start gap-2 rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm text-muted-foreground">
         <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
         <span>
@@ -343,9 +564,26 @@ export function CreateTokenLockForm() {
         )}
       </div>
 
-      <Button type="submit" size="lg" loading={submitting} disabled={!valid}>
+      <CostEstimate
+        contractId={CONTRACTS.tokenLocker}
+        method="create_lock"
+        args={costArgs}
+      />
+
+      {cooldownRemaining > 0 && (
+        <div className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-muted-foreground">
+          <Timer className="h-4 w-4 shrink-0 text-primary animate-pulse" />
+          <span>
+            Rate limit: next lock available in{" "}
+            <span className="font-semibold tabular-nums text-foreground">{cooldownRemaining}s</span>
+          </span>
+        </div>
+      )}
+
+      <Button type="submit" size="lg" loading={submitting} disabled={!valid || cooldownRemaining > 0}>
         <Lock className="h-4 w-4" />
-        {t("tokenForm.submit")}
+        {multiMode ? t("splitLock.submit") : t("tokenForm.submit")}
+        {cooldownRemaining > 0 ? `Wait ${cooldownRemaining}s…` : t("tokenForm.submit")}
       </Button>
     </form>
 
@@ -367,6 +605,23 @@ export function CreateTokenLockForm() {
         loading={submitting}
         approving={approving}
       />
+      <>
+        <ConfirmLockModal
+          data={{
+            tokenAddress: tokenAddress.trim(),
+            amount: amount,
+            beneficiary: beneficiary.trim() || address!,
+            unlockDate: unlockDate,
+            vesting,
+          }}
+          onConfirm={confirmLock}
+          onCancel={() => setShowConfirm(false)}
+          loading={submitting}
+        />
+        <div className="fixed bottom-6 left-1/2 z-50 w-full max-w-sm -translate-x-1/2 px-4">
+          <TxProgressSteps phase={txPhase} />
+        </div>
+      </>
     )}
   </>
   )

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useCallback, useState } from "react"
+import { NETWORK } from "@/lib/stellar"
 
 export interface ContractEvent {
   type: "lock_created" | "lock_withdrawn" | "lock_extended" | "beneficiary_transferred" | "lp_lock_created" | "lp_lock_withdrawn" | "lp_lock_extended" | "lp_beneficiary_transferred"
@@ -23,7 +24,7 @@ export function useContractEvents(options: EventPollingOptions = {}) {
 
   const fetchEvents = useCallback(async () => {
     try {
-      const rpc = import.meta.env.VITE_RPC_URL || "https://soroban-testnet.stellar.org:443"
+      const rpc = import.meta.env.VITE_RPC_URL || NETWORK.rpcUrl
 
       const response = await fetch(rpc, {
         method: "POST",
