@@ -22,8 +22,16 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20' # Uses LTS, fulfills the 18+ requirement
-          cache: 'pnpm'
+          node-version: '22' # Upgraded to 22 to clear the Action runner deprecation warning
+
+      # Custom cache setup bypasses the workspace/pnpm store validation panic
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/pnpm/store
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -36,10 +44,6 @@ jobs:
 
       - name: Build Vite App
         run: pnpm build
-
-      # Uncomment when issue #12 (Frontend tests) is resolved
-      # - name: Run Frontend Tests
-      #   run: pnpm test
 
   contracts:
     name: Smart Contract Checks
@@ -61,16 +65,9 @@ jobs:
         with:
           workspaces: ./contracts
 
+      # Replaced manual curl/tar sequence with the official Stellar step
       - name: Install Stellar CLI
-        # Note: 'cargo install stellar-cli' takes ~15 minutes in CI.
-        # Downloading the pre-compiled binary takes 2 seconds.
-        run: |
-          wget -qO- https://github.com/stellar/stellar-cli/releases/latest/download/stellar-cli-ubuntu-x86_64.tar.gz | tar -xz
-          sudo mv stellar-cli /usr/local/bin/
+        uses: stellar/stellar-cli@v27.0.0
 
       - name: Build Contracts
         run: stellar contract build
-
-      # Uncomment when issues #1 and #2 (Contract tests) are resolved
-      # - name: Run Contract Tests
-      #   run: cargo test
