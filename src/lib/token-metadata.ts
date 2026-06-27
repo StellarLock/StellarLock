@@ -1,3 +1,5 @@
+import { simulateCall } from "@/lib/stellar"
+
 export interface TokenMetadata {
   symbol: string
   name?: string
@@ -7,12 +9,21 @@ export interface TokenMetadata {
   verified?: boolean
 }
 
+export interface OnChainTokenMeta {
+  symbol: string
+  name: string
+  decimals: number
+}
+
 interface CachedMetadata extends TokenMetadata {
   cached_at: number
 }
 
 const CACHE_KEY = "stellarlock:token_metadata"
 const CACHE_TTL = 24 * 60 * 60 * 1000 // 24 hours
+
+// In-memory cache for on-chain SEP-41 metadata (symbol/name/decimals)
+const onChainCache = new Map<string, OnChainTokenMeta>()
 
 function getCache(): Record<string, CachedMetadata> {
   try {
@@ -109,6 +120,39 @@ export async function getTokenMetadata(contractId: string): Promise<TokenMetadat
   saveCache(cache)
 
   return metadata
+}
+
+/**
+ * Fetch SEP-41 token metadata (symbol, name, decimals) directly from the
+ * token contract. Results are cached in memory for the lifetime of the page.
+ * Falls back to a truncated contract address / 7 decimals on RPC failure.
+ */
+export async function getOnChainTokenMeta(contractId: string): Promise<OnChainTokenMeta> {
+  if (onChainCache.has(contractId)) return onChainCache.get(contractId)!
+
+  const [symbolResult, nameResult, decimalsResult] = await Promise.allSettled([
+    simulateCall<string>(contractId, "symbol", []),
+    simulateCall<string>(contractId, "name", []),
+    simulateCall<number>(contractId, "decimals", []),
+  ])
+
+  const meta: OnChainTokenMeta = {
+    symbol:
+      symbolResult.status === "fulfilled" && symbolResult.value
+        ? symbolResult.value
+        : contractId.slice(0, 6),
+    name:
+      nameResult.status === "fulfilled" && nameResult.value
+        ? nameResult.value
+        : contractId.slice(0, 6),
+    decimals:
+      decimalsResult.status === "fulfilled" && decimalsResult.value != null
+        ? Number(decimalsResult.value)
+        : 7,
+  }
+
+  onChainCache.set(contractId, meta)
+  return meta
 }
 
 export function clearTokenMetadataCache() {
