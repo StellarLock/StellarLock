@@ -1,0 +1,24 @@
+{
+  "tokens": [
+    {
+      "address": "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC",
+      "symbol": "USDC",
+      "name": "USD Coin"
+    },
+    {
+      "address": "CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA",
+      "symbol": "AQUA",
+      "name": "Aquarius"
+    },
+    {
+      "address": "CCW67TSZV3SSS2HXMBQ5JFGCKJNXKLINMID3VUQDHIUPBG5PXA5FV4V",
+      "symbol": "SHX",
+      "name": "Stronghold Token"
+    },
+    {
+      "address": "CAZAQB3D7KSLSNOSSCMNNIGANWGXKFM3PKDBE6TAWQMB2BNQMX2E2KCX",
+      "symbol": "yXLM",
+      "name": "Yield XLM"
+    }
+  ]
+}

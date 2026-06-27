@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { Link, useNavigate, useParams } from "react-router-dom"
-import { ArrowLeft, Lock as LockIcon, Repeat, ExternalLink, ShieldCheck, UserRoundPen } from "lucide-react"
+import { ArrowLeft, Lock as LockIcon, Repeat, ExternalLink, ShieldCheck, UserRoundPen, FileDown } from "lucide-react"
 import { Helmet } from "react-helmet-async"
 import { useTranslation } from "react-i18next"
 import { useLock } from "@/hooks/useLocks"
@@ -9,6 +9,7 @@ import { withdrawLock, extendLock, transferBeneficiary } from "@/lib/token-locke
 import { withdrawLpLock, extendLpLock, transferLpBeneficiary } from "@/lib/lp-locker"
 import { trackEvent } from "@/lib/analytics"
 import { type TxPhase } from "@/lib/stellar"
+import { downloadLockReport } from "@/lib/pdf-report"
 import { Card } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
@@ -20,7 +21,9 @@ import { CopyButton } from "@/components/ui/CopyButton"
 import { CountdownTimer } from "@/components/ui/CountdownTimer"
 import { LockProgressBar } from "@/components/ui/LockProgressBar"
 import { TxProgressSteps } from "@/components/ui/TxProgressSteps"
+import { VerifiedBadge } from "@/components/ui/VerifiedBadge"
 import { NotificationSettings } from "@/components/locks/NotificationSettings"
+import { useVerifiedToken } from "@/hooks/useVerifiedToken"
 import { formatAmount, formatUsd, formatDateTime, shortAddress } from "@/lib/utils"
 import type { Lock } from "@/types/lock"
 
@@ -75,6 +78,7 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
   const { address, signTransaction } = useWallet()
   const navigate = useNavigate()
   const isLp = lock.kind === "lp"
+  const verified = useVerifiedToken(lock.token.address)
 
   const now = Date.now()
   const isBeneficiary = address === lock.beneficiary
@@ -184,15 +188,27 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
           <div className="flex items-center gap-4">
             <TokenAvatar symbol={lock.token.symbol} contractId={lock.token.address} size="lg" showVerified />
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-2xl font-bold">{lock.token.symbol}</h1>
                 {isLp && lock.dex && <DexBadge dex={lock.dex} />}
                 <Badge variant="outline">{isLp ? t("lockDetail.lpLock") : t("lockDetail.tokenLock")}</Badge>
+                <VerifiedBadge verified={verified} showUnverified={true} />
               </div>
               <p className="text-sm text-muted-foreground">{lock.token.name}</p>
             </div>
           </div>
-          <StatusBadge status={lock.status} />
+          <div className="flex flex-col items-end gap-2">
+            <StatusBadge status={lock.status} />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => downloadLockReport(lock)}
+              title="Download lock report"
+            >
+              <FileDown className="h-4 w-4" />
+              Download Report
+            </Button>
+          </div>
         </div>
 
         <div className="grid gap-px bg-border sm:grid-cols-2">
@@ -408,6 +424,16 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
             >
               {t("lockDetail.viewExplorer")} <ExternalLink className="h-3 w-3" />
             </Link>
+          </p>
+        </div>
+      )}
+
+      {verified === false && (
+        <div className="mt-4 flex items-start gap-3 rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-4 text-sm text-yellow-700 dark:text-yellow-400">
+          <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0" />
+          <p>
+            This token is <strong>not on the StellarLock verified allowlist</strong>. Anyone can lock any token — always
+            verify the token contract address independently before trusting this lock.
           </p>
         </div>
       )}

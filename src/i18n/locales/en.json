@@ -226,6 +226,7 @@
     "lockId": "Lock #{{id}}",
     "discover": "Discover",
     "createLock": "Create Lock"
+  },
   "costEstimate": {
     "title": "Estimated Costs",
     "networkFee": "Transaction fee",
