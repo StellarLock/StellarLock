@@ -1,19 +1,17 @@
 [advisories]
+# Default is to deny vulnerabilities
 vulnerability = "deny"
-notice = "warn"
 
 [licenses]
-unlicensed = "deny"
-# The default list is too restrictive for common Rust crates.
-# We explicitly allow the most common dual-license patterns.
+# The 'unlicensed' check is now implicit or handled by 'allow' logic
+# 'allow-osi-fsf-free' is replaced by explicit list
 allow = [
     "MIT",
     "Apache-2.0",
 ]
 
-# This ensures that crates using "MIT OR Apache-2.0" are accepted
-# as long as both licenses are in our allowed list above.
-allow-osi-fsf-free = true
-
-[licenses.private]
-ignore = true
+# This is the modern way to handle the dual-license issue
+[[licenses.clarify]]
+name = "ahash"
+expression = "MIT OR Apache-2.0"
+license-files = [ { path = "LICENSE-MIT" }, { path = "LICENSE-APACHE" } ]
