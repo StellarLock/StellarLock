@@ -1,22 +1,24 @@
 import { Server } from '@stellar/stellar-sdk/rpc';
-
-
-
-// In-memory store (swap for PostgreSQL/SQLite in production)
-const lockIndex = new Map<string, IndexedLock>();
-let   lastLedger = 0;
-let   lastIndexed = new Date();
+import { initDb, db, getMeta, setMeta } from './db';
 
 interface IndexedLock {
-  id:          string;
-  creator:     string;
+  id: string;
+  kind: 'token' | 'lp';
+  creator: string;
   beneficiary: string;
-  token:       string;
-  amount:      bigint;
-  unlockAt:    number;
-  status:      'locked' | 'withdrawn';
-  createdAt:   number;
+  token: string;
+  token_a?: string | null;
+  token_b?: string | null;
+  dex?: string | null;
+  pool_share?: string | null;
+  amount: bigint;
+  unlockAt: number;
+  status: 'locked' | 'withdrawn';
+  createdAt: number;
+  extendedCount?: number;
+  withdrawn?: boolean;
 }
+
 
 interface AggregateStats {
   totalLocks:  number;

@@ -1,3 +1,5 @@
+import { useRef } from "react"
+import { useModalFocusTrap } from "@/lib/modalFocusTrap"
 import { AlertTriangle, Lock, CheckCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/Button"
 import { formatDate, shortAddress } from "@/lib/utils"
@@ -39,8 +41,17 @@ export function ConfirmLockModal({
     data.balance != null && data.balance < amount
   const needsApproval = data.needsApproval || (data.allowance != null && data.allowance < amount)
 
+  const containerRef = useRef<HTMLDivElement | null>(null)
+  const cancelBtnRef = useRef<HTMLButtonElement | null>(null)
+  useModalFocusTrap({
+    active: true,
+    containerRef,
+    initialFocusRef: cancelBtnRef,
+    onEscape: onCancel,
+  })
+
   return (
-    <div
+    <div ref={containerRef}
       role="dialog"
       aria-modal="true"
       aria-labelledby="confirm-lock-title"

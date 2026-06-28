@@ -1,4 +1,5 @@
-import { useState } from "react"
+import { useRef, useState } from "react"
+import { useModalFocusTrap } from "@/lib/modalFocusTrap"
 import { X, CheckCircle2, XCircle, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
@@ -21,7 +22,17 @@ interface Props {
 }
 
 export function BulkConfirmModal({ action, locks, onConfirm, onClose }: Props) {
+  const containerRef = useRef<HTMLDivElement | null>(null)
+  const closeBtnRef = useRef<HTMLButtonElement | null>(null)
+
   const [value, setValue] = useState("")
+
+  useModalFocusTrap({
+    active: true,
+    containerRef,
+    initialFocusRef: closeBtnRef,
+    onEscape: onClose,
+  })
   const [running, setRunning] = useState(false)
   const [results, setResults] = useState<LockResult[]>([])
   const done = results.length > 0
@@ -39,6 +50,7 @@ export function BulkConfirmModal({ action, locks, onConfirm, onClose }: Props) {
 
   return (
     <div
+      ref={containerRef}
       role="dialog"
       aria-modal="true"
       className="fixed inset-0 z-50 flex items-end justify-center sm:items-center"
@@ -51,7 +63,11 @@ export function BulkConfirmModal({ action, locks, onConfirm, onClose }: Props) {
             {action === "extend" ? "Bulk Extend" : "Bulk Transfer"} — {locks.length} lock{locks.length !== 1 && "s"}
           </h2>
           {!running && (
-            <button onClick={onClose} className="rounded-full p-1 text-muted-foreground hover:bg-secondary">
+            <button
+              ref={closeBtnRef}
+              onClick={onClose}
+              className="rounded-full p-1 text-muted-foreground hover:bg-secondary"
+            >
               <X className="h-4 w-4" />
             </button>
           )}
