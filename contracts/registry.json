@@ -1,0 +1,24 @@
+{
+    "token-locker": {
+        "testnet": {
+            "v1": {
+                "address": "REPLACE_ME",
+                "deployedAt": "1970-01-01T00:00:00Z",
+                "wasmHash": "REPLACE_ME",
+                "deprecated": true
+            }
+        },
+        "mainnet": {}
+    },
+    "lp-locker": {
+        "testnet": {
+            "v1": {
+                "address": "REPLACE_ME",
+                "deployedAt": "1970-01-01T00:00:00Z",
+                "wasmHash": "REPLACE_ME",
+                "deprecated": true
+            }
+        },
+        "mainnet": {}
+    }
+}

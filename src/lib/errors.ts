@@ -1,49 +1,55 @@
 export interface StructuredError {
-  code:     string;
-  title:    string;
-  message:  string;
+  code: string;
+  title: string;
+  message: string;
   recovery: string | null;
-  link:     { label: string; url: string } | null;
-  i18nKey:  string;
+  link: { label: string; url: string } | null;
+  i18nKey: string;
 }
 
 // Map Soroban contract error codes → structured errors
 const CONTRACT_ERRORS: Record<string, Omit<StructuredError, 'code'>> = {
   AmountMustBePositive: {
-    title:    'errors.amountMustBePositive.title',
-    message:  'errors.amountMustBePositive.message',
+    title: 'errors.amountMustBePositive.title',
+    message: 'errors.amountMustBePositive.message',
     recovery: 'errors.amountMustBePositive.recovery',
-    link:     null,
-    i18nKey:  'errors.amountMustBePositive',
+    link: null,
+    i18nKey: 'errors.amountMustBePositive',
   },
   UnlockMustBeFuture: {
-    title:    'errors.unlockMustBeFuture.title',
-    message:  'errors.unlockMustBeFuture.message',
+    title: 'errors.unlockMustBeFuture.title',
+    message: 'errors.unlockMustBeFuture.message',
     recovery: 'errors.unlockMustBeFuture.recovery',
-    link:     null,
-    i18nKey:  'errors.unlockMustBeFuture',
+    link: null,
+    i18nKey: 'errors.unlockMustBeFuture',
   },
   StillLocked: {
-    title:    'errors.stillLocked.title',
-    message:  'errors.stillLocked.message',
+    title: 'errors.stillLocked.title',
+    message: 'errors.stillLocked.message',
     recovery: 'errors.stillLocked.recovery',
-    link:     null,
-    i18nKey:  'errors.stillLocked',
+    link: null,
+    i18nKey: 'errors.stillLocked',
   },
   AlreadyWithdrawn: {
-    title:    'errors.alreadyWithdrawn.title',
-    message:  'errors.alreadyWithdrawn.message',
+    title: 'errors.alreadyWithdrawn.title',
+    message: 'errors.alreadyWithdrawn.message',
     recovery: null,
-    link:     null,
-    i18nKey:  'errors.alreadyWithdrawn',
+    link: null,
+    i18nKey: 'errors.alreadyWithdrawn',
   },
   CanOnlyExtend: {
-    title:    'errors.canOnlyExtend.title',
-    message:  'errors.canOnlyExtend.message',
+    title: 'errors.canOnlyExtend.title',
+    message: 'errors.canOnlyExtend.message',
     recovery: 'errors.canOnlyExtend.recovery',
-    link:     null,
-    i18nKey:  'errors.canOnlyExtend',
+    link: null,
+    i18nKey: 'errors.canOnlyExtend',
   },
+  LockDurationTooLong: {
+    title: 'errors.lockDurationTooLong.title',
+    message: 'errors.lockDurationTooLong.message',
+    recovery: 'errors.lockDurationTooLong.recovery',
+    link: null,
+    i18nKey: 'errors.lockDurationTooLong',
   UnlockTooSoon: {
     title:    'errors.unlockTooSoon.title',
     message:  'errors.unlockTooSoon.message',
@@ -118,9 +124,14 @@ export function parseError(err: unknown): StructuredError {
   }
 
   // Generic fallback
+  // IMPORTANT: do not return raw error text to the UI.
   return {
-    code: 'UNKNOWN', i18nKey: 'errors.unknown',
-    title: 'errors.unknown.title', message: raw || 'errors.unknown.message',
-    recovery: 'errors.unknown.recovery', link: null,
+    code: 'UNKNOWN',
+    i18nKey: 'errors.unknown',
+    title: 'errors.unknown.title',
+    message: 'errors.unknown.message',
+    recovery: 'errors.unknown.recovery',
+    link: null,
   };
+
 }

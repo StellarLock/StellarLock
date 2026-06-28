@@ -1,0 +1,139 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { getTokenBalance as getTokenBalanceNumber } from "../lib/stellar"
+
+interface BalanceCacheEntry {
+    balance: bigint
+    fetchedAt: number
+}
+
+type CacheKey = string
+
+// Placeholder removed: this file is not completed yet.
+// The caching hook will be implemented once we can reliably import the balance read helper.
+
+
+
+// In-memory cache shared across hook instances.
+const cache = new Map<CacheKey, BalanceCacheEntry>()
+
+const DEFAULT_TTL_MS = 30_000
+
+function keyFor(tokenAddress: string, owner: string) {
+    return `${tokenAddress}:${owner}`
+}
+
+export interface UseTokenBalanceSWROptions {
+    ttlMs?: number
+    enabled?: boolean
+}
+
+export function useTokenBalanceSWR(
+    tokenAddress: string | undefined,
+    owner: string | null,
+    options: UseTokenBalanceSWROptions = {},
+) {
+    const { ttlMs = DEFAULT_TTL_MS, enabled = true } = options
+
+    const token = tokenAddress?.trim()
+    const addr = owner
+    const cacheKey = token && addr ? keyFor(token, addr) : null
+
+    const [balance, setBalance] = useState<bigint | null>(() => {
+        if (!cacheKey) return null
+        return cache.get(cacheKey)?.balance ?? null
+    })
+
+    const [isLoading, setIsLoading] = useState(() => {
+        if (!cacheKey) return false
+        return !cache.has(cacheKey)
+    })
+
+    const [isRevalidating, setIsRevalidating] = useState(false)
+
+    const latestCacheKeyRef = useRef(cacheKey)
+    latestCacheKeyRef.current = cacheKey
+
+    const revalidate = useCallback(async () => {
+        if (!token || !addr) return
+        if (!cacheKey) return
+
+        setIsRevalidating(true)
+        try {
+            // getTokenBalance returns a float in whole tokens; convert to stroops as bigint for stability
+            const fresh = await getTokenBalanceNumber(token, addr)
+            const freshStroops = BigInt(Math.round(fresh * 1e7))
+
+            cache.set(cacheKey, { balance: freshStroops, fetchedAt: Date.now() })
+
+            if (latestCacheKeyRef.current === cacheKey) {
+                setBalance(freshStroops)
+            }
+        } finally {
+            setIsRevalidating(false)
+            setIsLoading(false)
+        }
+    }, [token, addr, cacheKey])
+
+    // Stale-while-revalidate behavior
+    useEffect(() => {
+        if (!enabled) return
+        if (!cacheKey) {
+            setBalance(null)
+            setIsLoading(false)
+            setIsRevalidating(false)
+            return
+        }
+
+        const entry = cache.get(cacheKey)
+        if (entry) {
+            setBalance(entry.balance)
+
+            const isStale = Date.now() - entry.fetchedAt > ttlMs
+            if (isStale) {
+                setIsLoading(false)
+                revalidate()
+            } else {
+                setIsLoading(false)
+                setIsRevalidating(false)
+            }
+            return
+        }
+
+        setIsLoading(true)
+        revalidate()
+    }, [cacheKey, enabled, ttlMs, revalidate])
+
+    const clear = useCallback(() => {
+        if (!cacheKey) return
+        cache.delete(cacheKey)
+        setIsLoading(true)
+    }, [cacheKey])
+
+    const refetch = useCallback(async () => {
+        if (!cacheKey) return
+        await revalidate()
+    }, [cacheKey, revalidate])
+
+    const state = useMemo(() => {
+        return {
+            balance,
+            isLoading,
+            isRevalidating,
+            refetch,
+            clear,
+        }
+    }, [balance, isLoading, isRevalidating, refetch, clear])
+
+    return state
+}
+
+export function clearTokenBalanceCacheForOwner(owner: string) {
+    for (const k of Array.from(cache.keys())) {
+        if (k.endsWith(`:${owner}`)) cache.delete(k)
+    }
+}
+
+export function clearTokenBalanceCache() {
+    cache.clear()
+}
+
