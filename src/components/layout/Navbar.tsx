@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next"
 import { useWallet } from "@/hooks/useWallet"
 import { NETWORK } from "@/lib/stellar"
 import { useTheme } from "@/hooks/useTheme"
+import { LanguageSelector } from "@/components/layout/LanguageSelector"
 import { Button } from "@/components/ui/Button"
 import { NotificationCenter } from "@/components/ui/NotificationCenter"
 import { RpcStatusIndicator } from "@/components/layout/RpcStatus"
@@ -75,6 +76,7 @@ export function Navbar() {
             {NETWORK.displayName}
           </span>
           {/* Accessible Theme Toggle Button */}
+          <LanguageSelector />
           <Button
             variant="ghost"
             size="icon"
