@@ -107,10 +107,14 @@ Paste the printed contract IDs into `src/lib/stellar.ts` under `CONTRACTS`.
 | `get_locks_by_creator(address)` | All locks created by address |
 | `get_locks_by_beneficiary(address)` | All locks where address is beneficiary |
 | `get_locks_by_token(token)` | All locks for a token (powers the explorer) |
+| `init(admin)` | Set admin once after deployment |
+| `propose_upgrade(wasm_hash)` | Queue a WASM upgrade (7-day timelock) |
+| `execute_upgrade()` | Apply upgrade after timelock elapses |
+| `cancel_upgrade()` | Cancel a pending upgrade |
 
 #### LP Locker
 
-Same shape as Token Locker, minus vesting, plus `dex`, `token_a`, `token_b` fields.
+Same shape as Token Locker, minus vesting, plus `dex`, `token_a`, `token_b` fields. Shares the same `init`, `propose_upgrade`, `execute_upgrade`, `cancel_upgrade` API.
 
 ## Screenshots
 
@@ -118,6 +122,27 @@ Same shape as Token Locker, minus vesting, plus `dex`, `token_a`, `token_b` fiel
 |---|---|
 | ![Create](create.png) | ![Explorer](explorer.png) |
 | ![My Locks](mylocks.png) | ![Detail](detail.png) |
+
+## Upgrade Policy
+
+Both contracts implement an **admin upgrade with a 7-day timelock**.
+
+- Immutability is the default — no admin means no upgrades.
+- After deployment, call `init(admin)` once to register an admin. If `init` is never called, the contract is permanently immutable.
+- When an upgrade is needed, the admin calls `propose_upgrade(new_wasm_hash)`. The proposal is stored on-chain with an `execute_after` timestamp 7 days in the future.
+- Anyone can observe the pending proposal on-chain during the 7-day window.
+- After 7 days, the admin calls `execute_upgrade()` to apply the new WASM. All persistent lock state is preserved across upgrades.
+- The admin can call `cancel_upgrade()` at any time to abort a pending proposal.
+- All upgrade events (`upgrade_proposed`, `upgrade_cancelled`) are emitted on-chain.
+
+| Function | Who | Effect |
+|---|---|---|
+| `init(admin)` | deployer (once) | Sets the admin address |
+| `propose_upgrade(wasm_hash)` | admin | Queues upgrade, 7-day delay |
+| `execute_upgrade()` | admin | Applies upgrade after delay |
+| `cancel_upgrade()` | admin | Cancels pending proposal |
+
+> The upgrade path exists solely for critical security fixes. User lock funds are held in persistent storage and are unaffected by WASM upgrades.
 
 ## Security
 
