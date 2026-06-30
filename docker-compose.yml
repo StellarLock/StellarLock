@@ -1,0 +1,93 @@
+# ── StellarLock — docker-compose development environment ─────────────────────
+#
+# Services
+# ────────
+#   frontend   Node 20 + pnpm + Vite dev server with hot-reload (port 5173)
+#   contracts  Rust + Soroban CLI for building and testing contracts
+#
+# Quick start
+# ───────────
+#   # Start the frontend dev server (Vite HMR on http://localhost:5173)
+#   docker-compose up frontend
+#
+#   # Build Soroban contracts
+#   docker-compose run --rm contracts build
+#
+#   # Run Rust contract tests
+#   docker-compose run --rm contracts test
+#
+# Environment
+# ───────────
+#   Copy the testnet template before starting:
+#     cp .env.testnet .env
+#   Or pass the file explicitly:
+#     docker-compose --env-file .env.testnet up frontend
+
+version: "3.9"
+
+services:
+  # ── Frontend dev server ───────────────────────────────────────────────────
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    image: stellarlock-frontend-dev
+    container_name: stellarlock-frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      # Mount the full source tree so Vite HMR picks up edits instantly.
+      - .:/app
+      # Use an anonymous volume for node_modules so the host directory
+      # (which may differ from the container's architecture) is not used.
+      - /app/node_modules
+    env_file:
+      # Copy .env.testnet → .env before running, or set COMPOSE_ENV_FILE.
+      - path: .env
+        required: false
+      - path: .env.testnet
+        required: false
+    environment:
+      - NODE_ENV=development
+      # Forward Vite host binding inside the container
+      - VITE_HOST=0.0.0.0
+    networks:
+      - stellarlock-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:5173"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # ── Contracts (Rust / Soroban CLI) ────────────────────────────────────────
+  contracts:
+    build:
+      context: .
+      dockerfile: Dockerfile.contracts
+    image: stellarlock-contracts
+    container_name: stellarlock-contracts
+    # Not a long-running service — invoked with `docker-compose run`.
+    profiles:
+      - contracts
+    volumes:
+      # Mount the contracts workspace for live editing.
+      - ./contracts:/app/contracts
+      # Cache the cargo registry and build artefacts across runs.
+      - cargo-registry:/usr/local/cargo/registry
+      - cargo-build:/app/contracts/target
+    networks:
+      - stellarlock-net
+    # Default: build contracts.  Override at runtime:
+    #   docker-compose run --rm contracts "cd contracts && cargo test"
+    command: ["cd contracts && stellar contract build"]
+
+networks:
+  stellarlock-net:
+    driver: bridge
+
+volumes:
+  # Persistent cargo caches dramatically speed up subsequent builds.
+  cargo-registry:
+  cargo-build:

@@ -1,0 +1,51 @@
+# ── .dockerignore ─────────────────────────────────────────────────────────────
+# Files and directories excluded from the Docker build context.
+# Keeping the context small speeds up image builds and avoids leaking secrets.
+
+# Node / JS artefacts
+node_modules
+dist
+.vite
+.cache
+coverage
+
+# Rust / Cargo build artefacts
+contracts/target
+
+# Storybook build
+storybook-static
+
+# Test outputs
+test-results
+playwright-report
+
+# Environment files with secrets (never bake into images)
+.env
+.env.mainnet
+.env.staging
+# .env.testnet is safe to include but keep out of images to encourage
+# using proper env var injection at runtime.
+.env.testnet
+
+# Version control
+.git
+.gitignore
+.github
+
+# Editor / OS artefacts
+.DS_Store
+*.swp
+*.swo
+.idea
+.vscode
+
+# Screenshots / large assets not needed in the build context
+*.png
+*.jpg
+*.jpeg
+landing.png
+explorer.png
+mylocks.png
+detail.png
+create.png
+create-connected.png
