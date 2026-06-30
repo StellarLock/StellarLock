@@ -225,9 +225,11 @@ export function CreateTokenLockForm() {
           signTransaction,
         )
         trackEvent("lock_create_split", { count: splitBeneficiaries.length, vesting })
+        localStorage.setItem(COOLDOWN_KEY, String(Date.now()))
+        setCooldownRemaining(COOLDOWN_SECONDS)
         navigate("/app/locks")
       } else {
-        const { id } = await createTokenLock(
+        const { id, txHash } = await createTokenLock(
           {
             tokenAddress: tokenAddress.trim(),
             amount: Number(amount),
@@ -237,26 +239,26 @@ export function CreateTokenLockForm() {
           },
           address!,
           signTransaction,
+          setTxPhase,
         )
         trackEvent("lock_create_token", { vesting })
-        navigate(`/app/lock/${id}`)
+        localStorage.setItem(COOLDOWN_KEY, String(Date.now()))
+        setCooldownRemaining(COOLDOWN_SECONDS)
+        navigate("/app/lock-created", {
+          state: {
+            lockId: id,
+            lockKind: "token",
+            txHash,
+            tokenAddress: tokenAddress.trim(),
+            amount,
+            beneficiary: beneficiary.trim() || address!,
+            creator: address!,
+            unlockAt: unlockTs,
+            vesting,
+            timestamp: Date.now(),
+          },
+        })
       }
-      const { id } = await createTokenLock(
-        {
-          tokenAddress: tokenAddress.trim(),
-          amount: Number(amount),
-          beneficiary: beneficiary.trim() || address!,
-          unlockAt: Math.floor(unlockTs / 1000),
-          vesting: vesting ? { start: Math.floor(Date.now() / 1000), end: Math.floor(unlockTs / 1000) } : undefined,
-        },
-        address!,
-        signTransaction,
-        setTxPhase,
-      )
-      trackEvent("lock_create_token", { vesting })
-      localStorage.setItem(COOLDOWN_KEY, String(Date.now()))
-      setCooldownRemaining(COOLDOWN_SECONDS)
-      navigate(`/app/lock/${id}`)
     } catch (err: unknown) {
       console.error("[createLock error]", err)
       setShowConfirm(false)

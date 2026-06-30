@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react"
-import { lazy, Suspense, useEffect } from "react"
+import { useEffect, useState, lazy, Suspense } from "react"
 import { Routes, Route, Navigate, useLocation } from "react-router-dom"
 import { Toaster } from "react-hot-toast"
 import { Layout } from "@/components/layout/Layout"
@@ -14,6 +13,7 @@ const Landing = lazy(() => import("./pages/Landing").then((m) => ({ default: m.L
 const CreateLock = lazy(() => import("./pages/CreateLock").then((m) => ({ default: m.CreateLock })))
 const MyLocks = lazy(() => import("./pages/MyLocks").then((m) => ({ default: m.MyLocks })))
 const LockDetail = lazy(() => import("./pages/LockDetail").then((m) => ({ default: m.LockDetail })))
+const LockCreated = lazy(() => import("./pages/LockCreated").then((m) => ({ default: m.LockCreated })))
 const Explorer = lazy(() => import("./pages/Explorer").then((m) => ({ default: m.Explorer })))
 const Discover = lazy(() => import("./pages/Discover").then((m) => ({ default: m.Discover })))
 const History = lazy(() => import("./pages/History").then((m) => ({ default: m.History })))
@@ -38,29 +38,16 @@ export function App() {
           style: { background: "#363636", color: "#fff" },
         }}
       />
-      <Routes>
-        <Route element={<Layout />}>
-          <Route path="/" element={<Landing />} />
-          <Route path="/app/create" element={<CreateLock />} />
-          <Route path="/app/locks" element={<MyLocks />} />
-          <Route path="/app/lock/token/:id" element={<LockDetail />} />
-          <Route path="/app/lock/lp/:id" element={<LockDetail />} />
-          {/* Legacy deep-link: redirect bare id to token-locker */}
-          <Route path="/app/lock/:id" element={<LockDetail />} />
-          <Route path="/health" element={<Health />} />
-          <Route path="/explore" element={<Discover />} />
-          <Route path="/explore/:token" element={<Explorer />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Route>
-      </Routes>
-      <KeyboardShortcutsModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
-      <PwaUpdatePrompt />
       <Suspense fallback={<PageSkeleton />}>
         <Routes>
           <Route element={<Layout />}>
             <Route path="/" element={<Landing />} />
             <Route path="/app/create" element={<CreateLock />} />
+            <Route path="/app/lock-created" element={<LockCreated />} />
             <Route path="/app/locks" element={<MyLocks />} />
+            <Route path="/app/lock/token/:id" element={<LockDetail />} />
+            <Route path="/app/lock/lp/:id" element={<LockDetail />} />
+            {/* Legacy deep-link: redirect bare id to token detail */}
             <Route path="/app/lock/:id" element={<LockDetail />} />
             <Route path="/app/history" element={<History />} />
             <Route path="/health" element={<Health />} />
@@ -70,7 +57,8 @@ export function App() {
           </Route>
         </Routes>
       </Suspense>
+      <KeyboardShortcutsModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+      <PwaUpdatePrompt />
     </>
   )
 }
-

@@ -279,6 +279,71 @@ export async function submitCall<T = void>(
   return undefined as T
 }
 
+// ── submitCallWithHash — like submitCall but also returns the tx hash ─────────
+
+/** Same as submitCall, but additionally returns the transaction hash. */
+export async function submitCallWithHash<T = void>(
+  contractId: string,
+  method: string,
+  args: xdr.ScVal[],
+  sourceAddress: string,
+  signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>,
+  onProgress?: (phase: TxPhase) => void,
+): Promise<{ result: T; txHash: string }> {
+  const rpc = getRpc()
+  const account = await rpc.getAccount(sourceAddress)
+  const contract = new Contract(contractId)
+
+  const tx = new TransactionBuilder(account, {
+    fee: SOROBAN_FEE,
+    networkPassphrase: NETWORK.passphrase,
+  })
+    .addOperation(contract.call(method, ...args))
+    .setTimeout(30)
+    .build()
+
+  onProgress?.("simulating")
+  const simResult = await rpc.simulateTransaction(tx)
+
+  if (SorobanRpc.Api.isSimulationError(simResult)) {
+    throw new Error(`Simulation error: ${simError(simResult)}`)
+  }
+
+  const preparedTx = SorobanRpc.assembleTransaction(tx, simResult).build()
+
+  onProgress?.("signing")
+  const { signedTxXdr } = await signTransaction(preparedTx.toXDR())
+
+  onProgress?.("submitting")
+  const sendResult = await rpc.sendTransaction(TransactionBuilder.fromXDR(signedTxXdr, NETWORK.passphrase))
+
+  if (sendResult.status === "ERROR") {
+    throw new Error(`Send error: ${sendResult.errorResult?.toXDR("base64") ?? "unknown"}`)
+  }
+
+  const txHash = sendResult.hash
+
+  invalidateRpcCache()
+
+  onProgress?.("confirming")
+  const MAX_POLL_ATTEMPTS = 40
+  let getResult = await rpc.getTransaction(txHash)
+  for (let attempts = 0; getResult.status === SorobanRpc.Api.GetTransactionStatus.NOT_FOUND; attempts++) {
+    if (attempts >= MAX_POLL_ATTEMPTS) {
+      throw new Error(`Transaction ${txHash} not found after ${MAX_POLL_ATTEMPTS} attempts (~60s)`)
+    }
+    await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS))
+    getResult = await rpc.getTransaction(txHash)
+  }
+
+  if (getResult.status === SorobanRpc.Api.GetTransactionStatus.FAILED) {
+    throw new Error(`Transaction failed: ${JSON.stringify(getResult)}`)
+  }
+
+  const result = getResult.returnValue ? (scValToNative(getResult.returnValue) as T) : (undefined as T)
+  return { result, txHash }
+}
+
 // ── Address helpers ─────────────────────────────────────────────────────────
 
 export function isValidStellarContractAddress(address: string): boolean {
