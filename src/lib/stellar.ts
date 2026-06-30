@@ -282,6 +282,71 @@ export async function submitCall<T = void>(
   return undefined as T
 }
 
+// ── submitCallWithHash — like submitCall but also returns the tx hash ─────────
+
+/** Same as submitCall, but additionally returns the transaction hash. */
+export async function submitCallWithHash<T = void>(
+  contractId: string,
+  method: string,
+  args: xdr.ScVal[],
+  sourceAddress: string,
+  signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>,
+  onProgress?: (phase: TxPhase) => void,
+): Promise<{ result: T; txHash: string }> {
+  const rpc = getRpc()
+  const account = await rpc.getAccount(sourceAddress)
+  const contract = new Contract(contractId)
+
+  const tx = new TransactionBuilder(account, {
+    fee: SOROBAN_FEE,
+    networkPassphrase: NETWORK.passphrase,
+  })
+    .addOperation(contract.call(method, ...args))
+    .setTimeout(30)
+    .build()
+
+  onProgress?.("simulating")
+  const simResult = await rpc.simulateTransaction(tx)
+
+  if (SorobanRpc.Api.isSimulationError(simResult)) {
+    throw new Error(`Simulation error: ${simError(simResult)}`)
+  }
+
+  const preparedTx = SorobanRpc.assembleTransaction(tx, simResult).build()
+
+  onProgress?.("signing")
+  const { signedTxXdr } = await signTransaction(preparedTx.toXDR())
+
+  onProgress?.("submitting")
+  const sendResult = await rpc.sendTransaction(TransactionBuilder.fromXDR(signedTxXdr, NETWORK.passphrase))
+
+  if (sendResult.status === "ERROR") {
+    throw new Error(`Send error: ${sendResult.errorResult?.toXDR("base64") ?? "unknown"}`)
+  }
+
+  const txHash = sendResult.hash
+
+  invalidateRpcCache()
+
+  onProgress?.("confirming")
+  const MAX_POLL_ATTEMPTS = 40
+  let getResult = await rpc.getTransaction(txHash)
+  for (let attempts = 0; getResult.status === SorobanRpc.Api.GetTransactionStatus.NOT_FOUND; attempts++) {
+    if (attempts >= MAX_POLL_ATTEMPTS) {
+      throw new Error(`Transaction ${txHash} not found after ${MAX_POLL_ATTEMPTS} attempts (~60s)`)
+    }
+    await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS))
+    getResult = await rpc.getTransaction(txHash)
+  }
+
+  if (getResult.status === SorobanRpc.Api.GetTransactionStatus.FAILED) {
+    throw new Error(`Transaction failed: ${JSON.stringify(getResult)}`)
+  }
+
+  const result = getResult.returnValue ? (scValToNative(getResult.returnValue) as T) : (undefined as T)
+  return { result, txHash }
+}
+
 // ── Address helpers ─────────────────────────────────────────────────────────
 
 export function isValidStellarContractAddress(address: string): boolean {
@@ -295,91 +360,95 @@ export function isValidStellarPublicKey(address: string): boolean {
 export function isValidStellarAddress(address: string): boolean {
   const trimmed = address.trim()
   return StrKey.isValidEd25519PublicKey(trimmed) || StrKey.isValidContract(trimmed)
-  // ── Cost estimation ───────────────────────────────────────────────────────────
+}
 
-  export interface LockCostEstimate {
-    networkFee: number  // in XLM
-    resourceFee: number // in XLM (storage deposit + compute)
-    total: number       // in XLM
+// ── Cost estimation ───────────────────────────────────────────────────────────
+
+export interface LockCostEstimate {
+  networkFee: number  // in XLM
+  resourceFee: number // in XLM (storage deposit + compute)
+  total: number       // in XLM
+}
+
+export async function estimateLockCost(
+  contractId: string,
+  method: string,
+  args: xdr.ScVal[],
+): Promise<LockCostEstimate> {
+  const rpc = getRpc()
+
+  const dummySource = {
+    accountId: () => "GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN",
+    sequenceNumber: () => "0",
+    incrementSequenceNumber: () => { },
   }
-
-  export async function estimateLockCost(
-    contractId: string,
-    method: string,
-    args: xdr.ScVal[],
-  ): Promise<LockCostEstimate> {
-    const rpc = getRpc()
-
-    const dummySource = {
-      accountId: () => "GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN",
-      sequenceNumber: () => "0",
-      incrementSequenceNumber: () => { },
-    }
-
-    const contract = new Contract(contractId)
-    const tx = new TransactionBuilder(dummySource, {
-      fee: BASE_FEE,
-      networkPassphrase: NETWORK.passphrase,
-    })
-      .addOperation(contract.call(method, ...args))
-      .setTimeout(30)
-      .build()
 
     const result = await rpc.simulateTransaction(tx)
     log.debug("[estimateLockCost]", { method, result })
+  const contract = new Contract(contractId)
+  const tx = new TransactionBuilder(dummySource, {
+    fee: BASE_FEE,
+    networkPassphrase: NETWORK.passphrase,
+  })
+    .addOperation(contract.call(method, ...args))
+    .setTimeout(30)
+    .build()
 
-    if (SorobanRpc.Api.isSimulationError(result)) {
-      throw new Error(`Cost simulation failed: ${simError(result)}`)
-    }
+  const result = await rpc.simulateTransaction(tx)
+  if (import.meta.env.DEV) console.log("[estimateLockCost]", method, result)
 
-    const minResourceFee = Number((result as { minResourceFee?: string }).minResourceFee ?? "0")
-    const networkFee = Number(BASE_FEE) / 1e7
-    const resourceFee = minResourceFee / 1e7
-    return { networkFee, resourceFee, total: networkFee + resourceFee }
+  if (SorobanRpc.Api.isSimulationError(result)) {
+    throw new Error(`Cost simulation failed: ${simError(result)}`)
   }
 
-  // ── Token helpers ────────────────────────────────────────────────────────────
+  const minResourceFee = Number((result as { minResourceFee?: string }).minResourceFee ?? "0")
+  const networkFee = Number(BASE_FEE) / 1e7
+  const resourceFee = minResourceFee / 1e7
+  return { networkFee, resourceFee, total: networkFee + resourceFee }
+}
 
-  export async function getTokenBalance(tokenAddress: string, owner: string): Promise<number> {
-    const raw = await simulateCall<bigint>(tokenAddress, "balance", [new Address(owner).toScVal()])
-    return Number(raw ?? 0n) / STELLAR_DECIMALS
-  }
+// ── Token helpers ────────────────────────────────────────────────────────────
 
-  export async function getTokenAllowance(
-    tokenAddress: string,
-    owner: string,
-    spender: string,
-  ): Promise<number> {
-    const raw = await simulateCall<bigint>(tokenAddress, "allowance", [
-      new Address(owner).toScVal(),
-      new Address(spender).toScVal(),
-    ])
-    return Number(raw ?? 0n) / 1e7
-  }
+export async function getTokenBalance(tokenAddress: string, owner: string): Promise<number> {
+  const raw = await simulateCall<bigint>(tokenAddress, "balance", [new Address(owner).toScVal()])
+  return Number(raw ?? 0n) / STELLAR_DECIMALS
+}
 
-  export async function submitTokenApproval(
-    tokenAddress: string,
-    owner: string,
-    spender: string,
-    amount: number,
-    sourceAddress: string,
-    signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>,
-  ): Promise<void> {
-    const amountStroops = BigInt(Math.round(amount * 1e7))
-    const expirationLedger = 0
+export async function getTokenAllowance(
+  tokenAddress: string,
+  owner: string,
+  spender: string,
+): Promise<number> {
+  const raw = await simulateCall<bigint>(tokenAddress, "allowance", [
+    new Address(owner).toScVal(),
+    new Address(spender).toScVal(),
+  ])
+  return Number(raw ?? 0n) / 1e7
+}
 
-    const scArgs: xdr.ScVal[] = [
-      new Address(owner).toScVal(),
-      new Address(spender).toScVal(),
-      nativeToScVal(amountStroops, { type: "i128" }),
-      nativeToScVal(expirationLedger, { type: "u32" }),
-    ]
+export async function submitTokenApproval(
+  tokenAddress: string,
+  owner: string,
+  spender: string,
+  amount: number,
+  sourceAddress: string,
+  signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>,
+): Promise<void> {
+  const amountStroops = BigInt(Math.round(amount * 1e7))
+  const expirationLedger = 0
 
-    await submitCall(tokenAddress, "approve", scArgs, sourceAddress, signTransaction)
-  }
+  const scArgs: xdr.ScVal[] = [
+    new Address(owner).toScVal(),
+    new Address(spender).toScVal(),
+    nativeToScVal(amountStroops, { type: "i128" }),
+    nativeToScVal(expirationLedger, { type: "u32" }),
+  ]
 
-  // ── Utils ─────────────────────────────────────────────────────────────────────
+  await submitCall(tokenAddress, "approve", scArgs, sourceAddress, signTransaction)
+}
 
-  export function explorerLink(address: string): string {
-    return `https://stellar.expert/explorer/${NETWORK.networkName}/contract/${address}`
-  }
+// ── Utils ─────────────────────────────────────────────────────────────────────
+
+export function explorerLink(address: string): string {
+  return `https://stellar.expert/explorer/${NETWORK.networkName}/contract/${address}`
+}

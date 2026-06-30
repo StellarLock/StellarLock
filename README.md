@@ -112,6 +112,52 @@ pnpm dev:testnet
 
 Open [http://localhost:5173](http://localhost:5173).
 
+### Docker (alternative)
+
+A fully containerised dev environment is available for contributors who don't want to install Node.js, pnpm, Rust, or the Soroban CLI locally.
+
+#### Prerequisites
+
+- [Docker](https://docs.docker.com/get-docker/) 24+
+- [Docker Compose](https://docs.docker.com/compose/) v2 (bundled with Docker Desktop)
+
+#### Start the frontend dev server
+
+```bash
+# Copy the testnet environment template first
+cp .env.testnet .env
+
+# Build the image and start Vite (hot-reload enabled)
+docker-compose up frontend
+```
+
+Open [http://localhost:5173](http://localhost:5173). Any code change you make on your host machine is reflected immediately thanks to the source-tree volume mount.
+
+#### Build Soroban contracts
+
+```bash
+docker-compose run --rm contracts build
+```
+
+Compiled WASMs land in `contracts/target/wasm32v1-none/release/`.
+
+#### Run Rust contract tests
+
+```bash
+docker-compose run --rm contracts test
+```
+
+This runs `cargo test` inside the contracts workspace with the full Rust + Soroban SDK environment.
+
+#### Docker files
+
+| File | Purpose |
+|---|---|
+| `Dockerfile.dev` | Frontend — Node 20 + pnpm, dependency layer caching |
+| `Dockerfile.contracts` | Contracts — Rust + Soroban CLI |
+| `docker-compose.yml` | Orchestrates both services |
+| `.dockerignore` | Excludes `node_modules`, `target`, build artifacts, and secrets |
+
 ### Build
 
 ```bash

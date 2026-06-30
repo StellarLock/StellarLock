@@ -1,6 +1,11 @@
 import { expect, afterEach, vi } from "vitest"
 import { cleanup } from "@testing-library/react"
 import "@testing-library/jest-dom/vitest"
+import "vitest-axe/extend-expect"
+import * as axeMatchers from "vitest-axe/matchers"
+
+// Extend expect with axe a11y matchers (toHaveNoViolations)
+expect.extend(axeMatchers)
 
 // Cleanup after each test
 afterEach(() => {

@@ -272,6 +272,8 @@ export function MyLocks() {
           pageSize={PAGE_SIZE}
           total={totalForTab}
           onChange={setPage}
+        />
+
         {/* Bulk actions toolbar */}
         {selectMode && (
           <BulkActionsToolbar

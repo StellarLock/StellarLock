@@ -1,6 +1,6 @@
 import { Address, nativeToScVal, xdr } from "@stellar/stellar-sdk"
 import type { Lock, TokenLockSummary } from "@/types/lock"
-import { CONTRACTS, simulateCall, submitCall, type TxPhase } from "@/lib/stellar"
+import { CONTRACTS, simulateCall, submitCall, submitCallWithHash, type TxPhase } from "@/lib/stellar"
 import { getOnChainTokenMeta, type OnChainTokenMeta } from "@/lib/token-metadata"
 
 export interface CreateTokenLockArgs {
@@ -181,10 +181,16 @@ export async function createTokenLock(
     scArgs.push(xdr.ScVal.scvVoid())
   }
 
-  const id = await submitCall<bigint>(CONTRACTS.tokenLocker, "create_lock", scArgs, sourceAddress, signTransaction)
-  await submitCall(CONTRACTS.tokenLocker, "create_lock", scArgs, sourceAddress, signTransaction, onProgress)
+  const { result: id, txHash } = await submitCallWithHash<bigint>(
+    CONTRACTS.tokenLocker,
+    "create_lock",
+    scArgs,
+    sourceAddress,
+    signTransaction,
+    onProgress,
+  )
 
-  return { id: String(id) }
+  return { id: String(id), txHash }
 }
 
 export async function withdrawLock(

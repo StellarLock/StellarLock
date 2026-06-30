@@ -44,7 +44,7 @@ export function Explorer() {
         <ArrowLeft className="h-4 w-4" /> {t("explorer.backToSearch")}
       </Link>
 
-      {loading && <ExplorerSkeleton /></}
+      {loading && <ExplorerSkeleton />}
 
       {!loading && (error || !data) && <NotFound query={token ?? ""} />}
 

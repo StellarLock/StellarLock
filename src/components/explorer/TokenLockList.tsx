@@ -112,7 +112,6 @@ export function TokenLockList({ locks }: { locks: Lock[] }) {
               </Link>
             </div>
           </li>
-          <LockRow key={lock.id} lock={lock} />
         ))}
       </ul>
     </Card>
