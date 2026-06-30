@@ -37,6 +37,9 @@ importers:
       lucide-react:
         specifier: ^1.16.0
         version: 1.21.0(react@19.2.7)
+      qrcode.react:
+        specifier: 3.2.0
+        version: 3.2.0(react@19.2.7)
       react:
         specifier: ^19
         version: 19.2.7
@@ -3857,6 +3860,11 @@ packages:
 
   pushdata-bitcoin@1.0.1:
     resolution: {integrity: sha512-hw7rcYTJRAl4olM8Owe8x0fBuJJ+WGbMhQuLWOXEMN3PxPCKQHRkhfL+XG0+iXUmSHjkMmb3Ba55Mt21cZc9kQ==}
+
+  qrcode.react@3.2.0:
+    resolution: {integrity: sha512-YietHHltOHA4+l5na1srdaMx4sVSOjV9tamHs+mwiLWAMr6QVACRUw1Neax5CptFILcNoITctJY0Ipyn5enQ8g==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0
 
   qrcode@1.5.3:
     resolution: {integrity: sha512-puyri6ApkEHYiVl4CFzo1tDkAZ+ATcnbJrJ6RiBM1Fhctdn/ix9MTE3hRph33omisEbC/2fcfemsseiKgBPKZg==}
@@ -9215,6 +9223,10 @@ snapshots:
   pushdata-bitcoin@1.0.1:
     dependencies:
       bitcoin-ops: 1.4.1
+
+  qrcode.react@3.2.0(react@19.2.7):
+    dependencies:
+      react: 19.2.7
 
   qrcode@1.5.3:
     dependencies:

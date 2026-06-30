@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { Link, useNavigate, useParams } from "react-router-dom"
-import { ArrowLeft, Lock as LockIcon, Repeat, ExternalLink, ShieldCheck, UserRoundPen, FileDown } from "lucide-react"
+import { ArrowLeft, Lock as LockIcon, Repeat, ExternalLink, ShieldCheck, UserRoundPen, FileDown, QrCode } from "lucide-react"
 import { Helmet } from "react-helmet-async"
 import { useTranslation } from "react-i18next"
 import { useLock } from "@/hooks/useLocks"
@@ -10,6 +10,7 @@ import { withdrawLpLock, extendLpLock, transferLpBeneficiary } from "@/lib/lp-lo
 import { trackEvent } from "@/lib/analytics"
 import { type TxPhase } from "@/lib/stellar"
 import { downloadLockReport } from "@/lib/pdf-report"
+import { QrCodeModal } from "@/components/ui/QrCodeModal"
 import { Card } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
@@ -112,6 +113,7 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
   const [txPhase, setTxPhase] = useState<TxPhase | "idle">("idle")
   const [extendOpen, setExtendOpen] = useState(false)
   const [transferOpen, setTransferOpen] = useState(false)
+  const [qrOpen, setQrOpen] = useState(false)
   const [newDate, setNewDate] = useState("")
   const [newBeneficiary, setNewBeneficiary] = useState("")
   const extendPanelRef = useRef<HTMLDivElement>(null)
@@ -209,17 +211,36 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
           </div>
           <div className="flex flex-col items-end gap-2">
             <StatusBadge status={lock.status} />
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => downloadLockReport(lock)}
-              title="Download lock report"
-            >
-              <FileDown className="h-4 w-4" />
-              Download Report
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setQrOpen(true)}
+                title="Share via QR code"
+              >
+                <QrCode className="h-4 w-4" />
+                Share QR
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => downloadLockReport(lock)}
+                title="Download lock report"
+              >
+                <FileDown className="h-4 w-4" />
+                Download Report
+              </Button>
+            </div>
           </div>
         </div>
+
+        {qrOpen && (
+          <QrCodeModal
+            url={`${window.location.origin}/app/lock/${isLp ? "lp" : "token"}/${lock.id}`}
+            title={`Share Lock #${lock.id}`}
+            onClose={() => setQrOpen(false)}
+          />
+        )}
 
         <div className="grid gap-px bg-border sm:grid-cols-2">
           <Field label={t("lockDetail.lockedAmount")} className="bg-card">
