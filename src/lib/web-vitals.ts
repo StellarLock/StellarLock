@@ -17,7 +17,7 @@ const BUDGETS = {
 
 function logBudgetViolation(name: string, value: number, budget: number): void {
   if (import.meta.env.DEV) {
-    console.warn(`⚠️ Performance Budget Exceeded: ${name} = ${value.toFixed(2)}ms (budget: ${budget}ms)`)
+    log.warn("Performance budget exceeded", { name, value, budget })
   }
 }
 

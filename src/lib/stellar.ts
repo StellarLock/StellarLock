@@ -12,6 +12,9 @@ import {
 } from "@stellar/stellar-sdk"
 
 import { getContractAddress } from "@/lib/contracts.generated"
+import { createLogger } from "@/lib/logger"
+
+const log = createLogger("stellar")
 
 const envNetwork = (import.meta.env.VITE_NETWORK || "testnet").toLowerCase()
 const isMainnet = envNetwork === "mainnet" || envNetwork === "public"
@@ -199,7 +202,7 @@ export async function simulateCall<T>(contractId: string, method: string, args: 
     .build()
 
   const result = await client.simulate(tx)
-  if (import.meta.env.DEV) console.log("[simulateCall]", method, result)
+  log.debug("[simulateCall]", { method, result })
 
   if (SorobanRpc.Api.isSimulationError(result)) {
     throw new Error(`Simulation error: ${simError(result)}`)
@@ -234,7 +237,7 @@ export async function submitCall<T = void>(
 
   onProgress?.("simulating")
   const simResult = await rpc.simulateTransaction(tx)
-  if (import.meta.env.DEV) console.log("[submitCall sim]", method, simResult)
+  log.debug("[submitCall sim]", { method, simResult })
 
   if (SorobanRpc.Api.isSimulationError(simResult)) {
     throw new Error(`Simulation error: ${simError(simResult)}`)
@@ -247,7 +250,7 @@ export async function submitCall<T = void>(
 
   onProgress?.("submitting")
   const sendResult = await rpc.sendTransaction(TransactionBuilder.fromXDR(signedTxXdr, NETWORK.passphrase))
-  if (import.meta.env.DEV) console.log("[submitCall send]", sendResult)
+  log.debug("[submitCall send]", { sendResult })
 
   if (sendResult.status === "ERROR") {
     throw new Error(`Send error: ${sendResult.errorResult?.toXDR("base64") ?? "unknown"}`)
@@ -266,7 +269,7 @@ export async function submitCall<T = void>(
     await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS))
     getResult = await rpc.getTransaction(sendResult.hash)
   }
-  if (import.meta.env.DEV) console.log("[submitCall result]", getResult)
+  log.debug("[submitCall result]", { getResult })
 
   if (getResult.status === SorobanRpc.Api.GetTransactionStatus.FAILED) {
     throw new Error(`Transaction failed: ${JSON.stringify(getResult)}`)
@@ -380,6 +383,8 @@ export async function estimateLockCost(
     incrementSequenceNumber: () => { },
   }
 
+    const result = await rpc.simulateTransaction(tx)
+    log.debug("[estimateLockCost]", { method, result })
   const contract = new Contract(contractId)
   const tx = new TransactionBuilder(dummySource, {
     fee: BASE_FEE,

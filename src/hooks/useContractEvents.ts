@@ -1,5 +1,8 @@
 import { useEffect, useRef, useCallback, useState } from "react"
 import { NETWORK } from "@/lib/stellar"
+import { createLogger } from "@/lib/logger"
+
+const log = createLogger("useContractEvents")
 
 export interface ContractEvent {
   type: "lock_created" | "lock_withdrawn" | "lock_extended" | "beneficiary_transferred" | "lp_lock_created" | "lp_lock_withdrawn" | "lp_lock_extended" | "lp_beneficiary_transferred"
@@ -46,13 +49,13 @@ export function useContractEvents(options: EventPollingOptions = {}) {
       })
 
       if (!response.ok) {
-        console.error("[getEvents error]", response.status)
+        log.error("[getEvents error]", { status: response.status })
         return
       }
 
       const data = await response.json()
       if (data.error) {
-        console.error("[getEvents error]", data.error)
+        log.error("[getEvents error]", { error: data.error })
         return
       }
 
@@ -87,7 +90,7 @@ export function useContractEvents(options: EventPollingOptions = {}) {
         lastSequenceRef.current = Math.max(lastSequenceRef.current, event.ledger || 0)
       }
     } catch (err) {
-      console.error("[contract events polling error]", err)
+      log.error("[contract events polling error]", err)
     }
   }, [onEvent])
 

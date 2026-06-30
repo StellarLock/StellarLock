@@ -1,5 +1,8 @@
 import { useEffect, useCallback } from "react"
 import { useWallet } from "@/hooks/useWallet"
+import { createLogger } from "@/lib/logger"
+
+const log = createLogger("useSessionRecovery")
 
 export function useSessionRecovery() {
   const { isConnected } = useWallet()
@@ -11,7 +14,7 @@ export function useSessionRecovery() {
       // Trigger any necessary data refresh
       window.dispatchEvent(new CustomEvent("wallet:reconnected"))
     } catch (err) {
-      console.error("[session recovery error]", err)
+      log.error("[session recovery error]", err)
     }
   }, [isConnected])
 

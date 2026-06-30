@@ -39,7 +39,7 @@ function initSentry(): void {
 
 export function captureException(error: Error, context?: Record<string, unknown>): void {
   if (isDevelopment()) {
-    console.error("Sentry error:", error, context)
+    log.error("Sentry error", { error, context })
     return
   }
 
@@ -55,7 +55,7 @@ export function captureException(error: Error, context?: Record<string, unknown>
 
 export function captureMessage(message: string, level: "info" | "warning" | "error" = "info"): void {
   if (isDevelopment()) {
-    console.log(`Sentry ${level}:`, message)
+    log.info(`Sentry ${level}: ${message}`)
     return
   }
 

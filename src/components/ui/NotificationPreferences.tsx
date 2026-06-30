@@ -1,6 +1,9 @@
 import { useCallback, useState } from "react"
 import { useNotificationPrefs, type NotificationType } from "@/hooks/useNotifications"
 import { Button } from "@/components/ui/Button"
+import { createLogger } from "@/lib/logger"
+
+const log = createLogger("NotificationPreferences")
 
 const NOTIFICATION_TYPES: { type: NotificationType; label: string; description: string; required?: boolean }[] = [
   {
@@ -61,7 +64,7 @@ export function NotificationPreferences({ lockId }: { lockId?: string }) {
             }
           })
           .catch(() => {
-            console.error("Failed to request notification permission")
+            log.error("Failed to request notification permission")
           })
       } else {
         update({ browser: enabled })

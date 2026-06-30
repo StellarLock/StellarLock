@@ -3,6 +3,9 @@ import { AlertTriangle, Info, Loader2 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import type { xdr } from "@stellar/stellar-sdk"
 import { estimateLockCost, type LockCostEstimate } from "@/lib/stellar"
+import { createLogger } from "@/lib/logger"
+
+const log = createLogger("CostEstimate")
 
 interface CostEstimateProps {
   contractId: string
@@ -42,7 +45,7 @@ export function CostEstimate({ contractId, method, args }: CostEstimateProps) {
         .catch((err: unknown) => {
           setEstimate(null)
           setError(t("costEstimate.error"))
-          console.error("[CostEstimate]", err)
+          log.error("[CostEstimate]", err)
         })
         .finally(() => {
           setLoading(false)

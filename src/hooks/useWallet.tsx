@@ -7,6 +7,9 @@ import {
 import { trackEvent } from "@/lib/analytics"
 import { NETWORK } from "@/lib/stellar"
 import { notify } from "../lib/utils"
+import { createLogger } from "@/lib/logger"
+
+const log = createLogger("useWallet")
 
 const STORAGE_KEY = "stellarlock:wallet"
 const WALLET_ID_KEY = "stellarlock:wallet-id"
@@ -160,7 +163,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
           }
 
           const msg = err instanceof Error ? err.message : String(err)
-          console.error("Wallet connect error:", msg)
+          log.error("Wallet connect error", { msg })
           setConnectState("failed")
           setConnectError(getFriendlyError(msg))
           setConnectHelp(getConnectHelp(msg))

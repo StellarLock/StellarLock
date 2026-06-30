@@ -18,6 +18,9 @@ import { CONTRACTS, type TxPhase } from "@/lib/stellar"
 import { ConfirmLockModal } from "@/components/locks/ConfirmLockModal"
 import { isValidStellarContractAddress, isValidStellarPublicKey } from "@/lib/stellar"
 import { CostEstimate } from "@/components/locks/CostEstimate"
+import { createLogger } from "@/lib/logger"
+
+const log = createLogger("CreateLpLockForm")
 
 const DAY = 86_400_000
 
@@ -148,7 +151,7 @@ export function CreateLpLockForm() {
       trackEvent("lock_create_lp", { dex })
       navigate(`/app/lock/${id}`)
     } catch (err: unknown) {
-      console.error("[createLpLock error]", err)
+      log.error("[createLpLock error]", err)
       setShowConfirm(false)
       if (err instanceof Error) {
         setError(err.message)
@@ -176,7 +179,7 @@ export function CreateLpLockForm() {
       )
       trackEvent("token_approve")
     } catch (err: unknown) {
-      console.error("[approve error]", err)
+      log.error("[approve error]", err)
     } finally {
       setApproving(false)
     }
