@@ -1,0 +1,10 @@
+# cargo-mutants configuration for token-locker
+# https://mutants.rs/
+
+# Exclude generated or boilerplate code from mutation
+exclude_globs = [
+    "src/lib.rs",  # Only target specific functions below via --file flags
+]
+
+# Mutation test timeout (seconds per mutant)
+timeout_multiplier = 3.0

@@ -1,0 +1,4 @@
+# cargo-mutants configuration for lp-locker
+# https://mutants.rs/
+
+timeout_multiplier = 3.0

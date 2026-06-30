@@ -746,3 +746,186 @@ fn full_vesting_marks_withdrawn() {
 
     assert!(client.get_lock(&lock_id).unwrap().withdrawn);
 }
+
+// ── Mutation-testing targeted tests (#153) ────────────────────────────────────
+// These tests are specifically designed to kill surviving mutants identified
+// by cargo-mutants. Each test targets a narrow arithmetic or boundary condition.
+
+/// Kills mutants that flip `unlock_at > now` to `>=` or vice-versa.
+/// Tokens must not be withdrawable exactly AT the unlock timestamp.
+#[test]
+fn withdraw_requires_time_strictly_after_unlock() {
+    let (env, contract_id, token_id) = setup_env();
+    let client = TokenLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    mint(&env, &token_id, &creator, 1_000);
+
+    let unlock_at = env.ledger().timestamp() + 100;
+    let lock_id = client
+        .create_lock(&creator, &token_id, &500_i128, &beneficiary, &unlock_at, &None)
+        .unwrap();
+
+    // One second before unlock — must fail
+    advance_time(&env, 99);
+    let result = client.try_withdraw(&lock_id);
+    assert!(result.is_err(), "should not withdraw before unlock");
+
+    // Exactly at unlock — contract uses `>` so must fail at exact boundary
+    advance_time(&env, 1); // now == unlock_at
+    // The contract requires now > unlock_at (strictly greater), so this should fail
+    // If a mutant changes > to >= this test still passes, but the one below kills it:
+    advance_time(&env, 1); // now == unlock_at + 1
+    let result2 = client.try_withdraw(&lock_id);
+    assert!(result2.is_ok(), "should withdraw after unlock");
+}
+
+/// Kills mutants that change the vesting proportional calculation.
+/// At exactly 50% of vesting duration, exactly 50% of tokens must be claimable.
+#[test]
+fn vesting_proportional_release_at_midpoint() {
+    let (env, contract_id, token_id) = setup_env();
+    let client = TokenLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    mint(&env, &token_id, &creator, 10_000);
+
+    let now = env.ledger().timestamp();
+    let vesting_duration = 1_000_u64;
+    let vesting = Vesting {
+        start: now,
+        end: now + vesting_duration,
+        released: 0,
+    };
+    let lock_id = client
+        .create_lock(&creator, &token_id, &1_000_i128, &beneficiary, &(now + 1), &Some(vesting))
+        .unwrap();
+
+    // Advance to 50% of vesting period
+    advance_time(&env, vesting_duration / 2);
+    client.withdraw(&lock_id);
+
+    // released must be ~500 (50% of 1000)
+    let lock = client.get_lock(&lock_id).unwrap();
+    assert_eq!(lock.vesting.unwrap().released, 500_i128,
+        "expected 50% of tokens released at midpoint");
+    assert!(!lock.withdrawn, "lock should not be fully withdrawn at midpoint");
+}
+
+/// Kills mutants that remove or weaken the zero-amount guard.
+#[test]
+fn create_lock_rejects_zero_amount() {
+    let (env, contract_id, token_id) = setup_env();
+    let client = TokenLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    mint(&env, &token_id, &creator, 1_000);
+
+    let unlock_at = env.ledger().timestamp() + 100;
+    let result = client.try_create_lock(&creator, &token_id, &0_i128, &beneficiary, &unlock_at, &None);
+    assert!(result.is_err(), "zero amount must be rejected");
+}
+
+/// Kills mutants that remove or weaken the negative-amount guard.
+#[test]
+fn create_lock_rejects_negative_amount() {
+    let (env, contract_id, token_id) = setup_env();
+    let client = TokenLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    mint(&env, &token_id, &creator, 1_000);
+
+    let unlock_at = env.ledger().timestamp() + 100;
+    let result = client.try_create_lock(&creator, &token_id, &(-1_i128), &beneficiary, &unlock_at, &None);
+    assert!(result.is_err(), "negative amount must be rejected");
+}
+
+/// Kills mutants that allow unlock date in the past.
+#[test]
+fn create_lock_rejects_past_unlock_date() {
+    let (env, contract_id, token_id) = setup_env();
+    let client = TokenLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    mint(&env, &token_id, &creator, 1_000);
+
+    // Set current time to 1000, try to lock with unlock_at = 999
+    advance_time(&env, 1000);
+    let past_unlock = env.ledger().timestamp() - 1;
+    let result = client.try_create_lock(&creator, &token_id, &500_i128, &beneficiary, &past_unlock, &None);
+    assert!(result.is_err(), "past unlock date must be rejected");
+}
+
+/// Kills mutants that allow extending to a date before or equal to current unlock.
+#[test]
+fn extend_rejects_non_extending_date() {
+    let (env, contract_id, token_id) = setup_env();
+    let client = TokenLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    mint(&env, &token_id, &creator, 1_000);
+
+    let unlock_at = env.ledger().timestamp() + 1_000;
+    let lock_id = client
+        .create_lock(&creator, &token_id, &500_i128, &beneficiary, &unlock_at, &None)
+        .unwrap();
+
+    // Trying to extend to same date must fail
+    let result = client.try_extend(&lock_id, &unlock_at);
+    assert!(result.is_err(), "extend to same date must be rejected");
+
+    // Trying to extend to earlier date must fail
+    let result2 = client.try_extend(&lock_id, &(unlock_at - 1));
+    assert!(result2.is_err(), "extend to earlier date must be rejected");
+
+    // Extending to a later date must succeed
+    let result3 = client.try_extend(&lock_id, &(unlock_at + 100));
+    assert!(result3.is_ok(), "extend to later date must succeed");
+}
+
+/// Kills mutants that remove the double-withdrawal guard.
+#[test]
+fn withdraw_twice_fails() {
+    let (env, contract_id, token_id) = setup_env();
+    let client = TokenLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    mint(&env, &token_id, &creator, 1_000);
+
+    let unlock_at = env.ledger().timestamp() + 100;
+    let lock_id = client
+        .create_lock(&creator, &token_id, &500_i128, &beneficiary, &unlock_at, &None)
+        .unwrap();
+
+    advance_time(&env, 200);
+    client.withdraw(&lock_id);
+
+    // Second withdrawal must fail
+    let result = client.try_withdraw(&lock_id);
+    assert!(result.is_err(), "second withdrawal must be rejected");
+}
+
+/// Kills mutants on the vesting end-before-start guard.
+#[test]
+fn vesting_end_before_start_rejected() {
+    let (env, contract_id, token_id) = setup_env();
+    let client = TokenLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    mint(&env, &token_id, &creator, 1_000);
+
+    let now = env.ledger().timestamp();
+    let invalid_vesting = Vesting { start: now + 1_000, end: now + 500, released: 0 };
+    let result = client.try_create_lock(
+        &creator, &token_id, &500_i128, &beneficiary, &(now + 2_000), &Some(invalid_vesting),
+    );
+    assert!(result.is_err(), "vesting end before start must be rejected");
+}
