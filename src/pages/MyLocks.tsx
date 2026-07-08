@@ -57,10 +57,11 @@ export function MyLocks() {
   const rawList = tab === "created" ? created : received
   const totalForTab = tab === "created" ? totalCreated : totalReceived
 
-  // Reset to page 1 when switching tabs or filters
+  // Reset to page 1 and exit select mode when switching tabs or filters
   function handleTabChange(v: string) {
     setTab(v as Tab)
     setPage(1)
+    exitSelectMode()
   }
 
   const filteredList = useMemo(() => {
@@ -206,10 +207,6 @@ export function MyLocks() {
           <Tabs
             value={tab}
             onChange={handleTabChange}
-            onChange={(v) => {
-              setTab(v as Tab)
-              exitSelectMode()
-            }}
             items={[
               { value: "created", label: t("myLocks.createdByMe"), count: totalCreated },
               { value: "received", label: t("myLocks.beneficiary"), count: totalReceived },
@@ -265,7 +262,17 @@ export function MyLocks() {
           </select>
         </div>
 
-        <LockGrid locks={filteredList} loading={loading} error={error} onRetry={reload} tab={tab} hasFilters={search !== "" || statusFilter !== "all" || kindFilter !== "all"} />
+        <LockGrid
+          locks={filteredList}
+          loading={loading}
+          error={error}
+          onRetry={reload}
+          tab={tab}
+          hasFilters={search !== "" || statusFilter !== "all" || kindFilter !== "all"}
+          selectable={selectMode}
+          selectedIds={selectedIds}
+          onSelect={toggleSelect}
+        />
 
         <Pagination
           page={page}

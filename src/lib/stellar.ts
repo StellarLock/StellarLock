@@ -383,8 +383,6 @@ export async function estimateLockCost(
     incrementSequenceNumber: () => { },
   }
 
-    const result = await rpc.simulateTransaction(tx)
-    log.debug("[estimateLockCost]", { method, result })
   const contract = new Contract(contractId)
   const tx = new TransactionBuilder(dummySource, {
     fee: BASE_FEE,
@@ -395,7 +393,7 @@ export async function estimateLockCost(
     .build()
 
   const result = await rpc.simulateTransaction(tx)
-  if (import.meta.env.DEV) console.log("[estimateLockCost]", method, result)
+  log.debug("[estimateLockCost]", { method, result })
 
   if (SorobanRpc.Api.isSimulationError(result)) {
     throw new Error(`Cost simulation failed: ${simError(result)}`)

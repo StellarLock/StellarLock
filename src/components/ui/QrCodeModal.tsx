@@ -105,7 +105,7 @@ export function QrCodeModal({ url, title = "Share Lock", onClose }: QrCodeModalP
               value={url}
               size={QR_SIZE}
               level="M"
-              marginSize={2}
+              includeMargin
               imageSettings={{
                 src: "/icon.svg",
                 width: 40,

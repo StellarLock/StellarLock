@@ -35,11 +35,13 @@ export function formatAmount(amount: number, opts: { compact?: boolean; decimals
 }
 
 export function formatUsd(value: number): string {
+  const compact = value >= 1_000_000
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
-    notation: value >= 1_000_000 ? "compact" : "standard",
+    notation: compact ? "compact" : "standard",
     maximumFractionDigits: 2,
+    minimumFractionDigits: compact ? 2 : undefined,
   }).format(value)
 }
 

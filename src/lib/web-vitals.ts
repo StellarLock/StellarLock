@@ -1,3 +1,7 @@
+import { createLogger } from "@/lib/logger"
+
+const log = createLogger("web-vitals")
+
 type Metric = {
   name: string
   value: number
@@ -47,16 +51,16 @@ function reportWebVital(metric: Metric): void {
 
 export async function initWebVitals(): Promise<void> {
   try {
-    const { getCLS, getFID, getFCP, getLCP, getTTFB, getINP } = await import(
+    const { onCLS, onFID, onFCP, onLCP, onTTFB, onINP } = await import(
       "web-vitals"
     )
 
-    getCLS(reportWebVital)
-    getFID?.(reportWebVital)
-    getFCP(reportWebVital)
-    getLCP(reportWebVital)
-    getTTFB(reportWebVital)
-    getINP?.(reportWebVital)
+    onCLS(reportWebVital)
+    onFID?.(reportWebVital)
+    onFCP(reportWebVital)
+    onLCP(reportWebVital)
+    onTTFB(reportWebVital)
+    onINP?.(reportWebVital)
   } catch {
     // web-vitals not available
   }

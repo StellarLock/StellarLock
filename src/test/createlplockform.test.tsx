@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
-import { render, screen } from "@testing-library/react"
+import { screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
+import { render } from "./utils"
 import { CreateLpLockForm } from "../components/locks/CreateLpLockForm"
+import { VALID_PUBLIC_KEY, VALID_CONTRACT_ADDRESS } from "./mocks"
 
-vi.mock("react-router-dom", () => ({ useNavigate: () => vi.fn() }))
-vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (k: string) => k }) }))
 vi.mock("@stellar/stellar-sdk", () => ({
   Address: class {
     toScVal = vi.fn()
@@ -16,6 +16,7 @@ vi.mock("@stellar/stellar-sdk", () => ({
 const mockUseWallet = vi.fn()
 vi.mock("@/hooks/useWallet", () => ({
   useWallet: () => mockUseWallet() as unknown as Record<string, unknown>,
+  WalletProvider: ({ children }: any) => children,
 }))
 
 const mockUseTokenBalance = vi.fn()
@@ -34,7 +35,7 @@ vi.mock("@/lib/stellar", () => ({
 describe("CreateLpLockForm Validation Requirements", () => {
   beforeEach(() => {
     mockUseWallet.mockReturnValue({
-      address: "GBENEFICIARY_MOCK_ADDRESS_56_CHARS_LONG_VALID_STELLAR",
+      address: VALID_PUBLIC_KEY,
       signTransaction: vi.fn(),
     })
     mockUseTokenBalance.mockReturnValue({ data: 100, loading: false })
@@ -45,19 +46,19 @@ describe("CreateLpLockForm Validation Requirements", () => {
     const user = userEvent.setup()
     render(<CreateLpLockForm />)
 
-    const submitBtn = screen.getByRole("button", { name: /submit lock/i })
+    const submitBtn = screen.getByRole("button", { name: /lock liquidity/i })
     expect(submitBtn).toBeDisabled()
 
     // 1. Enter valid Pool Contract Address
-    await user.type(screen.getByLabelText(/pool address/i), "CCONTRACT_MOCK_ADDRESS_56_CHARS_LONG_VALID_STELLAR_AAA")
+    await user.type(screen.getByLabelText(/pool share token address/i), VALID_CONTRACT_ADDRESS)
     expect(submitBtn).toBeDisabled()
 
     // 2. Enter Token A Contract Address
-    await user.type(screen.getByLabelText(/token a/i), "CCONTRACT_MOCK_ADDRESS_56_CHARS_LONG_VALID_STELLAR_BBB")
+    await user.type(screen.getByLabelText(/token a address/i), VALID_CONTRACT_ADDRESS)
     expect(submitBtn).toBeDisabled()
 
     // 3. Enter Token B Contract Address
-    await user.type(screen.getByLabelText(/token b/i), "CCONTRACT_MOCK_ADDRESS_56_CHARS_LONG_VALID_STELLAR_CCC")
+    await user.type(screen.getByLabelText(/token b address/i), VALID_CONTRACT_ADDRESS)
     expect(submitBtn).toBeDisabled()
 
     // 4. Enter Valid Number Amount

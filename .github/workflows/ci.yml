@@ -36,14 +36,17 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Non-blocking for now: ~325 pre-existing errors (mostly type-aware lint
+      # rules firing in test files) need a dedicated cleanup pass before this
+      # can gate merges. Type Check and Build below are blocking.
       - name: Lint (ESLint)
         run: pnpm exec eslint . || true
 
       - name: Type Check
-        run: pnpm exec tsc -b || true
+        run: pnpm exec tsc -b
 
       - name: Build Vite App
-        run: pnpm build || true
+        run: pnpm build
 
   contracts:
     name: Smart Contract Checks

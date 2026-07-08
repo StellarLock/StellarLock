@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react"
-import { Activity, Lock, LogOut, GitBranch, UserCheck, Pause, Play, Copy } from "lucide-react"
+import { Activity, Lock, LogOut, GitBranch, UserCheck, Pause, Play, Copy, Coins } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { Card } from "@/components/ui/Card"
 import { Link } from "react-router-dom"

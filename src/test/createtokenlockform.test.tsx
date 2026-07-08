@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
-import { render, screen } from "@testing-library/react"
+import { screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
+import { render } from "./utils"
 import { CreateTokenLockForm } from "../components/locks/CreateTokenLockForm"
+import { VALID_PUBLIC_KEY, VALID_CONTRACT_ADDRESS } from "./mocks"
 
 // Complete third-party dependency overrides
-vi.mock("react-router-dom", () => ({ useNavigate: () => vi.fn() }))
-vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (k: string) => k }) }))
 vi.mock("@stellar/stellar-sdk", () => ({
   Address: class {
     toScVal = vi.fn()
@@ -18,6 +18,7 @@ vi.mock("@stellar/stellar-sdk", () => ({
 const mockUseWallet = vi.fn()
 vi.mock("@/hooks/useWallet", () => ({
   useWallet: () => mockUseWallet() as unknown as Record<string, unknown>,
+  WalletProvider: ({ children }: any) => children,
 }))
 
 const mockUseTokenBalance = vi.fn()
@@ -36,7 +37,7 @@ vi.mock("@/lib/stellar", () => ({
 describe("CreateTokenLockForm Validation Rules", () => {
   beforeEach(() => {
     localStorage.clear()
-    mockUseWallet.mockReturnValue({ address: "GBENEFICIARY_MOCK_ADDRESS_56_CHARS_LONG_VALID_STELLAR" })
+    mockUseWallet.mockReturnValue({ address: VALID_PUBLIC_KEY })
     mockUseTokenBalance.mockReturnValue({ data: 500, loading: false })
     mockUseTokenAllowance.mockReturnValue({ data: 0, loading: false })
   })
@@ -49,7 +50,7 @@ describe("CreateTokenLockForm Validation Rules", () => {
     expect(submitButton).toBeDisabled()
 
     // 1. Type Valid Contract Token Address
-    await user.type(screen.getByLabelText(/token address/i), "CCONTRACT_MOCK_ADDRESS_56_CHARS_LONG_VALID_STELLAR_ABC")
+    await user.type(screen.getByLabelText(/token contract address/i), VALID_CONTRACT_ADDRESS)
     expect(submitButton).toBeDisabled()
 
     // 2. Type Valid Positive Numerical Amount

@@ -66,8 +66,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     if (!saved || !savedWalletId) return
     const k = getKit()
     k.setWallet(savedWalletId)
-    k.getPublicKey()
-      .then((publicKey) => {
+    k.getAddress()
+      .then(({ address: publicKey }) => {
         if (publicKey && publicKey === saved) {
           setAddress(saved)
         } else {
@@ -88,7 +88,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     const checkConnection = async () => {
       try {
         const k = getKit()
-        const publicKey = await k.getPublicKey()
+        const { address: publicKey } = await k.getAddress()
         if (!publicKey || publicKey !== address) {
           setDisconnected(true)
           setAddress(null)
@@ -131,7 +131,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
               onWalletSelected: async (option) => {
                 try {
                   k.setWallet(option.id)
-                  const publicKey = await k.getPublicKey()
+                  const { address: publicKey } = await k.getAddress()
                   if (!publicKey) {
                     reject(new Error("Wallet returned no public key"))
                     return

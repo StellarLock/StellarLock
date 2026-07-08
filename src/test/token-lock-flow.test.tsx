@@ -3,9 +3,8 @@ import { screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { render } from "./utils"
 import { CreateTokenLockForm } from "@/components/locks/CreateTokenLockForm"
-import { mockWallet, mockLock } from "./mocks"
-import { useTokenAllowance } from "@/hooks/useLocks"
 import { mockWallet, VALID_CONTRACT_ADDRESS, VALID_PUBLIC_KEY } from "./mocks"
+import { useTokenAllowance, useTokenBalance } from "@/hooks/useLocks"
 
 // Mock the wallet context
 vi.mock("@/hooks/useWallet", () => ({
@@ -15,37 +14,39 @@ vi.mock("@/hooks/useWallet", () => ({
 
 // Mock the API calls
 vi.mock("@/lib/token-locker", async (importOriginal) => {
-  const actual = await importOriginal()
+  const actual = await importOriginal<typeof import("@/lib/token-locker")>()
   return {
     ...actual,
-    createTokenLock: vi.fn().mockResolvedValue({ id: "1" }),
+    createTokenLock: vi.fn().mockResolvedValue({ id: "1", txHash: "abc" }),
+  }
+})
+
+vi.mock("@/lib/stellar", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/stellar")>()
+  return {
+    ...actual,
     submitTokenApproval: vi.fn().mockResolvedValue(undefined),
   }
 })
 
 vi.mock("@/hooks/useLocks", () => ({
-  useTokenBalance: () => ({
+  useTokenBalance: vi.fn(() => ({
     data: 5000,
     loading: false,
-  }),
-  useTokenAllowance: () => ({
+    error: null,
+    reload: vi.fn(),
+  })),
+  useTokenAllowance: vi.fn(() => ({
     data: 10000,
     loading: false,
-  }),
+    error: null,
+    reload: vi.fn(),
+  })),
 }))
 
 vi.mock("@/lib/analytics", () => ({
   trackEvent: vi.fn(),
 }))
-
-vi.mock("@/lib/token-locker", async (importOriginal) => {
-  const actual = await importOriginal()
-  return {
-    ...actual,
-    createTokenLock: vi.fn().mockResolvedValue({ id: "1" }),
-    submitTokenApproval: vi.fn().mockResolvedValue(undefined),
-  }
-})
 
 describe("Token Lock Creation Flow", () => {
   beforeEach(() => {
@@ -55,7 +56,7 @@ describe("Token Lock Creation Flow", () => {
   it("should render the token lock form with all fields", () => {
     render(<CreateTokenLockForm />)
 
-    expect(screen.getByLabelText(/token address/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/token contract address/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/amount/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/beneficiary/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/unlock date/i)).toBeInTheDocument()
@@ -123,14 +124,14 @@ describe("Token Lock Creation Flow", () => {
     await user.type(tokenInput, VALID_CONTRACT_ADDRESS)
 
     await waitFor(() => {
-      expect(screen.getByText(/balance.*5000/i)).toBeInTheDocument()
+      expect(screen.getByText(/balance.*5,000/i)).toBeInTheDocument()
     })
   })
 
   it("should populate beneficiary with connected wallet address by default", () => {
     render(<CreateTokenLockForm />)
 
-    const beneficiaryInput = screen.getByPlaceholderText(/G\…/) as HTMLInputElement
+    const beneficiaryInput = screen.getByLabelText(/beneficiary/i) as HTMLInputElement
     expect(beneficiaryInput.value).toBe("")
   })
 
@@ -180,12 +181,11 @@ describe("Token Lock Creation Flow", () => {
 
     // Fill form
     const tokenInput = screen.getByPlaceholderText(/token/i)
-    const amountInputs = screen.getAllByDisplayValue("")
-    const amountInput = amountInputs[0]
     const dateInput = screen.getByLabelText(/unlock date/i) as HTMLInputElement
 
     await user.type(tokenInput, VALID_CONTRACT_ADDRESS)
-    await user.type(amountInput, "100")
+    const amountInputs = screen.getAllByDisplayValue("")
+    await user.type(amountInputs[0], "100")
 
     const futureDate = new Date()
     futureDate.setDate(futureDate.getDate() + 30)
@@ -197,7 +197,7 @@ describe("Token Lock Creation Flow", () => {
     await user.click(submitButton)
 
     await waitFor(() => {
-      expect(screen.getByText(/confirm/i)).toBeInTheDocument()
+      expect(screen.getByText(/confirm token lock/i)).toBeInTheDocument()
     })
   })
 
@@ -210,12 +210,11 @@ describe("Token Lock Creation Flow", () => {
 
     // Fill and submit form
     const tokenInput = screen.getByPlaceholderText(/token/i)
-    const amountInputs = screen.getAllByDisplayValue("")
-    const amountInput = amountInputs[0]
     const dateInput = screen.getByLabelText(/unlock date/i) as HTMLInputElement
 
     await user.type(tokenInput, VALID_CONTRACT_ADDRESS)
-    await user.type(amountInput, "100")
+    const amountInputs = screen.getAllByDisplayValue("")
+    await user.type(amountInputs[0], "100")
 
     const futureDate = new Date()
     futureDate.setDate(futureDate.getDate() + 30)
@@ -226,7 +225,7 @@ describe("Token Lock Creation Flow", () => {
     await user.click(submitButton)
 
     // Click confirm
-    const confirmButton = await screen.findByText(/confirm/i)
+    const confirmButton = await screen.findByRole("button", { name: /confirm & lock/i })
     await user.click(confirmButton)
 
     await waitFor(() => {
@@ -235,18 +234,18 @@ describe("Token Lock Creation Flow", () => {
   })
 
   it("should handle wallet rejection gracefully", async () => {
-    mockWallet.signTransaction.mockRejectedValueOnce(new Error("User rejected"))
+    const { createTokenLock } = await import("@/lib/token-locker")
+    vi.mocked(createTokenLock).mockRejectedValueOnce(new Error("User rejected"))
 
     const user = userEvent.setup()
     render(<CreateTokenLockForm />)
 
     const tokenInput = screen.getByPlaceholderText(/token/i)
-    const amountInputs = screen.getAllByDisplayValue("")
-    const amountInput = amountInputs[0]
     const dateInput = screen.getByLabelText(/unlock date/i) as HTMLInputElement
 
     await user.type(tokenInput, VALID_CONTRACT_ADDRESS)
-    await user.type(amountInput, "100")
+    const amountInputs = screen.getAllByDisplayValue("")
+    await user.type(amountInputs[0], "100")
 
     const futureDate = new Date()
     futureDate.setDate(futureDate.getDate() + 30)
@@ -256,7 +255,7 @@ describe("Token Lock Creation Flow", () => {
     const submitButton = screen.getByRole("button", { name: /lock tokens/i })
     await user.click(submitButton)
 
-    const confirmButton = await screen.findByText(/confirm/i)
+    const confirmButton = await screen.findByRole("button", { name: /confirm & lock/i })
     await user.click(confirmButton)
 
     await waitFor(() => {
@@ -265,7 +264,7 @@ describe("Token Lock Creation Flow", () => {
   })
 
   it("should show approve button when allowance is insufficient", async () => {
-    vi.mocked(useTokenAllowance).mockReturnValueOnce({
+    vi.mocked(useTokenAllowance).mockReturnValue({
       data: 50,
       loading: false,
       error: null,
@@ -276,12 +275,11 @@ describe("Token Lock Creation Flow", () => {
     render(<CreateTokenLockForm />)
 
     const tokenInput = screen.getByPlaceholderText(/token/i)
-    const amountInputs = screen.getAllByDisplayValue("")
-    const amountInput = amountInputs[0]
     const dateInput = screen.getByLabelText(/unlock date/i) as HTMLInputElement
 
-    await user.type(tokenInput, "CBVOBNRDOMUMERKKXKYY3NHE4HHE4AQIZVMWUNUZKXNQPQHCSIKUBVJZ")
-    await user.type(amountInput, "100")
+    await user.type(tokenInput, VALID_CONTRACT_ADDRESS)
+    const amountInputs = screen.getAllByDisplayValue("")
+    await user.type(amountInputs[0], "100")
 
     const futureDate = new Date()
     futureDate.setDate(futureDate.getDate() + 30)
@@ -297,19 +295,24 @@ describe("Token Lock Creation Flow", () => {
   })
 
   it("should handle approval flow before creating lock", async () => {
-    const { submitTokenApproval } = await import("@/lib/token-locker")
+    const { submitTokenApproval } = await import("@/lib/stellar")
     vi.mocked(submitTokenApproval).mockResolvedValueOnce(undefined)
+    vi.mocked(useTokenAllowance).mockReturnValue({
+      data: 50,
+      loading: false,
+      error: null,
+      reload: vi.fn(),
+    })
 
     const user = userEvent.setup()
     render(<CreateTokenLockForm />)
 
     const tokenInput = screen.getByPlaceholderText(/token/i)
-    const amountInputs = screen.getAllByDisplayValue("")
-    const amountInput = amountInputs[0]
     const dateInput = screen.getByLabelText(/unlock date/i) as HTMLInputElement
 
-    await user.type(tokenInput, "CBVOBNRDOMUMERKKXKYY3NHE4HHE4AQIZVMWUNUZKXNQPQHCSIKUBVJZ")
-    await user.type(amountInput, "100")
+    await user.type(tokenInput, VALID_CONTRACT_ADDRESS)
+    const amountInputs = screen.getAllByDisplayValue("")
+    await user.type(amountInputs[0], "100")
 
     const futureDate = new Date()
     futureDate.setDate(futureDate.getDate() + 30)
@@ -328,7 +331,7 @@ describe("Token Lock Creation Flow", () => {
   })
 
   it("should show insufficient balance error when balance < amount", async () => {
-    vi.mocked(useTokenBalance).mockReturnValueOnce({
+    vi.mocked(useTokenBalance).mockReturnValue({
       data: 50,
       loading: false,
       error: null,
@@ -339,12 +342,11 @@ describe("Token Lock Creation Flow", () => {
     render(<CreateTokenLockForm />)
 
     const tokenInput = screen.getByPlaceholderText(/token/i)
-    const amountInputs = screen.getAllByDisplayValue("")
-    const amountInput = amountInputs[0]
     const dateInput = screen.getByLabelText(/unlock date/i) as HTMLInputElement
 
-    await user.type(tokenInput, "CBVOBNRDOMUMERKKXKYY3NHE4HHE4AQIZVMWUNUZKXNQPQHCSIKUBVJZ")
-    await user.type(amountInput, "100")
+    await user.type(tokenInput, VALID_CONTRACT_ADDRESS)
+    const amountInputs = screen.getAllByDisplayValue("")
+    await user.type(amountInputs[0], "100")
 
     const futureDate = new Date()
     futureDate.setDate(futureDate.getDate() + 30)
@@ -355,7 +357,7 @@ describe("Token Lock Creation Flow", () => {
     await user.click(submitButton)
 
     await waitFor(() => {
-      expect(screen.getByText(/insufficient balance/i)).toBeInTheDocument()
+      expect(screen.getByText(/insufficient balance\./i)).toBeInTheDocument()
     })
 
     const confirmButton = screen.getByRole("button", { name: /insufficient balance/i })

@@ -26,8 +26,8 @@ export function useModalFocusTrap({
   onEscape,
 }: {
   active: boolean
-  containerRef: React.RefObject<HTMLElement>
-  initialFocusRef?: React.RefObject<HTMLElement>
+  containerRef: React.RefObject<HTMLElement | null>
+  initialFocusRef?: React.RefObject<HTMLElement | null>
   onEscape?: () => void
 }) {
   const lastFocusedRef = useRef<HTMLElement | null>(null)

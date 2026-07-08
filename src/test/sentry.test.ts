@@ -4,7 +4,7 @@ import { captureException, captureMessage, addBreadcrumb, setUserContext } from 
 describe("Sentry Error Tracking", () => {
   beforeEach(() => {
     ;(window as any).Sentry = undefined
-    vi.stubEnv("PROD", "true")
+    vi.stubEnv("PROD", true)
   })
 
   afterEach(() => {

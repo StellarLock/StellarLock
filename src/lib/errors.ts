@@ -50,6 +50,7 @@ const CONTRACT_ERRORS: Record<string, Omit<StructuredError, 'code'>> = {
     recovery: 'errors.lockDurationTooLong.recovery',
     link: null,
     i18nKey: 'errors.lockDurationTooLong',
+  },
   UnlockTooSoon: {
     title:    'errors.unlockTooSoon.title',
     message:  'errors.unlockTooSoon.message',

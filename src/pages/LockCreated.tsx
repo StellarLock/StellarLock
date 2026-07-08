@@ -14,7 +14,7 @@ import { Helmet } from "react-helmet-async"
 import { useTranslation } from "react-i18next"
 import { toast } from "react-hot-toast"
 import { Card } from "@/components/ui/Card"
-import { Button } from "@/components/ui/Button"
+import { buttonVariants } from "@/components/ui/Button"
 import { Badge } from "@/components/ui/Badge"
 import { NETWORK } from "@/lib/stellar"
 import { formatDate } from "@/lib/utils"
@@ -119,7 +119,7 @@ export function LockCreated() {
         </DetailRow>
 
         <DetailRow label="Type">
-          <Badge variant={lockKind === "lp" ? "secondary" : "primary"}>
+          <Badge variant={lockKind === "lp" ? "default" : "primary"}>
             {lockKind === "lp" ? "LP Lock" : "Token Lock"}
           </Badge>
         </DetailRow>
@@ -220,19 +220,15 @@ export function LockCreated() {
 
       {/* Next steps */}
       <div className="flex flex-col gap-3 sm:flex-row">
-        <Button asChild size="lg" className="flex-1">
-          <Link to={lockPath}>
-            <ArrowRight className="h-4 w-4" />
-            View Lock Detail
-          </Link>
-        </Button>
+        <Link to={lockPath} className={buttonVariants({ size: "lg", className: "flex-1" })}>
+          <ArrowRight className="h-4 w-4" />
+          View Lock Detail
+        </Link>
 
-        <Button asChild variant="outline" size="lg" className="flex-1">
-          <Link to="/app/create">
-            <PlusCircle className="h-4 w-4" />
-            Create Another
-          </Link>
-        </Button>
+        <Link to="/app/create" className={buttonVariants({ variant: "outline", size: "lg", className: "flex-1" })}>
+          <PlusCircle className="h-4 w-4" />
+          Create Another
+        </Link>
       </div>
     </div>
   )

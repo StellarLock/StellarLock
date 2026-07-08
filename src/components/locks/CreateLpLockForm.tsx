@@ -1,7 +1,6 @@
 import { useMemo, useState, type FormEvent } from "react"
 import { useNavigate } from "react-router-dom"
-import { Droplets, Info, Loader2 } from "lucide-react"
-import { Droplets, Info, ChevronDown, ChevronUp } from "lucide-react"
+import { Droplets, Info, Loader2, ChevronDown, ChevronUp } from "lucide-react"
 import { Trans, useTranslation } from "react-i18next"
 import { Address, nativeToScVal, xdr } from "@stellar/stellar-sdk"
 import type { Dex } from "@/types/lock"
@@ -12,9 +11,8 @@ import { cn, formatDate, isValidStellarAddress } from "@/lib/utils"
 import { useWallet } from "@/hooks/useWallet"
 import { useTokenBalance, useTokenAllowance } from "@/hooks/useLocks"
 import { createLpLock, submitTokenApproval } from "@/lib/lp-locker"
-import { CONTRACTS } from "@/lib/stellar"
-import { trackEvent } from "@/lib/analytics"
 import { CONTRACTS, type TxPhase } from "@/lib/stellar"
+import { trackEvent } from "@/lib/analytics"
 import { ConfirmLockModal } from "@/components/locks/ConfirmLockModal"
 import { isValidStellarContractAddress, isValidStellarPublicKey } from "@/lib/stellar"
 import { MultiBeneficiaryFields } from "@/components/locks/MultiBeneficiaryFields"
@@ -443,39 +441,9 @@ export function CreateLpLockForm() {
         <Droplets className="h-4 w-4" />
         {t("lpForm.submit")}
       </Button>
-
-      <div aria-live="polite" aria-atomic="true">
-        {error && (
-          <div
-            role="alert"
-            className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
-          >
-            {error}
-          </div>
-        )}
-      </div>
     </form>
 
     {showConfirm && (
-      <ConfirmLockModal
-        data={{
-          tokenAddress: poolShareAddress.trim(),
-          amount: amount,
-          beneficiary: address!,
-          unlockDate: unlockDate,
-          isLp: true,
-          dex: dex,
-          poolShareAddress: poolShareAddress.trim(),
-          balance,
-          allowance,
-          needsApproval: allowance != null && allowance < Number(amount),
-        }}
-        onConfirm={confirmLock}
-        onApprove={handleApprove}
-        onCancel={() => setShowConfirm(false)}
-        loading={submitting}
-        approving={approving}
-      />
       <>
         <ConfirmLockModal
           data={{
@@ -486,10 +454,15 @@ export function CreateLpLockForm() {
             isLp: true,
             dex: dex,
             poolShareAddress: poolShareAddress.trim(),
+            balance,
+            allowance,
+            needsApproval: allowance != null && allowance < Number(amount),
           }}
           onConfirm={confirmLock}
+          onApprove={handleApprove}
           onCancel={() => setShowConfirm(false)}
           loading={submitting}
+          approving={approving}
         />
         <div className="fixed bottom-6 left-1/2 z-50 w-full max-w-sm -translate-x-1/2 px-4">
           <TxProgressSteps phase={txPhase} />

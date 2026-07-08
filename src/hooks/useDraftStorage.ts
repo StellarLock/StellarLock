@@ -1,3 +1,7 @@
+import { createLogger } from "@/lib/logger"
+
+const log = createLogger("useDraftStorage")
+
 const DRAFT_KEY_TOKEN = "stellarlock:draft:token-lock"
 const DRAFT_KEY_LP = "stellarlock:draft:lp-lock"
 
@@ -11,7 +15,7 @@ export function saveDraft(type: DraftType, data: Record<string, string>): void {
   try {
     localStorage.setItem(getDraftKey(type), JSON.stringify(data))
   } catch (e) {
-    const { createLogger } = await import("@/lib/logger"); createLogger("useDraftStorage").warn("Failed to save draft", e)
+    log.warn("Failed to save draft", e)
   }
 }
 

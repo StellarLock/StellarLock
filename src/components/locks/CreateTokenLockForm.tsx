@@ -1,8 +1,6 @@
 import { useMemo, useState, useEffect, useRef, type FormEvent } from "react"
 import { useNavigate } from "react-router-dom"
-import { Lock, Info, Loader2, Calendar, ChevronDown, ChevronUp } from "lucide-react"
-import { Lock, Info, Loader2, Calendar, Users } from "lucide-react"
-import { Lock, Info, Loader2, Calendar, Timer } from "lucide-react"
+import { Lock, Info, Loader2, Calendar, ChevronDown, ChevronUp, Users, Timer, BookUser } from "lucide-react"
 import { Trans, useTranslation } from "react-i18next"
 import { Address, nativeToScVal, xdr } from "@stellar/stellar-sdk"
 import { Input, Label } from "@/components/ui/Input"
@@ -10,22 +8,15 @@ import { Button } from "@/components/ui/Button"
 import { TxProgressSteps } from "@/components/ui/TxProgressSteps"
 import { useWallet } from "@/hooks/useWallet"
 import { useTokenBalance, useTokenAllowance } from "@/hooks/useLocks"
-import { createTokenLock,  } from "@/lib/token-locker"
-import { CONTRACTS, submitTokenApproval } from "@/lib/stellar"
-import { useTokenBalance } from "@/hooks/useLocks"
 import { createTokenLock } from "@/lib/token-locker"
 import { createSplitLock, type SplitBeneficiary } from "@/lib/split-lock"
 import { trackEvent } from "@/lib/analytics"
 import { cn, formatDate, formatError, isValidStellarAddress } from "@/lib/utils"
-import { formatDate, formatError, isValidStellarAddress } from "@/lib/utils"
-import { CONTRACTS, type TxPhase } from "@/lib/stellar"
-import { CONTRACTS } from "@/lib/stellar"
+import { CONTRACTS, type TxPhase, submitTokenApproval, isValidStellarContractAddress } from "@/lib/stellar"
 import { ConfirmLockModal } from "@/components/locks/ConfirmLockModal"
-import { isValidStellarAddress, isValidStellarContractAddress } from "@/lib/stellar"
 import { CostEstimate } from "@/components/locks/CostEstimate"
 import { MultiBeneficiaryFields } from "@/components/locks/MultiBeneficiaryFields"
 import { AddressBookModal } from "@/components/ui/AddressBookModal"
-import { BookUser } from "lucide-react"
 import { createLogger } from "@/lib/logger"
 
 const log = createLogger("CreateTokenLockForm")
@@ -132,17 +123,16 @@ export function CreateTokenLockForm() {
   const vestingStartTs = vestingStartDate ? new Date(vestingStartDate).getTime() : 0
   const tokenAddressValid = isValidStellarContractAddress(trimmedTokenAddress)
   const beneficiaryValid = isValidStellarAddress(effectiveBeneficiary)
-  const valid = tokenAddressValid && beneficiaryValid && Number(amount) > 0 && unlockTs > Date.now()
   const splitSharesOk =
     splitBeneficiaries.length >= 2 &&
     splitBeneficiaries.every((b) => isValidStellarAddress(b.address)) &&
     splitBeneficiaries.reduce((s, b) => s + b.shareBps, 0) === 10_000
 
   const valid =
-    isValidStellarAddress(tokenAddress.trim()) &&
+    tokenAddressValid &&
     Number(amount) > 0 &&
     unlockTs > Date.now() &&
-    (!multiMode || splitSharesOk)
+    (multiMode ? splitSharesOk : beneficiaryValid)
 
   // Build the contract args for cost estimation when form is sufficiently filled in
   const costArgs = useMemo((): xdr.ScVal[] | null => {
@@ -356,17 +346,6 @@ export function CreateTokenLockForm() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="beneficiary">{t("tokenForm.beneficiary")}</Label>
-        <Input
-          id="beneficiary"
-          placeholder={address ?? "G…"}
-          value={beneficiary}
-          onChange={(e) => setBeneficiary(e.target.value)}
-          aria-invalid={!!trimmedBeneficiary && !beneficiaryValid}
-        />
-      </div>
-
       {/* Multiple beneficiaries toggle */}
       <label className={cn(
         "flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors",
@@ -408,6 +387,7 @@ export function CreateTokenLockForm() {
             placeholder={address ?? "G…"}
             value={beneficiary}
             onChange={(e) => setBeneficiary(e.target.value)}
+            aria-invalid={!!trimmedBeneficiary && !beneficiaryValid}
           />
           <p className="text-xs text-muted-foreground">{t("tokenForm.beneficiaryHint")}</p>
         </div>
@@ -616,23 +596,6 @@ export function CreateTokenLockForm() {
     </form>
 
     {showConfirm && (
-      <ConfirmLockModal
-        data={{
-          tokenAddress: tokenAddress.trim(),
-          amount: amount,
-          beneficiary: beneficiary.trim() || address!,
-          unlockDate: unlockDate,
-          vesting,
-          balance,
-          allowance,
-          needsApproval: allowance != null && allowance < Number(amount),
-        }}
-        onConfirm={confirmLock}
-        onApprove={handleApprove}
-        onCancel={() => setShowConfirm(false)}
-        loading={submitting}
-        approving={approving}
-      />
       <>
         <ConfirmLockModal
           data={{
@@ -641,10 +604,15 @@ export function CreateTokenLockForm() {
             beneficiary: beneficiary.trim() || address!,
             unlockDate: unlockDate,
             vesting,
+            balance,
+            allowance,
+            needsApproval: allowance != null && allowance < Number(amount),
           }}
           onConfirm={confirmLock}
+          onApprove={handleApprove}
           onCancel={() => setShowConfirm(false)}
           loading={submitting}
+          approving={approving}
         />
         <div className="fixed bottom-6 left-1/2 z-50 w-full max-w-sm -translate-x-1/2 px-4">
           <TxProgressSteps phase={txPhase} />

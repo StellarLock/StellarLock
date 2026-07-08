@@ -4,10 +4,12 @@ type EventName =
   | "wallet_disconnect"
   | "lock_create_token"
   | "lock_create_lp"
+  | "lock_create_split"
   | "lock_withdraw"
   | "lock_extend"
   | "lock_transfer_beneficiary"
   | "explorer_search"
+  | "token_approve"
 
 type EventProps = Record<string, string | number | boolean>
 

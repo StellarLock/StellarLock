@@ -146,7 +146,7 @@ export async function createTokenLock(
   sourceAddress: string,
   signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>,
   onProgress?: (phase: TxPhase) => void,
-): Promise<{ id: string }> {
+): Promise<{ id: string; txHash: string }> {
   const unlockAtSecs = Math.floor(args.unlockAt)
   const amountStroops = BigInt(Math.round(args.amount * 1e7))
 

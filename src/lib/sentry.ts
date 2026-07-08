@@ -1,3 +1,7 @@
+import { createLogger } from "@/lib/logger"
+
+const log = createLogger("sentry")
+
 function isDevelopment(): boolean {
   return !import.meta.env.PROD
 }

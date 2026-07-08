@@ -463,7 +463,6 @@ impl TokenLocker {
         let unique_token_count: u64 = env.storage().persistent().get(&DataKey::UniqueTokenCount).unwrap_or(0);
         GlobalStats { total_lock_count, unique_token_count }
     }
-}
 
     // ── Upgrade mechanism (7-day timelock) ───────────────────────────────────
 

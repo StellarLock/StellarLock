@@ -10,15 +10,35 @@ vi.mock("@/hooks/useWallet", () => ({
   WalletProvider: ({ children }: any) => children,
 }))
 
-vi.mock("@/lib/token-locker", () => ({
-  createTokenLock: vi.fn().mockResolvedValue({ id: "1" }),
-}))
+vi.mock("@/lib/token-locker", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/token-locker")>()
+  return {
+    ...actual,
+    createTokenLock: vi.fn().mockResolvedValue({ id: "1", txHash: "abc" }),
+  }
+})
+
+vi.mock("@/lib/stellar", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/stellar")>()
+  return {
+    ...actual,
+    submitTokenApproval: vi.fn().mockResolvedValue(undefined),
+  }
+})
 
 vi.mock("@/hooks/useLocks", () => ({
-  useTokenBalance: () => ({
+  useTokenBalance: vi.fn(() => ({
     data: 100,
     loading: false,
-  }),
+    error: null,
+    reload: vi.fn(),
+  })),
+  useTokenAllowance: vi.fn(() => ({
+    data: 10000,
+    loading: false,
+    error: null,
+    reload: vi.fn(),
+  })),
 }))
 
 vi.mock("@/lib/analytics", () => ({
@@ -31,17 +51,11 @@ describe("Lock Creation Edge Cases", () => {
   })
 
   it("should handle insufficient balance error", async () => {
-    const { createTokenLock } = await import("@/lib/token-locker")
-    vi.mocked(createTokenLock).mockRejectedValueOnce(
-      new Error("Insufficient balance: have 100, need 500"),
-    )
-
     const user = userEvent.setup()
     render(<CreateTokenLockForm />)
 
     const tokenInput = screen.getByPlaceholderText(/token/i)
-    const amountInputs = screen.getAllByDisplayValue("")
-    const amountInput = amountInputs[0]
+    const amountInput = screen.getByLabelText(/amount to lock/i)
     const dateInput = screen.getByLabelText(/unlock date/i) as HTMLInputElement
 
     await user.type(tokenInput, VALID_CONTRACT_ADDRESS)
@@ -55,12 +69,12 @@ describe("Lock Creation Edge Cases", () => {
     const submitButton = screen.getByRole("button", { name: /lock tokens/i })
     await user.click(submitButton)
 
-    const confirmButton = await screen.findByText(/confirm/i)
-    await user.click(confirmButton)
-
+    // Balance (100) < amount (500): the confirm modal shows a disabled
+    // "Insufficient Balance" button instead of "Confirm & Lock".
     await waitFor(() => {
-      expect(screen.getByText(/insufficient balance/i)).toBeInTheDocument()
+      expect(screen.getByText(/insufficient balance\./i)).toBeInTheDocument()
     })
+    expect(screen.getByRole("button", { name: /insufficient balance/i })).toBeDisabled()
   })
 
   it("should handle extremely large amounts", async () => {
@@ -68,7 +82,7 @@ describe("Lock Creation Edge Cases", () => {
     render(<CreateTokenLockForm />)
 
     const tokenInput = screen.getByPlaceholderText(/token/i)
-    const amountInput = screen.getByDisplayValue("")
+    const amountInput = screen.getByLabelText(/amount to lock/i)
     const dateInput = screen.getByLabelText(/unlock date/i) as HTMLInputElement
 
     await user.type(tokenInput, VALID_CONTRACT_ADDRESS)
@@ -89,8 +103,7 @@ describe("Lock Creation Edge Cases", () => {
     render(<CreateTokenLockForm />)
 
     const tokenInput = screen.getByPlaceholderText(/token/i)
-    const amountInputs = screen.getAllByDisplayValue("")
-    const amountInput = amountInputs[0]
+    const amountInput = screen.getByLabelText(/amount to lock/i)
     const dateInput = screen.getByLabelText(/unlock date/i) as HTMLInputElement
 
     await user.type(tokenInput, VALID_CONTRACT_ADDRESS)
@@ -110,8 +123,7 @@ describe("Lock Creation Edge Cases", () => {
     render(<CreateTokenLockForm />)
 
     const tokenInput = screen.getByPlaceholderText(/token/i)
-    const amountInputs = screen.getAllByDisplayValue("")
-    const amountInput = amountInputs[0]
+    const amountInput = screen.getByLabelText(/amount to lock/i)
     const dateInput = screen.getByLabelText(/unlock date/i) as HTMLInputElement
 
     await user.type(tokenInput, VALID_CONTRACT_ADDRESS)
@@ -127,9 +139,10 @@ describe("Lock Creation Edge Cases", () => {
 
     // Simulate wallet disconnection
     mockWallet.isConnected = false
-    mockWallet.signTransaction.mockRejectedValueOnce(new Error("Wallet disconnected"))
+    const { createTokenLock } = await import("@/lib/token-locker")
+    vi.mocked(createTokenLock).mockRejectedValueOnce(new Error("Wallet disconnected"))
 
-    const confirmButton = await screen.findByText(/confirm/i)
+    const confirmButton = await screen.findByRole("button", { name: /confirm & lock/i })
     await user.click(confirmButton)
 
     await waitFor(() => {
@@ -153,7 +166,7 @@ describe("Lock Creation Edge Cases", () => {
     render(<CreateTokenLockForm />)
 
     const tokenInput = screen.getByPlaceholderText(/token/i)
-    const amountInput = screen.getByDisplayValue("")
+    const amountInput = screen.getByLabelText(/amount to lock/i)
     const beneficiaryInput = screen.getByLabelText(/beneficiary/i)
     const dateInput = screen.getByLabelText(/unlock date/i) as HTMLInputElement
 
@@ -175,7 +188,7 @@ describe("Lock Creation Edge Cases", () => {
     render(<CreateTokenLockForm />)
 
     const tokenInput = screen.getByPlaceholderText(/token/i)
-    const amountInput = screen.getByDisplayValue("")
+    const amountInput = screen.getByLabelText(/amount to lock/i)
     const beneficiaryInput = screen.getByLabelText(/beneficiary/i)
     const dateInput = screen.getByLabelText(/unlock date/i) as HTMLInputElement
 
@@ -205,8 +218,7 @@ describe("Lock Creation Edge Cases", () => {
     render(<CreateTokenLockForm />)
 
     const tokenInput = screen.getByPlaceholderText(/token/i)
-    const amountInputs = screen.getAllByDisplayValue("")
-    const amountInput = amountInputs[0]
+    const amountInput = screen.getByLabelText(/amount to lock/i)
     const dateInput = screen.getByLabelText(/unlock date/i) as HTMLInputElement
 
     await user.type(tokenInput, VALID_CONTRACT_ADDRESS)
@@ -220,7 +232,7 @@ describe("Lock Creation Edge Cases", () => {
     const submitButton = screen.getByRole("button", { name: /lock tokens/i })
     await user.click(submitButton)
 
-    const confirmButton = await screen.findByText(/confirm/i)
+    const confirmButton = await screen.findByRole("button", { name: /confirm & lock/i })
     await user.click(confirmButton)
 
     await waitFor(() => {
@@ -251,7 +263,7 @@ describe("Lock Creation Edge Cases", () => {
     render(<CreateTokenLockForm />)
 
     const tokenInput = screen.getByPlaceholderText(/token/i)
-    const amountInput = screen.getByDisplayValue("")
+    const amountInput = screen.getByLabelText(/amount to lock/i)
 
     // Rapid typing
     await user.type(tokenInput, "C")
@@ -269,7 +281,7 @@ describe("Lock Creation Edge Cases", () => {
     const user = userEvent.setup()
     render(<CreateTokenLockForm />)
 
-    const amountInput = screen.getByDisplayValue("")
+    const amountInput = screen.getByLabelText(/amount to lock/i)
 
     // Try invalid input
     await user.type(amountInput, "abc")
