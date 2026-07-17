@@ -1,4 +1,4 @@
-import { simulateCall } from "@/lib/stellar"
+import { simulateCall, NETWORK } from "@/lib/stellar"
 
 export interface TokenMetadata {
   symbol: string
@@ -43,18 +43,35 @@ function isCacheValid(cached: CachedMetadata): boolean {
 
 async function fetchFromStellarExpert(contractId: string): Promise<TokenMetadata | null> {
   try {
-    const res = await fetch(`https://api.stellarexpert.com/api/v2/asset/contracts/${contractId}`, {
+    const network = NETWORK.networkName
+
+    // Soroban token contracts are looked up separately from the classic
+    // asset (code-issuer) they wrap, so resolve the contract first to find
+    // which classic asset (if any) backs it.
+    const contractRes = await fetch(
+      `https://api.stellar.expert/explorer/${network}/contract/${contractId}`,
+      { signal: AbortSignal.timeout(5000) },
+    )
+    if (!contractRes.ok) return null
+    const contractData = await contractRes.json()
+    const assetId: string | undefined = contractData.asset
+    if (!assetId) return null
+
+    const assetRes = await fetch(`https://api.stellar.expert/explorer/${network}/asset/${assetId}`, {
       signal: AbortSignal.timeout(5000),
     })
-    if (!res.ok) return null
-    const data = await res.json()
+    if (!assetRes.ok) return null
+    const assetData = await assetRes.json()
+    const toml = assetData.toml_info
+    if (!toml?.image) return null
+
     return {
-      symbol: data.code || "",
-      name: data.name,
-      logo: data.logo,
-      issuer: data.issuer,
-      domain: data.domain,
-      verified: data.verified,
+      symbol: toml.code || assetData.code || "",
+      name: toml.name,
+      logo: toml.image,
+      issuer: toml.issuer,
+      domain: assetData.home_domain,
+      verified: Boolean(toml.orgName),
     }
   } catch {
     return null
