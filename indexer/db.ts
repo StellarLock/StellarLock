@@ -43,10 +43,13 @@ export function initDb() {
     CREATE INDEX IF NOT EXISTS idx_locks_unlock_at ON locks(unlock_at);
 
     CREATE TABLE IF NOT EXISTS lock_events (
-      ledger_seq INTEGER PRIMARY KEY,
+      id TEXT PRIMARY KEY,
+      ledger_seq INTEGER NOT NULL,
       event_type TEXT NOT NULL,
       lock_id TEXT NOT NULL
     );
+
+    CREATE INDEX IF NOT EXISTS idx_lock_events_ledger ON lock_events(ledger_seq);
   `)
 }
 
