@@ -1,5 +1,6 @@
 allowBuilds:
   "@stellar/stellar-sdk": true
+  better-sqlite3: true
   blake-hash: true
   bufferutil: true
   protobufjs: true
