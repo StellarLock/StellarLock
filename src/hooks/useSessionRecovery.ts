@@ -7,7 +7,7 @@ const log = createLogger("useSessionRecovery")
 export function useSessionRecovery() {
   const { isConnected } = useWallet()
 
-  const refetchData = useCallback(async () => {
+  const refetchData = useCallback(() => {
     if (!isConnected) return
 
     try {

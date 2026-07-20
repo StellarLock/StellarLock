@@ -3,7 +3,7 @@ import { useModalFocusTrap } from "@/lib/modalFocusTrap"
 import { X, CheckCircle2, XCircle, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
-import { formatAmount, shortAddress } from "@/lib/utils"
+import { formatAmount } from "@/lib/utils"
 import type { Lock } from "@/types/lock"
 
 type Action = "extend" | "transfer"
@@ -125,7 +125,7 @@ export function BulkConfirmModal({ action, locks, onConfirm, onClose }: Props) {
               <Button variant="outline" onClick={onClose} className="flex-1" disabled={running}>
                 Cancel
               </Button>
-              <Button onClick={handleConfirm} className="flex-1" loading={running} disabled={!isValid}>
+              <Button onClick={() => void handleConfirm()} className="flex-1" loading={running} disabled={!isValid}>
                 Confirm {action === "extend" ? "Extension" : "Transfer"}
               </Button>
             </div>

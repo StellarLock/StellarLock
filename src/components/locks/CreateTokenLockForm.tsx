@@ -223,7 +223,7 @@ export function CreateTokenLockForm() {
         trackEvent("lock_create_split", { count: splitBeneficiaries.length, vesting })
         localStorage.setItem(COOLDOWN_KEY, String(Date.now()))
         setCooldownRemaining(COOLDOWN_SECONDS)
-        navigate("/app/locks")
+        void navigate("/app/locks")
       } else {
         const { id, txHash } = await createTokenLock(
           {
@@ -240,7 +240,7 @@ export function CreateTokenLockForm() {
         trackEvent("lock_create_token", { vesting })
         localStorage.setItem(COOLDOWN_KEY, String(Date.now()))
         setCooldownRemaining(COOLDOWN_SECONDS)
-        navigate("/app/lock-created", {
+        void navigate("/app/lock-created", {
           state: {
             lockId: id,
             lockKind: "token",
@@ -608,8 +608,8 @@ export function CreateTokenLockForm() {
             allowance,
             needsApproval: allowance != null && allowance < Number(amount),
           }}
-          onConfirm={confirmLock}
-          onApprove={handleApprove}
+          onConfirm={() => void confirmLock()}
+          onApprove={() => void handleApprove()}
           onCancel={() => setShowConfirm(false)}
           loading={submitting}
           approving={approving}

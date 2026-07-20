@@ -27,7 +27,7 @@ const onChainCache = new Map<string, OnChainTokenMeta>()
 
 function getCache(): Record<string, CachedMetadata> {
   try {
-    return JSON.parse(localStorage.getItem(CACHE_KEY) ?? "{}")
+    return JSON.parse(localStorage.getItem(CACHE_KEY) ?? "{}") as Record<string, CachedMetadata>
   } catch {
     return {}
   }
@@ -39,6 +39,24 @@ function saveCache(cache: Record<string, CachedMetadata>) {
 
 function isCacheValid(cached: CachedMetadata): boolean {
   return Date.now() - cached.cached_at < CACHE_TTL
+}
+
+interface StellarExpertTomlInfo {
+  code?: string
+  name?: string
+  image?: string
+  issuer?: string
+  orgName?: string
+}
+
+interface StellarExpertContractResponse {
+  asset?: string
+}
+
+interface StellarExpertAssetResponse {
+  code?: string
+  home_domain?: string
+  toml_info?: StellarExpertTomlInfo
 }
 
 async function fetchFromStellarExpert(contractId: string): Promise<TokenMetadata | null> {
@@ -53,15 +71,15 @@ async function fetchFromStellarExpert(contractId: string): Promise<TokenMetadata
       { signal: AbortSignal.timeout(5000) },
     )
     if (!contractRes.ok) return null
-    const contractData = await contractRes.json()
-    const assetId: string | undefined = contractData.asset
+    const contractData = (await contractRes.json()) as StellarExpertContractResponse
+    const assetId = contractData.asset
     if (!assetId) return null
 
     const assetRes = await fetch(`https://api.stellar.expert/explorer/${network}/asset/${assetId}`, {
       signal: AbortSignal.timeout(5000),
     })
     if (!assetRes.ok) return null
-    const assetData = await assetRes.json()
+    const assetData = (await assetRes.json()) as StellarExpertAssetResponse
     const toml = assetData.toml_info
     if (!toml?.image) return null
 
@@ -105,8 +123,7 @@ export async function getTokenMetadata(contractId: string): Promise<TokenMetadat
 
   // Return cached if valid
   if (cached && isCacheValid(cached)) {
-    const { cached_at, ...metadata } = cached
-    return metadata
+    return cached
   }
 
   // Try multiple sources

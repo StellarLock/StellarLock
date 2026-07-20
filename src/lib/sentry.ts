@@ -2,12 +2,37 @@ import { createLogger } from "@/lib/logger"
 
 const log = createLogger("sentry")
 
+export interface SentryGlobal {
+  init(options: {
+    dsn?: string
+    environment?: string
+    tracesSampleRate?: number
+    integrations?: unknown[]
+  }): void
+  Replay: new (options: { maskAllText: boolean; blockAllMedia: boolean }) => unknown
+  captureException(error: Error, options?: { contexts?: { custom?: Record<string, unknown> } }): void
+  captureMessage(message: string, level: "info" | "warning" | "error"): void
+  addBreadcrumb(breadcrumb: {
+    message: string
+    category: string
+    data?: Record<string, unknown>
+    timestamp: number
+  }): void
+  setUser(user: { id: string } | null): void
+}
+
+declare global {
+  interface Window {
+    Sentry?: SentryGlobal
+  }
+}
+
 function isDevelopment(): boolean {
   return !import.meta.env.PROD
 }
 
 function getSentryDSN(): string | undefined {
-  return import.meta.env.VITE_SENTRY_DSN
+  return import.meta.env.VITE_SENTRY_DSN as string | undefined
 }
 
 function initSentry(): void {
@@ -22,7 +47,7 @@ function initSentry(): void {
   script.crossOrigin = "anonymous"
 
   script.onload = () => {
-    const Sentry = (window as any).Sentry
+    const Sentry = window.Sentry
     if (Sentry) {
       Sentry.init({
         dsn: getSentryDSN(),
@@ -47,7 +72,7 @@ export function captureException(error: Error, context?: Record<string, unknown>
     return
   }
 
-  const Sentry = (window as any).Sentry
+  const Sentry = window.Sentry
   if (Sentry) {
     if (context) {
       Sentry.captureException(error, { contexts: { custom: context } })
@@ -63,7 +88,7 @@ export function captureMessage(message: string, level: "info" | "warning" | "err
     return
   }
 
-  const Sentry = (window as any).Sentry
+  const Sentry = window.Sentry
   if (Sentry) {
     Sentry.captureMessage(message, level)
   }
@@ -74,7 +99,7 @@ export function addBreadcrumb(
   category: string,
   data?: Record<string, unknown>,
 ): void {
-  const Sentry = (window as any).Sentry
+  const Sentry = window.Sentry
   if (Sentry) {
     Sentry.addBreadcrumb({
       message,
@@ -86,7 +111,7 @@ export function addBreadcrumb(
 }
 
 export function setUserContext(walletAddress?: string): void {
-  const Sentry = (window as any).Sentry
+  const Sentry = window.Sentry
   if (Sentry) {
     if (walletAddress) {
       const hash = new TextEncoder().encode(walletAddress)

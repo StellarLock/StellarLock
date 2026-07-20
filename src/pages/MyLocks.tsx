@@ -90,7 +90,8 @@ export function MyLocks() {
   function toggleSelect(id: string, checked: boolean) {
     setSelectedIds((prev) => {
       const next = new Set(prev)
-      checked ? next.add(id) : next.delete(id)
+      if (checked) next.add(id)
+      else next.delete(id)
       return next
     })
   }
@@ -172,7 +173,7 @@ export function MyLocks() {
               <CheckSquare className="h-4 w-4" />
               {selectMode ? "Cancel" : "Select"}
             </Button>
-            <Button onClick={() => navigate("/app/create")}>
+            <Button onClick={() => void navigate("/app/create")}>
               <Plus className="h-4 w-4" />
               {t("myLocks.newLock")}
             </Button>

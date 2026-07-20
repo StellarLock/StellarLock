@@ -1,3 +1,4 @@
+import type { ReactNode } from "react"
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
@@ -9,7 +10,7 @@ import { useTokenAllowance, useTokenBalance } from "@/hooks/useLocks"
 // Mock the wallet context
 vi.mock("@/hooks/useWallet", () => ({
   useWallet: () => mockWallet,
-  WalletProvider: ({ children }: any) => children,
+  WalletProvider: ({ children }: { children: ReactNode }) => children,
 }))
 
 // Mock the API calls
@@ -81,7 +82,7 @@ describe("Token Lock Creation Flow", () => {
     expect(submitButton).toBeDisabled() // Still need date
 
     // Fill unlock date (future date)
-    const dateInput = screen.getByLabelText(/unlock date/i) as HTMLInputElement
+    const dateInput = screen.getByLabelText(/unlock date/i)
     const futureDate = new Date()
     futureDate.setDate(futureDate.getDate() + 30)
     const dateStr = futureDate.toISOString().split("T")[0]
@@ -94,7 +95,7 @@ describe("Token Lock Creation Flow", () => {
     const user = userEvent.setup()
     render(<CreateTokenLockForm />)
 
-    const dateInput = screen.getByLabelText(/unlock date/i) as HTMLInputElement
+    const dateInput = screen.getByLabelText(/unlock date/i)
     const pastDate = new Date()
     pastDate.setDate(pastDate.getDate() - 1)
     const dateStr = pastDate.toISOString().split("T")[0]
@@ -131,7 +132,7 @@ describe("Token Lock Creation Flow", () => {
   it("should populate beneficiary with connected wallet address by default", () => {
     render(<CreateTokenLockForm />)
 
-    const beneficiaryInput = screen.getByLabelText(/beneficiary/i) as HTMLInputElement
+    const beneficiaryInput: HTMLInputElement = screen.getByLabelText(/beneficiary/i)
     expect(beneficiaryInput.value).toBe("")
   })
 
@@ -153,7 +154,7 @@ describe("Token Lock Creation Flow", () => {
     const thirtyDaysButton = screen.getByRole("button", { name: /30 days/i })
     await user.click(thirtyDaysButton)
 
-    const dateInput = screen.getByLabelText(/unlock date/i) as HTMLInputElement
+    const dateInput: HTMLInputElement = screen.getByLabelText(/unlock date/i)
     expect(dateInput.value).toBeTruthy()
 
     const selectedDate = new Date(dateInput.value)
@@ -181,7 +182,7 @@ describe("Token Lock Creation Flow", () => {
 
     // Fill form
     const tokenInput = screen.getByPlaceholderText(/token/i)
-    const dateInput = screen.getByLabelText(/unlock date/i) as HTMLInputElement
+    const dateInput = screen.getByLabelText(/unlock date/i)
 
     await user.type(tokenInput, VALID_CONTRACT_ADDRESS)
     const amountInputs = screen.getAllByDisplayValue("")
@@ -210,7 +211,7 @@ describe("Token Lock Creation Flow", () => {
 
     // Fill and submit form
     const tokenInput = screen.getByPlaceholderText(/token/i)
-    const dateInput = screen.getByLabelText(/unlock date/i) as HTMLInputElement
+    const dateInput = screen.getByLabelText(/unlock date/i)
 
     await user.type(tokenInput, VALID_CONTRACT_ADDRESS)
     const amountInputs = screen.getAllByDisplayValue("")
@@ -241,7 +242,7 @@ describe("Token Lock Creation Flow", () => {
     render(<CreateTokenLockForm />)
 
     const tokenInput = screen.getByPlaceholderText(/token/i)
-    const dateInput = screen.getByLabelText(/unlock date/i) as HTMLInputElement
+    const dateInput = screen.getByLabelText(/unlock date/i)
 
     await user.type(tokenInput, VALID_CONTRACT_ADDRESS)
     const amountInputs = screen.getAllByDisplayValue("")
@@ -275,7 +276,7 @@ describe("Token Lock Creation Flow", () => {
     render(<CreateTokenLockForm />)
 
     const tokenInput = screen.getByPlaceholderText(/token/i)
-    const dateInput = screen.getByLabelText(/unlock date/i) as HTMLInputElement
+    const dateInput = screen.getByLabelText(/unlock date/i)
 
     await user.type(tokenInput, VALID_CONTRACT_ADDRESS)
     const amountInputs = screen.getAllByDisplayValue("")
@@ -308,7 +309,7 @@ describe("Token Lock Creation Flow", () => {
     render(<CreateTokenLockForm />)
 
     const tokenInput = screen.getByPlaceholderText(/token/i)
-    const dateInput = screen.getByLabelText(/unlock date/i) as HTMLInputElement
+    const dateInput = screen.getByLabelText(/unlock date/i)
 
     await user.type(tokenInput, VALID_CONTRACT_ADDRESS)
     const amountInputs = screen.getAllByDisplayValue("")
@@ -342,7 +343,7 @@ describe("Token Lock Creation Flow", () => {
     render(<CreateTokenLockForm />)
 
     const tokenInput = screen.getByPlaceholderText(/token/i)
-    const dateInput = screen.getByLabelText(/unlock date/i) as HTMLInputElement
+    const dateInput = screen.getByLabelText(/unlock date/i)
 
     await user.type(tokenInput, VALID_CONTRACT_ADDRESS)
     const amountInputs = screen.getAllByDisplayValue("")

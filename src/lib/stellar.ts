@@ -16,7 +16,7 @@ import { createLogger } from "@/lib/logger"
 
 const log = createLogger("stellar")
 
-const envNetwork = (import.meta.env.VITE_NETWORK || "testnet").toLowerCase()
+const envNetwork = ((import.meta.env.VITE_NETWORK as string | undefined) || "testnet").toLowerCase()
 const isMainnet = envNetwork === "mainnet" || envNetwork === "public"
 
 const defaultRpcUrl = isMainnet
@@ -29,8 +29,8 @@ const defaultHorizonUrl = isMainnet
 export const NETWORK = {
   id: isMainnet ? "mainnet" : "testnet",
   passphrase: isMainnet ? Networks.PUBLIC : Networks.TESTNET,
-  rpcUrl: import.meta.env.VITE_RPC_URL || defaultRpcUrl,
-  horizonUrl: import.meta.env.VITE_HORIZON_URL || defaultHorizonUrl,
+  rpcUrl: (import.meta.env.VITE_RPC_URL as string | undefined) || defaultRpcUrl,
+  horizonUrl: (import.meta.env.VITE_HORIZON_URL as string | undefined) || defaultHorizonUrl,
   networkName: isMainnet ? "public" : "testnet",
   displayName: isMainnet ? "Mainnet" : "Testnet",
 }
@@ -89,17 +89,19 @@ class RpcClient {
       }
     }
     return new Promise<T>((resolve, reject) => {
-      this.queue.push(async () => {
-        this.activeCount++
-        try {
-          resolve(await fn())
-        } catch (e) {
-          reject(e)
-        } finally {
-          this.activeCount--
-          const next = this.queue.shift()
-          if (next) next()
-        }
+      this.queue.push(() => {
+        void (async () => {
+          this.activeCount++
+          try {
+            resolve(await fn())
+          } catch (e) {
+            reject(e instanceof Error ? e : new Error(String(e)))
+          } finally {
+            this.activeCount--
+            const next = this.queue.shift()
+            if (next) next()
+          }
+        })()
       })
     })
   }

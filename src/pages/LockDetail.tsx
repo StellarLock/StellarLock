@@ -189,7 +189,7 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 md:px-6">
       <button
-        onClick={() => navigate(-1)}
+        onClick={() => void navigate(-1)}
         className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
         <ArrowLeft className="h-4 w-4" />
@@ -358,7 +358,7 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
                   src={lock.metadata.logoUrl}
                   alt="Project logo"
                   className="h-10 w-10 rounded-full border border-border object-cover"
-                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none" }}
+                  onError={(e) => { e.currentTarget.style.display = "none" }}
                 />
               )}
               {lock.metadata.description && (
@@ -389,7 +389,7 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
         {(canWithdraw || canExtend || canTransfer) && (
           <div className="flex flex-col gap-3 border-t border-border p-6 sm:flex-row">
             {canWithdraw && (
-              <Button onClick={handleWithdraw} loading={busy === "withdraw"} className="flex-1">
+              <Button onClick={() => void handleWithdraw()} loading={busy === "withdraw"} className="flex-1">
                 <LockIcon className="h-4 w-4" />
                 {lock.vesting
                   ? t("lockDetail.claimVested", { amount: formatAmount(vestingClaimable), symbol: lock.token.symbol })
@@ -440,7 +440,7 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
                 onChange={(e) => setNewDate(e.target.value)}
                 className="flex-1"
               />
-              <Button onClick={handleExtend} loading={busy === "extend"} disabled={!newDate}>
+              <Button onClick={() => void handleExtend()} loading={busy === "extend"} disabled={!newDate}>
                 {t("lockDetail.confirmExtension")}
               </Button>
             </div>
@@ -466,7 +466,7 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
                 onChange={(e) => setNewBeneficiary(e.target.value)}
                 className="flex-1 font-mono"
               />
-              <Button onClick={handleTransfer} loading={busy === "transfer"} disabled={!newBeneficiary.trim()}>
+              <Button onClick={() => void handleTransfer()} loading={busy === "transfer"} disabled={!newBeneficiary.trim()}>
                 {t("lockDetail.confirmTransfer")}
               </Button>
             </div>

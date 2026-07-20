@@ -7,7 +7,7 @@ interface Options {
 
 const INPUT_TAGS = new Set(["INPUT", "TEXTAREA", "SELECT", "CONTENTEDITABLE"])
 
-function isTypingInInput(event: KeyboardEvent): boolean {
+function isTypingInInput(): boolean {
   const el = document.activeElement
   if (!el) return false
   if (INPUT_TAGS.has(el.tagName)) return true
@@ -21,7 +21,7 @@ export function useKeyboardShortcuts({ onShowHelp }: Options) {
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       // ? — show help (allowed even in inputs for discoverability? No — respect focus)
-      if (event.key === "?" && !isTypingInInput(event)) {
+      if (event.key === "?" && !isTypingInInput()) {
         event.preventDefault()
         onShowHelp()
         return
@@ -29,7 +29,7 @@ export function useKeyboardShortcuts({ onShowHelp }: Options) {
 
       // Escape is handled per-modal; nothing global needed here
 
-      if (isTypingInInput(event)) return
+      if (isTypingInInput()) return
 
       const mod = event.ctrlKey || event.metaKey
 
@@ -37,19 +37,19 @@ export function useKeyboardShortcuts({ onShowHelp }: Options) {
         switch (event.key.toLowerCase()) {
           case "k":
             event.preventDefault()
-            navigate("/explore")
+            void navigate("/explore")
             break
           case "n":
             event.preventDefault()
-            navigate("/app/create")
+            void navigate("/app/create")
             break
           case "l":
             event.preventDefault()
-            navigate("/app/locks")
+            void navigate("/app/locks")
             break
           case "e":
             event.preventDefault()
-            navigate("/explore")
+            void navigate("/explore")
             break
         }
       }

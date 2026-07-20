@@ -16,7 +16,7 @@ export function TokenSearchBar({ className, autoFocus }: { className?: string; a
     const value = query.trim()
     if (!value) return
     trackEvent("explorer_search")
-    navigate(`/explore/${value}`)
+    void navigate(`/explore/${value}`)
   }
 
   return (

@@ -51,7 +51,6 @@ export function useRpcHealth() {
 
   useEffect(() => {
     let isMounted = true
-    let intervalId: NodeJS.Timeout
 
     const check = async () => {
       const status = await checkRpcHealth()
@@ -61,10 +60,10 @@ export function useRpcHealth() {
     }
 
     // Check immediately on mount
-    check()
+    void check()
 
     // Then check every 30 seconds
-    intervalId = setInterval(check, HEALTH_CHECK_INTERVAL)
+    const intervalId = setInterval(() => void check(), HEALTH_CHECK_INTERVAL)
 
     return () => {
       isMounted = false

@@ -1,6 +1,5 @@
 import { useCallback, useState } from "react"
 import { useNotificationPrefs, type NotificationType } from "@/hooks/useNotifications"
-import { Button } from "@/components/ui/Button"
 import { createLogger } from "@/lib/logger"
 
 const log = createLogger("NotificationPreferences")

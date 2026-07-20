@@ -16,7 +16,7 @@ export function LockBadge({ summary }: { summary: TokenLockSummary }) {
   const markdown = `[![Locked on StellarLock](${badgeSvgUrl})](${url})`
 
   function copy(kind: "url" | "md", text: string) {
-    navigator.clipboard?.writeText(text)
+    void navigator.clipboard?.writeText(text)
     setCopied(kind)
     setTimeout(() => setCopied("none"), 1800)
   }
