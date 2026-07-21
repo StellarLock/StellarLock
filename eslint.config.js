@@ -20,6 +20,8 @@ export default tseslint.config(
             "eslint.config.js",
             "vite.config.ts",
             "vitest.config.ts",
+            "lib/*.ts",
+            "utils/export.ts",
             "commitlint.config.js",
             "lib/*.ts",
             ".storybook/*.ts",
