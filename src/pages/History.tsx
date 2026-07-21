@@ -25,7 +25,7 @@ export function History() {
     setRecords(getTransactions())
     let active = true
     setRefreshing(true)
-    refreshPendingStatuses()
+    void refreshPendingStatuses()
       .then((updated) => { if (active) setRecords(updated) })
       .finally(() => { if (active) setRefreshing(false) })
     return () => { active = false }
@@ -143,7 +143,7 @@ function TxRow({ record, onCopy }: { record: TransactionRecord; onCopy: () => vo
   const short = `${record.hash.slice(0, 8)}…${record.hash.slice(-6)}`
 
   function copyHash() {
-    navigator.clipboard.writeText(record.hash).then(onCopy)
+    void navigator.clipboard.writeText(record.hash).then(onCopy)
   }
 
   return (

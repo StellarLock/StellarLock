@@ -55,8 +55,8 @@ export function Navbar() {
               key={link.to}
               to={link.to}
               title={link.hint}
-              onMouseEnter={link.prefetchFn}
-              onFocus={link.prefetchFn}
+              onMouseEnter={() => void link.prefetchFn?.()}
+              onFocus={() => void link.prefetchFn?.()}
               className={({ isActive }) =>
                 cn(
                   "rounded-md px-3 py-2 text-sm font-medium transition-colors",
@@ -102,7 +102,7 @@ export function Navbar() {
             </>
           ) : (
             <div className="hidden flex-col items-end sm:flex">
-              <Button onClick={connect} loading={connecting} disabled={connecting || connectState === "retrying"} className="sm:inline-flex">
+              <Button onClick={() => void connect()} loading={connecting} disabled={connecting || connectState === "retrying"} className="sm:inline-flex">
                 <Wallet className="h-4 w-4" />
                 {connectState === "retrying" ? "Retrying…" : connectState === "connecting" ? "Connecting…" : t("nav.connectWallet")}
               </Button>
@@ -135,8 +135,8 @@ export function Navbar() {
                 key={link.to}
                 to={link.to}
                 onClick={() => setMenuOpen(false)}
-                onMouseEnter={link.prefetchFn}
-                onFocus={link.prefetchFn}
+                onMouseEnter={() => void link.prefetchFn?.()}
+                onFocus={() => void link.prefetchFn?.()}
                 className={({ isActive }) =>
                   cn(
                     "rounded-md px-3 py-3 text-sm font-medium transition-colors",
@@ -165,7 +165,7 @@ export function Navbar() {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <Button onClick={() => { connect(); setMenuOpen(false) }} loading={connecting} disabled={connecting || connectState === "retrying"} className="w-full">
+                  <Button onClick={() => { void connect(); setMenuOpen(false) }} loading={connecting} disabled={connecting || connectState === "retrying"} className="w-full">
                     <Wallet className="h-4 w-4" />
                     {connectState === "retrying" ? "Retrying…" : connectState === "connecting" ? "Connecting…" : t("nav.connectWallet")}
                   </Button>

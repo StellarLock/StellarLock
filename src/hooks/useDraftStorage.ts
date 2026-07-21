@@ -22,7 +22,7 @@ export function saveDraft(type: DraftType, data: Record<string, string>): void {
 export function loadDraft(type: DraftType): Record<string, string> | null {
   try {
     const data = localStorage.getItem(getDraftKey(type))
-    return data ? JSON.parse(data) : null
+    return data ? (JSON.parse(data) as Record<string, string>) : null
   } catch (e) {
     log.warn("Failed to load draft", e)
     return null

@@ -132,11 +132,11 @@ async function checkUrl(name: string, baseUrl: string, path: string): Promise<He
   }
 }
 
-async function checkBrowserExtension(): Promise<HealthStatus> {
+function checkBrowserExtension(): Promise<HealthStatus> {
   const hasFreighter = typeof window !== "undefined" && Boolean((window as Window & { freighter?: unknown }).freighter)
-  return {
+  return Promise.resolve({
     name: "Freighter extension",
     status: hasFreighter ? "ok" : "degraded",
     detail: hasFreighter ? "Extension available" : "Not detected in browser",
-  }
+  })
 }

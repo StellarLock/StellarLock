@@ -7,7 +7,7 @@ export function PwaUpdatePrompt() {
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return
 
-    navigator.serviceWorker.ready.then((registration) => {
+    void navigator.serviceWorker.ready.then((registration) => {
       registration.addEventListener("updatefound", () => {
         const newWorker = registration.installing
         if (!newWorker) return

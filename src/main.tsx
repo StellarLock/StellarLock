@@ -19,7 +19,7 @@ if ("serviceWorker" in navigator) {
   })
 }
 initErrorTracking()
-initWebVitals()
+void initWebVitals()
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

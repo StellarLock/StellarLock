@@ -11,7 +11,6 @@ import { useEffect } from "react"
 import { useLocation, useNavigate, Link } from "react-router-dom"
 import { CheckCircle2, Copy, ExternalLink, ArrowRight, PlusCircle } from "lucide-react"
 import { Helmet } from "react-helmet-async"
-import { useTranslation } from "react-i18next"
 import { toast } from "react-hot-toast"
 import { Card } from "@/components/ui/Card"
 import { buttonVariants } from "@/components/ui/Button"
@@ -49,7 +48,6 @@ export interface LockCreatedState {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function LockCreated() {
-  const { t } = useTranslation()
   const location = useLocation()
   const navigate = useNavigate()
 
@@ -58,7 +56,7 @@ export function LockCreated() {
   // Redirect to create form if navigated here without state
   useEffect(() => {
     if (!state?.lockId) {
-      navigate("/app/create", { replace: true })
+      void navigate("/app/create", { replace: true })
     }
   }, [state, navigate])
 
@@ -74,7 +72,7 @@ export function LockCreated() {
   const shareUrl = `${window.location.origin}${lockPath}`
 
   function copyToClipboard(text: string, label: string) {
-    navigator.clipboard.writeText(text).then(() => {
+    void navigator.clipboard.writeText(text).then(() => {
       toast.success(`${label} copied!`)
     })
   }

@@ -13,7 +13,7 @@ export function WalletAlerts() {
     if (disconnected || networkChanged) {
       const timer = setTimeout(() => {
         if (address) return
-        navigate("/")
+        void navigate("/")
       }, 3000)
       return () => clearTimeout(timer)
     }

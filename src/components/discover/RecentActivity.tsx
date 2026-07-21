@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react"
-import { Activity, Lock, LogOut, GitBranch, UserCheck, Pause, Play, Copy, Coins } from "lucide-react"
+import { Activity, Lock, LogOut, GitBranch, UserCheck, Pause, Play, Coins } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { Card } from "@/components/ui/Card"
 import { Link } from "react-router-dom"
@@ -55,11 +55,26 @@ function formatUnlockDate(tsMaybe: unknown): number | null {
   return null
 }
 
+interface RawEventFields {
+  creator?: unknown
+  from?: unknown
+  address?: unknown
+  beneficiary?: unknown
+  to?: unknown
+  token?: unknown
+  asset?: unknown
+  amount?: unknown
+  value?: unknown
+  unlockAt?: unknown
+  newUnlockAt?: unknown
+  unlock_timestamp?: unknown
+}
+
 function eventToFeedItem(event: ContractEvent): FeedItem | null {
-  const type = event.type as ActivityType
+  const type = event.type
   const kind = toLockKind(type)
 
-  const raw = event.data?.raw as any
+  const raw = event.data?.raw as RawEventFields | undefined
 
   // Best-effort extraction from Soroban getEvents payload.
   // Contract ABI/topic mapping may change; we fall back gracefully.

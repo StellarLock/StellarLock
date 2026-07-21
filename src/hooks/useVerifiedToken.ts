@@ -13,7 +13,7 @@ async function loadVerifiedTokens(): Promise<Set<string>> {
   try {
     const res = await fetch("/verified-tokens.json")
     if (!res.ok) return new Set()
-    const data: { tokens: VerifiedEntry[] } = await res.json()
+    const data = (await res.json()) as { tokens: VerifiedEntry[] }
     _cache = new Set(data.tokens.map((t) => t.address.toLowerCase()))
     return _cache
   } catch {
@@ -29,7 +29,7 @@ export function useVerifiedToken(contractId?: string): boolean | null {
       setVerified(null)
       return
     }
-    loadVerifiedTokens().then((set) => setVerified(set.has(contractId.toLowerCase())))
+    void loadVerifiedTokens().then((set) => setVerified(set.has(contractId.toLowerCase())))
   }, [contractId])
 
   return verified

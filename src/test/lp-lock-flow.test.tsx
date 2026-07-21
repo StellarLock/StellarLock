@@ -1,3 +1,4 @@
+import type { ReactNode } from "react"
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
@@ -7,7 +8,7 @@ import { mockWallet, VALID_CONTRACT_ADDRESS } from "./mocks"
 
 vi.mock("@/hooks/useWallet", () => ({
   useWallet: () => mockWallet,
-  WalletProvider: ({ children }: any) => children,
+  WalletProvider: ({ children }: { children: ReactNode }) => children,
 }))
 
 vi.mock("@/lib/lp-locker", () => ({
@@ -75,7 +76,7 @@ describe("LP Lock Creation Flow", () => {
     await user.type(screen.getByLabelText(/lp amount/i), "100")
 
     // Fill unlock date
-    const dateInput = screen.getByLabelText(/unlock date/i) as HTMLInputElement
+    const dateInput = screen.getByLabelText(/unlock date/i)
     const futureDate = new Date()
     futureDate.setDate(futureDate.getDate() + 30)
     const dateStr = futureDate.toISOString().split("T")[0]
@@ -105,7 +106,7 @@ describe("LP Lock Creation Flow", () => {
     const user = userEvent.setup()
     render(<CreateLpLockForm />)
 
-    const dateInput = screen.getByLabelText(/unlock date/i) as HTMLInputElement
+    const dateInput = screen.getByLabelText(/unlock date/i)
     const pastDate = new Date()
     pastDate.setDate(pastDate.getDate() - 1)
     const dateStr = pastDate.toISOString().split("T")[0]
@@ -131,7 +132,7 @@ describe("LP Lock Creation Flow", () => {
     await user.type(screen.getByLabelText(/token b address/i), VALID_CONTRACT_ADDRESS)
     await user.type(screen.getByLabelText(/lp amount/i), "100")
 
-    const dateInput = screen.getByLabelText(/unlock date/i) as HTMLInputElement
+    const dateInput = screen.getByLabelText(/unlock date/i)
     const futureDate = new Date()
     futureDate.setDate(futureDate.getDate() + 30)
     const dateStr = futureDate.toISOString().split("T")[0]
@@ -158,7 +159,7 @@ describe("LP Lock Creation Flow", () => {
     await user.type(screen.getByLabelText(/token b address/i), VALID_CONTRACT_ADDRESS)
     await user.type(screen.getByLabelText(/lp amount/i), "100")
 
-    const dateInput = screen.getByLabelText(/unlock date/i) as HTMLInputElement
+    const dateInput = screen.getByLabelText(/unlock date/i)
     const futureDate = new Date()
     futureDate.setDate(futureDate.getDate() + 30)
     const dateStr = futureDate.toISOString().split("T")[0]
@@ -197,7 +198,7 @@ describe("LP Lock Creation Flow", () => {
     await user.type(screen.getByLabelText(/token b address/i), VALID_CONTRACT_ADDRESS)
     await user.type(screen.getByLabelText(/lp amount/i), "100")
 
-    const dateInput = screen.getByLabelText(/unlock date/i) as HTMLInputElement
+    const dateInput = screen.getByLabelText(/unlock date/i)
     const futureDate = new Date()
     futureDate.setDate(futureDate.getDate() + 30)
     const dateStr = futureDate.toISOString().split("T")[0]

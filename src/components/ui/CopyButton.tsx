@@ -19,7 +19,7 @@ export function CopyButton({ text, className }: CopyButtonProps) {
   return (
     <button
       type="button"
-      onClick={handleCopy}
+      onClick={() => void handleCopy()}
       aria-label={copied ? "Copied!" : "Copy to clipboard"}
       className={cn(
         "inline-flex items-center justify-center rounded p-1 text-muted-foreground transition-colors hover:text-foreground cursor-pointer",

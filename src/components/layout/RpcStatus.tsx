@@ -1,4 +1,4 @@
-import { useRpcHealth, type RpcStatus } from '@/hooks/useRpcHealth'
+import { useRpcHealth } from '@/hooks/useRpcHealth'
 import { AlertCircle, Wifi, WifiOff } from 'lucide-react'
 
 export function RpcStatusIndicator() {
