@@ -21,20 +21,25 @@ export interface AddressBook {
   importJson: (json: string) => { imported: number; errors: number }
 }
 
+function isAddressBookEntry(e: unknown): e is AddressBookEntry {
+  if (typeof e !== "object" || e === null) return false
+  const entry = e as Record<string, unknown>
+  return (
+    typeof entry.id === "string" &&
+    typeof entry.label === "string" &&
+    typeof entry.address === "string" &&
+    typeof entry.createdAt === "number" &&
+    isValidStellarAddress(entry.address)
+  )
+}
+
 function loadEntries(): AddressBookEntry[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return []
-    const parsed = JSON.parse(raw)
+    const parsed: unknown = JSON.parse(raw)
     if (!Array.isArray(parsed)) return []
-    return parsed.filter(
-      (e) =>
-        typeof e.id === "string" &&
-        typeof e.label === "string" &&
-        typeof e.address === "string" &&
-        typeof e.createdAt === "number" &&
-        isValidStellarAddress(e.address),
-    )
+    return parsed.filter(isAddressBookEntry)
   } catch {
     return []
   }
@@ -121,24 +126,27 @@ export function useAddressBook(): AddressBook {
       let imported = 0
       let errors = 0
       try {
-        const parsed = JSON.parse(json)
+        const parsed: unknown = JSON.parse(json)
         if (!Array.isArray(parsed)) return { imported: 0, errors: 1 }
 
         setEntries((prev) => {
           const next = [...prev]
-          for (const item of parsed) {
+          for (const item of parsed as unknown[]) {
+            const entry = typeof item === "object" && item !== null ? (item as Record<string, unknown>) : null
             if (
-              typeof item.label === "string" &&
-              typeof item.address === "string" &&
-              isValidStellarAddress(item.address.trim())
+              entry &&
+              typeof entry.label === "string" &&
+              typeof entry.address === "string" &&
+              isValidStellarAddress(entry.address.trim())
             ) {
-              const exists = next.some((e) => e.address === item.address.trim())
+              const address = entry.address.trim()
+              const exists = next.some((e) => e.address === address)
               if (!exists) {
                 next.push({
                   id: generateId(),
-                  label: item.label.trim(),
-                  address: item.address.trim(),
-                  createdAt: typeof item.createdAt === "number" ? item.createdAt : Date.now(),
+                  label: entry.label.trim(),
+                  address,
+                  createdAt: typeof entry.createdAt === "number" ? entry.createdAt : Date.now(),
                   updatedAt: Date.now(),
                 })
                 imported++

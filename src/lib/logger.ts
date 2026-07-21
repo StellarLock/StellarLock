@@ -33,7 +33,7 @@ const LEVEL_ORDER: Record<LogLevel, number> = {
 // ── Effective minimum level ───────────────────────────────────────────────────
 
 function resolveMinLevel(): LogLevel {
-  const envLevel = (import.meta.env.VITE_LOG_LEVEL ?? "").toLowerCase() as LogLevel
+  const envLevel = ((import.meta.env.VITE_LOG_LEVEL as string | undefined) ?? "").toLowerCase() as LogLevel
   if (envLevel in LEVEL_ORDER) return envLevel
 
   // Default: debug in dev, warn in production

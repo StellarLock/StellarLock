@@ -38,15 +38,15 @@ describe("useAddressBook", () => {
 
   it("deduplicates by address, updating label", () => {
     const { result } = renderHook(() => useAddressBook())
-    act(() => result.current.add("Label A", ADDR_A))
-    act(() => result.current.add("Label B", ADDR_A))
+    act(() => { result.current.add("Label A", ADDR_A) })
+    act(() => { result.current.add("Label B", ADDR_A) })
     expect(result.current.entries).toHaveLength(1)
     expect(result.current.entries[0].label).toBe("Label B")
   })
 
   it("removes an entry", () => {
     const { result } = renderHook(() => useAddressBook())
-    act(() => result.current.add("Team", ADDR_A))
+    act(() => { result.current.add("Team", ADDR_A) })
     const id = result.current.entries[0].id
     act(() => result.current.remove(id))
     expect(result.current.entries).toHaveLength(0)
@@ -54,24 +54,24 @@ describe("useAddressBook", () => {
 
   it("updates an entry", () => {
     const { result } = renderHook(() => useAddressBook())
-    act(() => result.current.add("Old Label", ADDR_A))
+    act(() => { result.current.add("Old Label", ADDR_A) })
     const id = result.current.entries[0].id
-    act(() => result.current.update(id, "New Label", ADDR_B))
+    act(() => { result.current.update(id, "New Label", ADDR_B) })
     expect(result.current.entries[0].label).toBe("New Label")
     expect(result.current.entries[0].address).toBe(ADDR_B)
   })
 
   it("finds an entry by address", () => {
     const { result } = renderHook(() => useAddressBook())
-    act(() => result.current.add("Team", ADDR_A))
+    act(() => { result.current.add("Team", ADDR_A) })
     const found = result.current.find(ADDR_A)
     expect(found?.label).toBe("Team")
   })
 
   it("persists to localStorage", () => {
     const { result } = renderHook(() => useAddressBook())
-    act(() => result.current.add("Persistent", ADDR_A))
-    const stored = JSON.parse(localStorage.getItem("stellarlock:address-book") ?? "[]")
+    act(() => { result.current.add("Persistent", ADDR_A) })
+    const stored = JSON.parse(localStorage.getItem("stellarlock:address-book") ?? "[]") as { label: string }[]
     expect(stored).toHaveLength(1)
     expect(stored[0].label).toBe("Persistent")
   })
@@ -90,9 +90,9 @@ describe("useAddressBook", () => {
 
   it("exports valid JSON", () => {
     const { result } = renderHook(() => useAddressBook())
-    act(() => result.current.add("Export Test", ADDR_A))
+    act(() => { result.current.add("Export Test", ADDR_A) })
     const json = result.current.exportJson()
-    const parsed = JSON.parse(json)
+    const parsed = JSON.parse(json) as { label: string }[]
     expect(Array.isArray(parsed)).toBe(true)
     expect(parsed[0].label).toBe("Export Test")
   })

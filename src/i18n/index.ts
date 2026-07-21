@@ -8,7 +8,7 @@ import ko from "./locales/ko.json"
 import tr from "./locales/tr.json"
 import ar from "./locales/ar.json"
 
-i18n
+void i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({

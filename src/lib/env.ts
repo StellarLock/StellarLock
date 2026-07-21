@@ -12,7 +12,7 @@ const REQUIRED = [
 ] as const
 
 function validate(): void {
-  const missing = REQUIRED.filter((key) => !import.meta.env[key]?.trim())
+  const missing = REQUIRED.filter((key) => !(import.meta.env[key] as string | undefined)?.trim())
 
   if (missing.length > 0) {
     throw new Error(
@@ -40,7 +40,7 @@ export const ENV = {
   lpLockerContract: import.meta.env.VITE_LP_LOCKER_CONTRACT as string,
   appUrl: (import.meta.env.VITE_APP_URL as string | undefined) ?? "",
   /** True only in the browser dev server (import.meta.env.DEV) */
-  isDev: import.meta.env.DEV as boolean,
+  isDev: import.meta.env.DEV,
   /** Show the environment badge in dev and staging builds */
   showEnvBadge: import.meta.env.DEV || raw === "staging",
 }

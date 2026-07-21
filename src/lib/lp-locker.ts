@@ -66,7 +66,11 @@ function toLpLock(raw: Record<string, unknown>, meta?: LpMeta): Lock {
   const poolShare = raw.pool_share as string
   const dexRaw = raw.dex as { tag?: string } | string
   const dex: Dex = (
-    typeof dexRaw === "object" && dexRaw?.tag ? dexRaw.tag.toLowerCase() : String(dexRaw).toLowerCase()
+    typeof dexRaw === "object" && dexRaw?.tag
+      ? dexRaw.tag.toLowerCase()
+      : typeof dexRaw === "string"
+        ? dexRaw.toLowerCase()
+        : ""
   ) as Dex
   const tokenA = raw.token_a as string
   const tokenB = raw.token_b as string

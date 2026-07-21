@@ -63,7 +63,7 @@ export function NotificationSettings({ lockId, unlockAt }: Props) {
               <p className="text-xs text-muted-foreground">{t("notifications.browserDesc")}</p>
             </div>
           </div>
-          <Button variant={prefs.browser ? "primary" : "outline"} size="sm" onClick={toggleBrowser}>
+          <Button variant={prefs.browser ? "primary" : "outline"} size="sm" onClick={() => void toggleBrowser()}>
             {prefs.browser ? t("notifications.enabled") : t("notifications.enable")}
           </Button>
         </div>

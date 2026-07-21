@@ -15,7 +15,6 @@ import { CONTRACTS, type TxPhase } from "@/lib/stellar"
 import { trackEvent } from "@/lib/analytics"
 import { ConfirmLockModal } from "@/components/locks/ConfirmLockModal"
 import { isValidStellarContractAddress, isValidStellarPublicKey } from "@/lib/stellar"
-import { MultiBeneficiaryFields } from "@/components/locks/MultiBeneficiaryFields"
 import { CostEstimate } from "@/components/locks/CostEstimate"
 import { AddressBookModal } from "@/components/ui/AddressBookModal"
 import { BookUser } from "lucide-react"
@@ -152,7 +151,7 @@ export function CreateLpLockForm() {
         setTxPhase,
       )
       trackEvent("lock_create_lp", { dex })
-      navigate(`/app/lock/${id}`)
+      void navigate(`/app/lock/${id}`)
     } catch (err: unknown) {
       log.error("[createLpLock error]", err)
       setShowConfirm(false)
@@ -458,8 +457,8 @@ export function CreateLpLockForm() {
             allowance,
             needsApproval: allowance != null && allowance < Number(amount),
           }}
-          onConfirm={confirmLock}
-          onApprove={handleApprove}
+          onConfirm={() => void confirmLock()}
+          onApprove={() => void handleApprove()}
           onCancel={() => setShowConfirm(false)}
           loading={submitting}
           approving={approving}

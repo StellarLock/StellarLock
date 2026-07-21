@@ -17,7 +17,7 @@ export function LanguageSelector() {
   }, [i18n.language])
 
   const changeLanguage = (lng: string) => {
-    i18n.changeLanguage(lng)
+    void i18n.changeLanguage(lng)
     setIsOpen(false)
   }
 
