@@ -66,6 +66,7 @@ pub enum ContractError {
     TooManyBeneficiaries = 9,
     SharesMustSum10000 = 10,
     RateLimitExceeded = 11,
+    AmountOverflow = 12,
 }
 
 // ── On-chain types ────────────────────────────────────────────────────────────
@@ -390,7 +391,10 @@ impl TokenLocker {
 
         for i in 0..n {
             let (beneficiary, bps) = beneficiaries.get(i).unwrap();
-            let share_amount = (total_amount * bps as i128) / 10_000;
+            let share_amount = total_amount
+                .checked_mul(bps as i128)
+                .ok_or(ContractError::AmountOverflow)?
+                / 10_000;
             let lock_id = if i == 0 { group_id } else { next_id(&env) };
             let lock = Lock {
                 id: lock_id,
