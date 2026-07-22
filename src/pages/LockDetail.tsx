@@ -378,7 +378,7 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
           </div>
         )}
 
-        {(isBeneficiary || isCreator) && <NotificationSettings lockId={lock.id} unlockAt={lock.unlockAt} />}
+        {(isBeneficiary || isCreator) && <NotificationSettings lockId={lock.id} unlockAt={lock.unlockAt} address={address} />}
 
         {txPhase !== "idle" && (
           <div className="border-t border-border px-6 pb-4 pt-3">
