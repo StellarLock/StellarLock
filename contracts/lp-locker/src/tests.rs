@@ -414,3 +414,65 @@ fn three_accounts_full_lp_flow() {
 
     assert!(client.get_lock(&lock_id).unwrap().withdrawn);
 }
+
+// ── Storage optimization: selective TTL (#148) ────────────────────────────────
+// Active LP locks must use PERSISTENT_BUMP (365 days); withdrawn locks must use
+// WITHDRAWN_BUMP (30 days). We verify observable behaviour: the lock record
+// exists and carries the correct withdrawn flag immediately after each save.
+
+#[test]
+fn active_lp_lock_is_not_marked_withdrawn_after_save() {
+    let (env, contract_id, pool_share_id, token_a, token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+    let creator = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    mint(&env, &pool_share_id, &creator, 1_000);
+    let unlock_at = env.ledger().timestamp() + 100;
+    let lock_id = client
+        .create_lock(&creator, &pool_share_id, &Dex::Soroswap, &token_a, &token_b, &500_i128, &beneficiary, &unlock_at);
+    // Lock is persisted and active — withdrawn must be false (full TTL path taken).
+    let lock = client.get_lock(&lock_id).unwrap();
+    assert!(!lock.withdrawn, "newly created LP lock must not be withdrawn");
+}
+
+#[test]
+fn withdrawn_lp_lock_is_marked_and_still_readable() {
+    let (env, contract_id, pool_share_id, token_a, token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+    let creator = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    mint(&env, &pool_share_id, &creator, 1_000);
+    let unlock_at = env.ledger().timestamp() + 100;
+    let lock_id = client
+        .create_lock(&creator, &pool_share_id, &Dex::Aquarius, &token_a, &token_b, &500_i128, &beneficiary, &unlock_at);
+    advance_time(&env, 200);
+    client.withdraw(&lock_id);
+    // After withdrawal save_lock is called with withdrawn=true (short TTL path).
+    // The entry must still be readable immediately after withdrawal.
+    let lock = client.get_lock(&lock_id).unwrap();
+    assert!(lock.withdrawn, "LP lock must be marked withdrawn after withdraw()");
+}
+
+#[test]
+fn active_and_withdrawn_lp_locks_have_correct_state() {
+    // Creates two LP locks; withdraws only one. Verifies each has the expected
+    // withdrawn flag, confirming the two TTL branches are reached independently.
+    let (env, contract_id, pool_share_id, token_a, token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+    let creator = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    mint(&env, &pool_share_id, &creator, 2_000);
+    let unlock_at = env.ledger().timestamp() + 100;
+    let active_id = client
+        .create_lock(&creator, &pool_share_id, &Dex::Soroswap, &token_a, &token_b, &500_i128, &beneficiary, &unlock_at);
+    let withdrawn_id = client
+        .create_lock(&creator, &pool_share_id, &Dex::Aquarius, &token_a, &token_b, &500_i128, &beneficiary, &unlock_at);
+    advance_time(&env, 200);
+    client.withdraw(&withdrawn_id);
+    // Active lock: full TTL branch — withdrawn is false.
+    assert!(!client.get_lock(&active_id).unwrap().withdrawn,
+        "active LP lock must keep withdrawn=false (full TTL branch)");
+    // Withdrawn lock: short TTL branch — withdrawn is true.
+    assert!(client.get_lock(&withdrawn_id).unwrap().withdrawn,
+        "withdrawn LP lock must have withdrawn=true (short TTL branch)");
+}

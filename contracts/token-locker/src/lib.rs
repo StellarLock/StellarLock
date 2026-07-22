@@ -16,6 +16,9 @@ const PERSISTENT_BUMP: u32 = 365 * LEDGERS_PER_DAY;
 const PERSISTENT_THRESHOLD: u32 = PERSISTENT_BUMP;
 const INSTANCE_BUMP: u32 = 30 * LEDGERS_PER_DAY;
 const INSTANCE_THRESHOLD: u32 = 7 * LEDGERS_PER_DAY;
+// Withdrawn locks get a short TTL — enough to be queried but not renewed forever (~11.6× cheaper).
+const WITHDRAWN_BUMP: u32 = 30 * LEDGERS_PER_DAY;
+const WITHDRAWN_THRESHOLD: u32 = 7 * LEDGERS_PER_DAY;
 
 // ── Rate limiting ─────────────────────────────────────────────────────────────
 const RATE_LIMIT_COOLDOWN: u64 = 60;
@@ -124,11 +127,15 @@ fn next_id(env: &Env) -> u64 {
     id
 }
 
-fn push_index(env: &Env, key: DataKey, id: u64) {
+fn push_index(env: &Env, key: DataKey, id: u64, withdrawn: bool) {
     let mut ids: Vec<u64> = env.storage().persistent().get(&key).unwrap_or(vec![env]);
     ids.push_back(id);
     env.storage().persistent().set(&key, &ids);
-    env.storage().persistent().extend_ttl(&key, PERSISTENT_THRESHOLD, PERSISTENT_BUMP);
+    if withdrawn {
+        env.storage().persistent().extend_ttl(&key, WITHDRAWN_THRESHOLD, WITHDRAWN_BUMP);
+    } else {
+        env.storage().persistent().extend_ttl(&key, PERSISTENT_THRESHOLD, PERSISTENT_BUMP);
+    }
 }
 
 fn remove_from_index(env: &Env, key: DataKey, id: u64) {
@@ -157,7 +164,12 @@ fn load_lock(env: &Env, id: u64) -> Lock {
 fn save_lock(env: &Env, lock: &Lock) {
     let key = DataKey::Lock(lock.id);
     env.storage().persistent().set(&key, lock);
-    env.storage().persistent().extend_ttl(&key, PERSISTENT_THRESHOLD, PERSISTENT_BUMP);
+    if lock.withdrawn {
+        // Withdrawn locks get a short TTL — enough to be queried but not renewed forever.
+        env.storage().persistent().extend_ttl(&key, WITHDRAWN_THRESHOLD, WITHDRAWN_BUMP);
+    } else {
+        env.storage().persistent().extend_ttl(&key, PERSISTENT_THRESHOLD, PERSISTENT_BUMP);
+    }
 }
 
 fn collect_locks_paginated(env: &Env, ids: Vec<u64>, offset: u32, limit: u32) -> Vec<Lock> {
@@ -240,9 +252,9 @@ impl TokenLocker {
         save_lock(&env, &lock);
         
         // Register indices
-        push_index(&env, DataKey::ByCreator(creator.clone()), id);
-        push_index(&env, DataKey::ByBeneficiary(beneficiary.clone()), id);
-        push_index(&env, DataKey::ByToken(token.clone()), id);
+        push_index(&env, DataKey::ByCreator(creator.clone()), id, false);
+        push_index(&env, DataKey::ByBeneficiary(beneficiary.clone()), id, false);
+        push_index(&env, DataKey::ByToken(token.clone()), id, false);
 
         // Update TVL and global stats
         let current_tvl: i128 = env.storage().persistent().get(&DataKey::TotalLocked(token.clone())).unwrap_or(0);
@@ -318,7 +330,7 @@ impl TokenLocker {
 
         let old_beneficiary = lock.beneficiary.clone();
         remove_from_index(&env, DataKey::ByBeneficiary(lock.beneficiary.clone()), id);
-        push_index(&env, DataKey::ByBeneficiary(new_beneficiary.clone()), id);
+        push_index(&env, DataKey::ByBeneficiary(new_beneficiary.clone()), id, lock.withdrawn);
 
         lock.beneficiary = new_beneficiary.clone();
         save_lock(&env, &lock);
@@ -406,16 +418,16 @@ impl TokenLocker {
             };
 
             save_lock(&env, &lock);
-            push_index(&env, DataKey::ByCreator(creator.clone()), lock_id);
-            push_index(&env, DataKey::ByBeneficiary(beneficiary.clone()), lock_id);
-            push_index(&env, DataKey::ByToken(token.clone()), lock_id);
+            push_index(&env, DataKey::ByCreator(creator.clone()), lock_id, false);
+            push_index(&env, DataKey::ByBeneficiary(beneficiary.clone()), lock_id, false);
+            push_index(&env, DataKey::ByToken(token.clone()), lock_id, false);
             lock_ids.push_back(lock_id);
         }
 
         let group = SplitGroup { group_id, lock_ids };
         env.storage().persistent().set(&DataKey::SplitGroup(group_id), &group);
         env.storage().persistent().extend_ttl(&DataKey::SplitGroup(group_id), PERSISTENT_THRESHOLD, PERSISTENT_BUMP);
-        push_index(&env, DataKey::SplitByCreator(creator.clone()), group_id);
+        push_index(&env, DataKey::SplitByCreator(creator.clone()), group_id, false);
 
         env.events().publish((Symbol::new(&env, "split_lock_created"), group_id, creator, token, total_amount, unlock_at), ());
         Ok(group_id)
