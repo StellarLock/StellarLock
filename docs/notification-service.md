@@ -1,10 +1,8 @@
 # Notification Service Architecture
 
-Backend service for monitoring lock timestamps and dispatching unlock notifications.
+> **Status: Implemented.** The cron worker (`indexer/notifier.ts`), subscription API (`api/notifications/`), database schema (`notification_subscriptions` table in `indexer/db.ts`), and email UI (`src/components/locks/NotificationSettings.tsx`) are all shipped. Email delivery uses [Resend](https://resend.com). Set `RESEND_API_KEY`, `EMAIL_FROM`, and `WEBHOOK_SECRET` environment variables before deploying.
 
-## Overview
-
-A lightweight worker service that polls on-chain lock data and sends notifications via email, webhook, and browser push when locks approach their unlock dates.
+Backend service for monitoring lock timestamps and dispatching unlock notifications via email, webhook, and browser push when locks approach their unlock dates.
 
 ## Components
 

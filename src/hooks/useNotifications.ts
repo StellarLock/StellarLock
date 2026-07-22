@@ -22,8 +22,58 @@ export interface Notification {
 export interface NotificationPrefs {
   lockId?: string
   browser: boolean
+  email?: string
   webhookUrl?: string
   types: Partial<Record<NotificationType, boolean>>
+}
+
+// ---------------------------------------------------------------------------
+// Subscription API helpers
+// ---------------------------------------------------------------------------
+
+const API_BASE = import.meta.env.VITE_API_BASE ?? ''
+
+export interface SubscribeParams {
+  lockId: string
+  address: string
+  email?: string
+  webhookUrl?: string
+}
+
+/**
+ * Register (or update) an email / webhook subscription for a lock.
+ * Returns the subscription id on success, throws on network or validation error.
+ */
+export async function subscribeNotifications(params: SubscribeParams): Promise<string> {
+  const res = await fetch(`${API_BASE}/api/notifications/subscribe`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      lockId: params.lockId,
+      address: params.address,
+      email: params.email ?? null,
+      webhookUrl: params.webhookUrl ?? null,
+    }),
+  })
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({})) as { error?: string }
+    throw new Error(body.error ?? `Subscribe failed (${res.status})`)
+  }
+  const data = await res.json() as { id: string }
+  return data.id
+}
+
+/**
+ * Remove an email / webhook subscription for a lock.
+ */
+export async function unsubscribeNotifications(lockId: string, address: string): Promise<void> {
+  const params = new URLSearchParams({ lockId, address })
+  const res = await fetch(`${API_BASE}/api/notifications/subscribe?${params.toString()}`, {
+    method: 'DELETE',
+  })
+  if (!res.ok && res.status !== 404) {
+    throw new Error(`Unsubscribe failed (${res.status})`)
+  }
 }
 
 function loadPrefs(): Record<string, NotificationPrefs> {
