@@ -912,6 +912,84 @@ fn withdraw_twice_fails() {
     assert!(result.is_err(), "second withdrawal must be rejected");
 }
 
+// ── create_split_lock overflow guard (#AmountOverflow) ───────────────────────
+
+/// The naive `total_amount * bps` expression overflows i128 when total_amount is
+/// large even though both operands are individually in range.  The contract must
+/// return ContractError::AmountOverflow rather than panicking.
+///
+/// Boundary chosen: i128::MAX / 2 + 1  with a 90 % / 10 % split.
+/// (i128::MAX / 2 + 1) * 9_000  overflows i128 before the divide-by-10_000,
+/// so the very first beneficiary's share calculation triggers the error.
+#[test]
+fn create_split_lock_returns_typed_error_on_amount_overflow() {
+    let (env, contract_id, token_id) = setup_env();
+    let client = TokenLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let b1 = Address::generate(&env);
+    let b2 = Address::generate(&env);
+
+    // total_amount that makes `total_amount * 9_000` overflow i128
+    let overflow_amount: i128 = i128::MAX / 2 + 1;
+
+    // We need the mock token balance to cover the transfer that happens
+    // before the per-share calculation.  mint accepts i128 so cap at max.
+    mint(&env, &token_id, &creator, i128::MAX);
+
+    let unlock_at = env.ledger().timestamp() + 100;
+    let result = client.try_create_split_lock(
+        &creator,
+        &token_id,
+        &overflow_amount,
+        &soroban_sdk::vec![&env, (b1, 9_000_u64), (b2, 1_000_u64)],
+        &unlock_at,
+        &None,
+    );
+
+    assert_eq!(
+        result,
+        Err(Ok(ContractError::AmountOverflow)),
+        "expected AmountOverflow typed error, not a panic"
+    );
+}
+
+/// Complement: a total_amount just small enough that the multiply does NOT
+/// overflow must succeed and allocate shares correctly.
+///
+/// Safe ceiling: i128::MAX / 10_000 — multiplying by any bps ≤ 10_000 stays
+/// within i128.
+#[test]
+fn create_split_lock_near_overflow_boundary_succeeds() {
+    let (env, contract_id, token_id) = setup_env();
+    let client = TokenLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let b1 = Address::generate(&env);
+    let b2 = Address::generate(&env);
+
+    // Largest total_amount where  total_amount * 10_000  still fits in i128.
+    let safe_amount: i128 = i128::MAX / 10_000;
+
+    mint(&env, &token_id, &creator, i128::MAX);
+
+    let unlock_at = env.ledger().timestamp() + 100;
+    let group_id = client
+        .create_split_lock(
+            &creator,
+            &token_id,
+            &safe_amount,
+            &soroban_sdk::vec![&env, (b1.clone(), 5_000_u64), (b2.clone(), 5_000_u64)],
+            &unlock_at,
+            &None,
+        )
+        .expect("split lock at safe boundary should succeed");
+
+    let lock0 = client.get_lock(&group_id).expect("lock 0 exists");
+    assert_eq!(lock0.amount, safe_amount / 2,
+        "each 50 % share must equal half of safe_amount");
+}
+
 /// Kills mutants on the vesting end-before-start guard.
 #[test]
 fn vesting_end_before_start_rejected() {
