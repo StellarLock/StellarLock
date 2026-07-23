@@ -1,5 +1,10 @@
 # Changes
 
+> **Note:** This file is hand-written and documents the *rationale* behind selected
+> changes, issue by issue. The release-by-release list of what shipped is generated
+> automatically from conventional commit history into [`CHANGELOG.md`](../CHANGELOG.md)
+> by the `changelog` workflow — don't maintain that list here by hand.
+
 ## #43 — DEX field encoding fix
 
 The `dex` field in the LP locker contract was previously a free-form `String`, which risked encoding mismatches between the frontend and the contract.

@@ -1,16 +1,12 @@
 import { AlertTriangle } from "lucide-react"
 import type { FieldValidationIssue } from "@/lib/validation/lockFormValidation"
+import { useAnnouncer } from "@/hooks/useAnnouncer"
 
 import { useEffect, useMemo, useRef } from "react"
 
-
-export function FormValidationErrors({
-  issues,
-}: {
-  issues: FieldValidationIssue[]
-}) {
-
+export function FormValidationErrors({ issues }: { issues: FieldValidationIssue[] }) {
   const firstIssue = issues[0]
+  const { announce } = useAnnouncer()
   const liveId = useMemo(() => `form-validation-${Math.random().toString(16).slice(2)}`, [])
   const firstFocusRef = useRef<HTMLDivElement | null>(null)
 
@@ -18,6 +14,14 @@ export function FormValidationErrors({
     if (!issues.length) return
     firstFocusRef.current?.focus?.()
   }, [issues.length])
+
+  // Route through the app-wide announcer so validation failures are spoken
+  // consistently with the rest of the app's dynamic updates.
+  useEffect(() => {
+    if (!issues.length) return
+    const summary = `${issues.length} problem${issues.length === 1 ? "" : "s"} to fix. ${issues[0].message}`
+    announce(summary, "assertive")
+  }, [issues.length, issues, announce])
 
   if (!issues.length) return null
 
@@ -34,7 +38,9 @@ export function FormValidationErrors({
       <div className="flex items-start gap-2">
         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
         <div className="flex-1">
-          <p className="font-medium">{issues.length} problem{issues.length === 1 ? "" : "s"} to fix</p>
+          <p className="font-medium">
+            {issues.length} problem{issues.length === 1 ? "" : "s"} to fix
+          </p>
           <ul className="mt-2 space-y-2">
             {issues.map((it, idx) => (
               <li key={`${it.field}-${idx}`} className="text-sm">
@@ -53,4 +59,3 @@ export function FormValidationErrors({
     </div>
   )
 }
-

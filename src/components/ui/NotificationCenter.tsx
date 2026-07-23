@@ -51,7 +51,7 @@ export function NotificationCenter() {
       >
         <Bell className="h-4 w-4" />
         {unreadCount > 0 && (
-          <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-xs font-semibold text-white">
+          <span className="absolute -end-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-xs font-semibold text-white">
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
@@ -60,17 +60,13 @@ export function NotificationCenter() {
       {isOpen && (
         <div
           ref={dropdownRef}
-          className="absolute right-0 top-12 z-50 w-96 rounded-lg border border-border bg-card shadow-lg"
+          className="absolute end-0 top-12 z-50 w-96 rounded-lg border border-border bg-card shadow-lg"
         >
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <h2 className="font-semibold">Notifications</h2>
             <div className="flex gap-2">
               {unreadCount > 0 && (
-                <button
-                  onClick={markAllAsRead}
-                  className="rounded p-1 hover:bg-secondary"
-                  title="Mark all as read"
-                >
+                <button onClick={markAllAsRead} className="rounded p-1 hover:bg-secondary" title="Mark all as read">
                   <CheckCheck className="h-4 w-4" />
                 </button>
               )}
@@ -84,9 +80,7 @@ export function NotificationCenter() {
 
           <div className="max-h-96 overflow-y-auto divide-y divide-border">
             {notifications.length === 0 ? (
-              <div className="px-4 py-8 text-center text-sm text-muted-foreground">
-                No notifications yet
-              </div>
+              <div className="px-4 py-8 text-center text-sm text-muted-foreground">No notifications yet</div>
             ) : (
               notifications.map((notif) => (
                 <div
@@ -102,9 +96,7 @@ export function NotificationCenter() {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-2">
                       <h3 className="text-sm font-medium">{notif.title}</h3>
-                      <span className="shrink-0 text-xs text-muted-foreground">
-                        {formatDateTime(notif.timestamp)}
-                      </span>
+                      <span className="shrink-0 text-xs text-muted-foreground">{formatDateTime(notif.timestamp)}</span>
                     </div>
                     <p className="line-clamp-2 text-xs text-muted-foreground">{notif.message}</p>
                   </div>
