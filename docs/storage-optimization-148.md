@@ -53,5 +53,12 @@ Apply `PERSISTENT_BUMP` only when the associated lock is active; use `WITHDRAWN_
 
 ## Status
 
-TODO: implement in `contracts/token-locker/src/lib.rs` and `contracts/lp-locker/src/lib.rs`,
-update tests in `contracts/token-locker/src/tests.rs` and `contracts/lp-locker/src/tests.rs`.
+**Implemented.** The selective TTL logic has been applied to both contracts:
+
+- `contracts/token-locker/src/lib.rs` — `WITHDRAWN_BUMP` / `WITHDRAWN_THRESHOLD` constants
+  added; `save_lock` and `push_index` branch on `lock.withdrawn` to apply the short TTL for
+  withdrawn locks and the full TTL for active locks.
+- `contracts/lp-locker/src/lib.rs` — same changes applied identically.
+- `contracts/token-locker/src/tests.rs` — three tests added under
+  "Storage optimization: selective TTL (#148)" covering both TTL branches.
+- `contracts/lp-locker/src/tests.rs` — three equivalent tests added.

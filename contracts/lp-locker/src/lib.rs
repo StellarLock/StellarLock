@@ -14,6 +14,9 @@ const PERSISTENT_BUMP: u32 = 365 * LEDGERS_PER_DAY;
 const PERSISTENT_THRESHOLD: u32 = PERSISTENT_BUMP;
 const INSTANCE_BUMP: u32 = 30 * LEDGERS_PER_DAY;
 const INSTANCE_THRESHOLD: u32 = 7 * LEDGERS_PER_DAY;
+// Withdrawn locks get a short TTL — enough to be queried but not renewed forever (~11.6× cheaper).
+const WITHDRAWN_BUMP: u32 = 30 * LEDGERS_PER_DAY;
+const WITHDRAWN_THRESHOLD: u32 = 7 * LEDGERS_PER_DAY;
 
 // ── Storage keys ─────────────────────────────────────────────────────────────
 
@@ -99,11 +102,15 @@ fn next_id(env: &Env) -> u64 {
     id
 }
 
-fn push_index(env: &Env, key: DataKey, id: u64) {
+fn push_index(env: &Env, key: DataKey, id: u64, withdrawn: bool) {
     let mut ids: Vec<u64> = env.storage().persistent().get(&key).unwrap_or(vec![env]);
     ids.push_back(id);
     env.storage().persistent().set(&key, &ids);
-    env.storage().persistent().extend_ttl(&key, PERSISTENT_THRESHOLD, PERSISTENT_BUMP);
+    if withdrawn {
+        env.storage().persistent().extend_ttl(&key, WITHDRAWN_THRESHOLD, WITHDRAWN_BUMP);
+    } else {
+        env.storage().persistent().extend_ttl(&key, PERSISTENT_THRESHOLD, PERSISTENT_BUMP);
+    }
 }
 
 fn remove_from_index(env: &Env, key: DataKey, id: u64) {
@@ -132,7 +139,12 @@ fn load_lock(env: &Env, id: u64) -> LpLock {
 fn save_lock(env: &Env, lock: &LpLock) {
     let key = DataKey::Lock(lock.id);
     env.storage().persistent().set(&key, lock);
-    env.storage().persistent().extend_ttl(&key, PERSISTENT_THRESHOLD, PERSISTENT_BUMP);
+    if lock.withdrawn {
+        // Withdrawn locks get a short TTL — enough to be queried but not renewed forever.
+        env.storage().persistent().extend_ttl(&key, WITHDRAWN_THRESHOLD, WITHDRAWN_BUMP);
+    } else {
+        env.storage().persistent().extend_ttl(&key, PERSISTENT_THRESHOLD, PERSISTENT_BUMP);
+    }
 }
 
 fn collect_locks_paginated(env: &Env, ids: Vec<u64>, offset: u32, limit: u32) -> Vec<LpLock> {
@@ -204,9 +216,9 @@ impl LpLocker {
         };
 
         save_lock(&env, &lock);
-        push_index(&env, DataKey::ByCreator(creator.clone()), id);
-        push_index(&env, DataKey::ByBeneficiary(beneficiary.clone()), id);
-        push_index(&env, DataKey::ByPoolShare(lock.pool_share.clone()), id);
+        push_index(&env, DataKey::ByCreator(creator.clone()), id, false);
+        push_index(&env, DataKey::ByBeneficiary(beneficiary.clone()), id, false);
+        push_index(&env, DataKey::ByPoolShare(lock.pool_share.clone()), id, false);
 
         // Update per-pool-share TVL and global stats
         let current_tvl: i128 = env.storage().persistent().get(&DataKey::TotalLocked(lock.pool_share.clone())).unwrap_or(0);
@@ -300,7 +312,7 @@ impl LpLocker {
 
         let old_beneficiary = lock.beneficiary.clone();
         remove_from_index(&env, DataKey::ByBeneficiary(lock.beneficiary.clone()), id);
-        push_index(&env, DataKey::ByBeneficiary(new_beneficiary.clone()), id);
+        push_index(&env, DataKey::ByBeneficiary(new_beneficiary.clone()), id, lock.withdrawn);
 
         lock.beneficiary = new_beneficiary.clone();
         save_lock(&env, &lock);
