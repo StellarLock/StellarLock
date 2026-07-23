@@ -37,6 +37,7 @@ pub enum DataKey {
     UniqueTokenCount,
     LastLockAt(Address),
     Admin,
+    PendingAdmin,
     UpgradeProposal,
 }
 
@@ -67,6 +68,9 @@ pub enum ContractError {
     SharesMustSum10000 = 10,
     RateLimitExceeded = 11,
     AmountOverflow = 12,
+    NotAdmin = 12,
+    NoPendingAdmin = 13,
+    NotPendingAdmin = 14,
 }
 
 // ── On-chain types ────────────────────────────────────────────────────────────
@@ -454,6 +458,52 @@ impl TokenLocker {
         let total_lock_count: u64 = env.storage().persistent().get(&DataKey::GlobalLockCount).unwrap_or(0);
         let unique_token_count: u64 = env.storage().persistent().get(&DataKey::UniqueTokenCount).unwrap_or(0);
         GlobalStats { total_lock_count, unique_token_count }
+    }
+
+    // ── Admin management ──────────────────────────────────────────────────────
+
+    /// Return the current admin address, or `None` if the contract has not been
+    /// initialised yet.
+    pub fn get_admin(env: Env) -> Option<Address> {
+        env.storage().instance().get(&DataKey::Admin)
+    }
+
+    /// Two-step admin transfer — step 1.  Current admin nominates `new_admin`
+    /// as the pending admin.  The transfer is not complete until `new_admin`
+    /// calls `accept_admin`.
+    pub fn propose_admin(env: Env, new_admin: Address) -> Result<(), ContractError> {
+        let admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .expect("not initialised");
+        admin.require_auth();
+        env.storage().instance().set(&DataKey::PendingAdmin, &new_admin);
+        env.storage().instance().extend_ttl(INSTANCE_THRESHOLD, INSTANCE_BUMP);
+        env.events().publish(
+            (Symbol::new(&env, "admin_proposed"), new_admin),
+            (),
+        );
+        Ok(())
+    }
+
+    /// Two-step admin transfer — step 2.  The pending admin accepts the role,
+    /// atomically replacing the current admin and clearing the pending slot.
+    pub fn accept_admin(env: Env) -> Result<(), ContractError> {
+        let pending: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::PendingAdmin)
+            .ok_or(ContractError::NoPendingAdmin)?;
+        pending.require_auth();
+        env.storage().instance().set(&DataKey::Admin, &pending);
+        env.storage().instance().remove(&DataKey::PendingAdmin);
+        env.storage().instance().extend_ttl(INSTANCE_THRESHOLD, INSTANCE_BUMP);
+        env.events().publish(
+            (Symbol::new(&env, "admin_accepted"), pending),
+            (),
+        );
+        Ok(())
     }
 
     // ── Upgrade mechanism (7-day timelock) ───────────────────────────────────
