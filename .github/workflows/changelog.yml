@@ -1,0 +1,60 @@
+name: Changelog
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      regenerate:
+        description: 'Rebuild CHANGELOG.md from the full commit history'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    name: Generate CHANGELOG.md
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # conventional-changelog walks tags and history, so a shallow clone is not enough.
+          fetch-depth: 0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate changelog
+        run: |
+          if [ "${{ inputs.regenerate }}" = "true" ]; then
+            pnpm run changelog
+          else
+            pnpm run changelog:release
+          fi
+
+      - name: Commit changelog
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- CHANGELOG.md; then
+            echo "No changelog changes to commit."
+            exit 0
+          fi
+          git add CHANGELOG.md
+          git commit -m "docs(changelog): update CHANGELOG.md [skip ci]"
+          git push origin HEAD:main

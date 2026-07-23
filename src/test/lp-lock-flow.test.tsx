@@ -144,9 +144,11 @@ describe("LP Lock Creation Flow", () => {
     const confirmButton = await screen.findByRole("button", { name: /confirm & lock/i })
     await user.click(confirmButton)
 
+    // Unrecognised errors are sanitized to the generic message.
     await waitFor(() => {
-      expect(screen.getByText(/insufficient liquidity/i)).toBeInTheDocument()
+      expect(screen.getByText(/something went wrong/i)).toBeInTheDocument()
     })
+    expect(screen.queryByText(/insufficient liquidity/i)).not.toBeInTheDocument()
   })
 
   it("should use connected wallet as beneficiary", async () => {

@@ -27,18 +27,10 @@ interface ConfirmLockModalProps {
   approving?: boolean
 }
 
-export function ConfirmLockModal({
-  data,
-  onConfirm,
-  onApprove,
-  onCancel,
-  loading,
-  approving,
-}: ConfirmLockModalProps) {
+export function ConfirmLockModal({ data, onConfirm, onApprove, onCancel, loading, approving }: ConfirmLockModalProps) {
   const unlockTs = new Date(data.unlockDate).getTime()
   const amount = Number(data.amount)
-  const hasInsufficientBalance =
-    data.balance != null && data.balance < amount
+  const hasInsufficientBalance = data.balance != null && data.balance < amount
   const needsApproval = data.needsApproval || (data.allowance != null && data.allowance < amount)
 
   const containerRef = useRef<HTMLDivElement | null>(null)
@@ -51,7 +43,8 @@ export function ConfirmLockModal({
   })
 
   return (
-    <div ref={containerRef}
+    <div
+      ref={containerRef}
       role="dialog"
       aria-modal="true"
       aria-labelledby="confirm-lock-title"
@@ -68,18 +61,22 @@ export function ConfirmLockModal({
         <dl className="flex flex-col gap-3 p-5 text-sm">
           {data.isLp ? (
             <>
-              <Row label="Pool share address" value={<span className="font-mono">{shortAddress(data.poolShareAddress ?? "", 8, 8)}</span>} />
+              <Row
+                label="Pool share address"
+                value={<span className="font-mono">{shortAddress(data.poolShareAddress ?? "", 8, 8)}</span>}
+              />
               <Row label="DEX" value={<span className="capitalize">{data.dex}</span>} />
             </>
           ) : (
-            <Row label="Token address" value={<span className="font-mono">{shortAddress(data.tokenAddress, 8, 8)}</span>} />
+            <Row
+              label="Token address"
+              value={<span className="font-mono">{shortAddress(data.tokenAddress, 8, 8)}</span>}
+            />
           )}
           <Row label="Amount" value={<span className="font-semibold">{data.amount}</span>} />
           <Row label="Beneficiary" value={<span className="font-mono">{shortAddress(data.beneficiary, 8, 8)}</span>} />
           <Row label="Unlock date" value={<span className="font-medium">{formatDate(unlockTs)}</span>} />
-          {data.vesting && (
-            <Row label="Vesting" value={<span className="text-primary">Linear vesting enabled</span>} />
-          )}
+          {data.vesting && <Row label="Vesting" value={<span className="text-primary">Linear vesting enabled</span>} />}
           {data.balance != null && (
             <Row
               label="Your balance"
@@ -108,7 +105,9 @@ export function ConfirmLockModal({
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
               <span>
                 <strong>Insufficient balance.</strong> You have{" "}
-                <span className="font-medium">{data.balance?.toLocaleString(undefined, { maximumFractionDigits: 7 })}</span>{" "}
+                <span className="font-medium">
+                  {data.balance?.toLocaleString(undefined, { maximumFractionDigits: 7 })}
+                </span>{" "}
                 but are trying to lock{" "}
                 <span className="font-medium">{amount.toLocaleString(undefined, { maximumFractionDigits: 7 })}</span>.
               </span>
@@ -123,7 +122,8 @@ export function ConfirmLockModal({
               <div className="flex-1">
                 <p className="font-medium text-foreground">Approval required</p>
                 <p className="mt-1 text-muted-foreground">
-                  You need to approve the contract to transfer your tokens before locking. This is a one-time setup per token.
+                  You need to approve the contract to transfer your tokens before locking. This is a one-time setup per
+                  token.
                 </p>
               </div>
             </div>
@@ -133,7 +133,8 @@ export function ConfirmLockModal({
         <div className="flex items-start gap-2 mx-5 mb-5 rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm text-warning-foreground">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
           <span className="text-muted-foreground">
-            Locks are <strong className="text-foreground">immutable</strong>. The unlock date can only be extended, never shortened. Funds cannot be recovered early.
+            Locks are <strong className="text-foreground">immutable</strong>. The unlock date can only be extended,
+            never shortened. Funds cannot be recovered early.
           </span>
         </div>
 
@@ -166,7 +167,7 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-4">
       <dt className="text-muted-foreground">{label}</dt>
-      <dd className="text-right">{value}</dd>
+      <dd className="text-end">{value}</dd>
     </div>
   )
 }

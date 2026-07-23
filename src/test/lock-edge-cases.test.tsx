@@ -146,9 +146,11 @@ describe("Lock Creation Edge Cases", () => {
     const confirmButton = await screen.findByRole("button", { name: /confirm & lock/i })
     await user.click(confirmButton)
 
+    // Unrecognised errors are sanitized to the generic message.
     await waitFor(() => {
-      expect(screen.getByText(/disconnected|connection/i)).toBeInTheDocument()
+      expect(screen.getByText(/something went wrong/i)).toBeInTheDocument()
     })
+    expect(screen.queryByText(/wallet disconnected/i)).not.toBeInTheDocument()
   })
 
   it("should reject invalid token addresses", async () => {
@@ -209,10 +211,7 @@ describe("Lock Creation Edge Cases", () => {
   it("should handle timeout during submission", async () => {
     const { createTokenLock } = await import("@/lib/token-locker")
     vi.mocked(createTokenLock).mockImplementationOnce(
-      () =>
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("Request timeout")), 100),
-        ),
+      () => new Promise((_, reject) => setTimeout(() => reject(new Error("Request timeout")), 100)),
     )
 
     const user = userEvent.setup()
@@ -236,9 +235,11 @@ describe("Lock Creation Edge Cases", () => {
     const confirmButton = await screen.findByRole("button", { name: /confirm & lock/i })
     await user.click(confirmButton)
 
+    // Timeouts are a recognised code and carry a recovery suggestion.
     await waitFor(() => {
-      expect(screen.getByText(/timeout/i)).toBeInTheDocument()
+      expect(screen.getByText(/transaction timed out/i)).toBeInTheDocument()
     })
+    expect(screen.getByText(/check stellar expert/i)).toBeInTheDocument()
   })
 
   it("should allow max button to set full balance", async () => {

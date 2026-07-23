@@ -95,12 +95,7 @@ export function BulkConfirmModal({ action, locks, onConfirm, onClose }: Props) {
               {action === "extend" ? (
                 <>
                   <label className="mb-1.5 block text-sm font-medium">New unlock date for all selected locks</label>
-                  <Input
-                    type="date"
-                    min={minDate}
-                    value={value}
-                    onChange={(e) => setValue(e.target.value)}
-                  />
+                  <Input type="date" min={minDate} value={value} onChange={(e) => setValue(e.target.value)} />
                   <p className="mt-1 text-xs text-muted-foreground">
                     Only locks with a current unlock date earlier than this date will be extended.
                   </p>
@@ -136,10 +131,7 @@ export function BulkConfirmModal({ action, locks, onConfirm, onClose }: Props) {
           <>
             <div className="mb-4 max-h-64 overflow-y-auto space-y-2">
               {results.map((r) => (
-                <div
-                  key={r.id}
-                  className="flex items-center gap-3 rounded-lg border border-border px-3 py-2 text-sm"
-                >
+                <div key={r.id} className="flex items-center gap-3 rounded-lg border border-border px-3 py-2 text-sm">
                   {r.status === "pending" ? (
                     <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                   ) : r.status === "success" ? (
@@ -148,7 +140,7 @@ export function BulkConfirmModal({ action, locks, onConfirm, onClose }: Props) {
                     <XCircle className="h-4 w-4 text-destructive shrink-0" />
                   )}
                   <span className="font-medium">Lock #{r.id}</span>
-                  {r.error && <span className="ml-auto text-xs text-destructive truncate">{r.error}</span>}
+                  {r.error && <span className="ms-auto text-xs text-destructive truncate">{r.error}</span>}
                 </div>
               ))}
             </div>

@@ -1,6 +1,15 @@
 import { useEffect, useRef, useState } from "react"
 import { Link, useNavigate, useParams, useLocation } from "react-router-dom"
-import { ArrowLeft, Lock as LockIcon, Repeat, ExternalLink, ShieldCheck, UserRoundPen, FileDown, QrCode } from "lucide-react"
+import {
+  ArrowLeft,
+  Lock as LockIcon,
+  Repeat,
+  ExternalLink,
+  ShieldCheck,
+  UserRoundPen,
+  FileDown,
+  QrCode,
+} from "lucide-react"
 import { Helmet } from "react-helmet-async"
 import { useTranslation } from "react-i18next"
 import { useLock } from "@/hooks/useLocks"
@@ -8,6 +17,9 @@ import { useWallet } from "@/hooks/useWallet"
 import { withdrawLock, extendLock, transferBeneficiary } from "@/lib/token-locker"
 import { withdrawLpLock, extendLpLock, transferLpBeneficiary } from "@/lib/lp-locker"
 import { trackEvent } from "@/lib/analytics"
+import { sanitizeError } from "@/lib/error-sanitizer"
+import type { StructuredError } from "@/lib/errors"
+import { useAnnouncer } from "@/hooks/useAnnouncer"
 import { type TxPhase } from "@/lib/stellar"
 import { downloadLockReport } from "@/lib/pdf-report"
 import { QrCodeModal } from "@/components/ui/QrCodeModal"
@@ -23,6 +35,7 @@ import { CopyButton } from "@/components/ui/CopyButton"
 import { CountdownTimer } from "@/components/ui/CountdownTimer"
 import { LockProgressBar } from "@/components/ui/LockProgressBar"
 import { TxProgressSteps } from "@/components/ui/TxProgressSteps"
+import { TxErrorAlert } from "@/components/ui/TxErrorAlert"
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge"
 import { NotificationSettings } from "@/components/locks/NotificationSettings"
 import { useVerifiedToken } from "@/hooks/useVerifiedToken"
@@ -110,8 +123,10 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
   const canExtend = isCreator && lock.status !== "withdrawn"
   const canTransfer = isBeneficiary && lock.status !== "withdrawn"
 
+  const { announce } = useAnnouncer()
   const [busy, setBusy] = useState<"withdraw" | "extend" | "transfer" | null>(null)
   const [txPhase, setTxPhase] = useState<TxPhase | "idle">("idle")
+  const [txError, setTxError] = useState<StructuredError | null>(null)
   const [extendOpen, setExtendOpen] = useState(false)
   const [transferOpen, setTransferOpen] = useState(false)
   const [qrOpen, setQrOpen] = useState(false)
@@ -134,15 +149,27 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
     }
   }, [transferOpen])
 
+  // Turns a thrown transaction error into sanitized, translated guidance and
+  // announces it, instead of letting the rejection disappear silently.
+  function reportTxFailure(err: unknown) {
+    const structured = sanitizeError(err)
+    setTxError(structured)
+    announce(`${t(structured.title)}. ${t(structured.message)}`, "assertive")
+  }
+
   async function handleWithdraw() {
     setBusy("withdraw")
     setTxPhase("simulating")
+    setTxError(null)
     try {
       await (isLp
         ? withdrawLpLock(lock.id, address!, signTransaction, setTxPhase)
         : withdrawLock(lock.id, address!, signTransaction, setTxPhase))
       trackEvent("lock_withdraw", { kind: lock.kind })
+      announce(t("lockDetail.withdrawSuccess"))
       onChange()
+    } catch (err) {
+      reportTxFailure(err)
     } finally {
       setBusy(null)
       setTxPhase("idle")
@@ -155,13 +182,17 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
     if (ts <= Math.floor(lock.unlockAt / 1000)) return
     setBusy("extend")
     setTxPhase("simulating")
+    setTxError(null)
     try {
       await (isLp
         ? extendLpLock(lock.id, ts, address!, signTransaction, setTxPhase)
         : extendLock(lock.id, ts, address!, signTransaction, setTxPhase))
       trackEvent("lock_extend", { kind: lock.kind })
+      announce(t("lockDetail.extendSuccess"))
       setExtendOpen(false)
       onChange()
+    } catch (err) {
+      reportTxFailure(err)
     } finally {
       setBusy(null)
       setTxPhase("idle")
@@ -172,14 +203,18 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
     if (!newBeneficiary.trim()) return
     setBusy("transfer")
     setTxPhase("simulating")
+    setTxError(null)
     try {
       await (isLp
         ? transferLpBeneficiary(lock.id, newBeneficiary.trim(), address!, signTransaction, setTxPhase)
         : transferBeneficiary(lock.id, newBeneficiary.trim(), address!, signTransaction, setTxPhase))
       trackEvent("lock_transfer_beneficiary", { kind: lock.kind })
+      announce(t("lockDetail.transferSuccess"))
       setTransferOpen(false)
       setNewBeneficiary("")
       onChange()
+    } catch (err) {
+      reportTxFailure(err)
     } finally {
       setBusy(null)
       setTxPhase("idle")
@@ -213,21 +248,11 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
           <div className="flex flex-col items-end gap-2">
             <StatusBadge status={lock.status} />
             <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setQrOpen(true)}
-                title="Share via QR code"
-              >
+              <Button variant="outline" size="sm" onClick={() => setQrOpen(true)} title="Share via QR code">
                 <QrCode className="h-4 w-4" />
                 Share QR
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => downloadLockReport(lock)}
-                title="Download lock report"
-              >
+              <Button variant="outline" size="sm" onClick={() => downloadLockReport(lock)} title="Download lock report">
                 <FileDown className="h-4 w-4" />
                 Download Report
               </Button>
@@ -358,7 +383,9 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
                   src={lock.metadata.logoUrl}
                   alt="Project logo"
                   className="h-10 w-10 rounded-full border border-border object-cover"
-                  onError={(e) => { e.currentTarget.style.display = "none" }}
+                  onError={(e) => {
+                    e.currentTarget.style.display = "none"
+                  }}
                 />
               )}
               {lock.metadata.description && (
@@ -383,6 +410,12 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
         {txPhase !== "idle" && (
           <div className="border-t border-border px-6 pb-4 pt-3">
             <TxProgressSteps phase={txPhase} />
+          </div>
+        )}
+
+        {txError && (
+          <div className="border-t border-border px-6 pb-4 pt-3">
+            <TxErrorAlert error={txError} />
           </div>
         )}
 
@@ -466,7 +499,11 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
                 onChange={(e) => setNewBeneficiary(e.target.value)}
                 className="flex-1 font-mono"
               />
-              <Button onClick={() => void handleTransfer()} loading={busy === "transfer"} disabled={!newBeneficiary.trim()}>
+              <Button
+                onClick={() => void handleTransfer()}
+                loading={busy === "transfer"}
+                disabled={!newBeneficiary.trim()}
+              >
                 {t("lockDetail.confirmTransfer")}
               </Button>
             </div>

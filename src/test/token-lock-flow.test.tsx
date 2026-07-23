@@ -229,9 +229,12 @@ describe("Token Lock Creation Flow", () => {
     const confirmButton = await screen.findByRole("button", { name: /confirm & lock/i })
     await user.click(confirmButton)
 
+    // "Network error" maps to no known code, so the generic sanitized error is
+    // shown — the raw RPC text must never reach the UI.
     await waitFor(() => {
-      expect(screen.getByText(/network error/i)).toBeInTheDocument()
+      expect(screen.getByText(/something went wrong/i)).toBeInTheDocument()
     })
+    expect(screen.queryByText(/network error/i)).not.toBeInTheDocument()
   })
 
   it("should handle wallet rejection gracefully", async () => {
@@ -259,9 +262,13 @@ describe("Token Lock Creation Flow", () => {
     const confirmButton = await screen.findByRole("button", { name: /confirm & lock/i })
     await user.click(confirmButton)
 
+    // Wallet rejection is a recognised code: the user sees friendly copy plus a
+    // recovery suggestion, not the raw "User rejected" string.
     await waitFor(() => {
-      expect(screen.getByText(/user rejected/i)).toBeInTheDocument()
+      expect(screen.getByText(/transaction cancelled/i)).toBeInTheDocument()
     })
+    expect(screen.getByText(/click the button again/i)).toBeInTheDocument()
+    expect(screen.queryByText(/^user rejected$/i)).not.toBeInTheDocument()
   })
 
   it("should show approve button when allowance is insufficient", async () => {
