@@ -1,5 +1,5 @@
 import { Address, nativeToScVal, xdr } from "@stellar/stellar-sdk"
-import type { Lock, TokenLockSummary } from "@/types/lock"
+import type { Lock, LockMetadata, TokenLockSummary } from "@/types/lock"
 import { CONTRACTS, simulateCall, submitCall, submitCallWithHash, type TxPhase } from "@/lib/stellar"
 import { getOnChainTokenMeta, type OnChainTokenMeta } from "@/lib/token-metadata"
 
@@ -9,6 +9,7 @@ export interface CreateTokenLockArgs {
   beneficiary: string
   unlockAt: number // unix seconds
   vesting?: { start: number; end: number }
+  metadata?: { description?: string; projectUrl?: string; logoUrl?: string }
 }
 
 // ── Converters ────────────────────────────────────────────────────────────────
@@ -20,6 +21,7 @@ function toLock(raw: Record<string, unknown>, meta?: OnChainTokenMeta): Lock {
   const multiplier = 10 ** decimals
 
   const vestingRaw = raw.vesting as { start: bigint; end: bigint; released: bigint } | null | undefined
+  const metadata = parseMetadata(raw.metadata)
 
   return {
     id: String(raw.id),
@@ -45,7 +47,15 @@ function toLock(raw: Record<string, unknown>, meta?: OnChainTokenMeta): Lock {
           released: Number(vestingRaw.released) / multiplier,
         }
       : undefined,
+    metadata,
   }
+}
+
+/** LockMetadata is stored non-optionally on-chain; empty strings mean "not set". */
+function parseMetadata(raw: unknown): LockMetadata | undefined {
+  const m = raw as { description: string; project_url: string; logo_url: string } | null | undefined
+  if (!m || (!m.description && !m.project_url && !m.logo_url)) return undefined
+  return { description: m.description, projectUrl: m.project_url, logoUrl: m.logo_url }
 }
 
 /** Fetch on-chain metadata for all unique token addresses in a batch, then map raw locks. */
@@ -62,6 +72,24 @@ function idArg(id: string): xdr.ScVal {
 
 function addressArg(addr: string): xdr.ScVal {
   return new Address(addr).toScVal()
+}
+
+/** LockMetadata is a plain (non-Option) struct on-chain — always send a full map. */
+function metadataArg(metadata: CreateTokenLockArgs["metadata"]): xdr.ScVal {
+  return xdr.ScVal.scvMap([
+    new xdr.ScMapEntry({
+      key: xdr.ScVal.scvSymbol("description"),
+      val: nativeToScVal(metadata?.description ?? "", { type: "string" }),
+    }),
+    new xdr.ScMapEntry({
+      key: xdr.ScVal.scvSymbol("logo_url"),
+      val: nativeToScVal(metadata?.logoUrl ?? "", { type: "string" }),
+    }),
+    new xdr.ScMapEntry({
+      key: xdr.ScVal.scvSymbol("project_url"),
+      val: nativeToScVal(metadata?.projectUrl ?? "", { type: "string" }),
+    }),
+  ])
 }
 
 const DEFAULT_PAGE_SIZE = 50
@@ -181,6 +209,8 @@ export async function createTokenLock(
     scArgs.push(xdr.ScVal.scvVoid())
   }
 
+  scArgs.push(metadataArg(args.metadata))
+
   const { result: id, txHash } = await submitCallWithHash<bigint>(
     CONTRACTS.tokenLocker,
     "create_lock",
@@ -198,8 +228,16 @@ export async function withdrawLock(
   sourceAddress: string,
   signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>,
   onProgress?: (phase: TxPhase) => void,
-): Promise<void> {
-  await submitCall(CONTRACTS.tokenLocker, "withdraw", [idArg(id)], sourceAddress, signTransaction, onProgress)
+): Promise<{ txHash: string }> {
+  const { txHash } = await submitCallWithHash<void>(
+    CONTRACTS.tokenLocker,
+    "withdraw",
+    [idArg(id)],
+    sourceAddress,
+    signTransaction,
+    onProgress,
+  )
+  return { txHash }
 }
 
 export async function transferBeneficiary(
@@ -225,8 +263,8 @@ export async function extendLock(
   sourceAddress: string,
   signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>,
   onProgress?: (phase: TxPhase) => void,
-): Promise<void> {
-  await submitCall(
+): Promise<{ txHash: string }> {
+  const { txHash } = await submitCallWithHash<void>(
     CONTRACTS.tokenLocker,
     "extend",
     [idArg(id), nativeToScVal(BigInt(Math.floor(newUnlockAt)), { type: "u64" })],
@@ -234,4 +272,5 @@ export async function extendLock(
     signTransaction,
     onProgress,
   )
+  return { txHash }
 }

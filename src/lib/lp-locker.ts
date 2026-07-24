@@ -1,6 +1,6 @@
 import { Address, nativeToScVal, xdr } from "@stellar/stellar-sdk"
-import type { Dex, Lock } from "@/types/lock"
-import { CONTRACTS, simulateCall, submitCall, type TxPhase } from "@/lib/stellar"
+import type { Dex, Lock, LockMetadata } from "@/types/lock"
+import { CONTRACTS, simulateCall, submitCall, submitCallWithHash, type TxPhase } from "@/lib/stellar"
 import { getOnChainTokenMeta } from "@/lib/token-metadata"
 
 export interface CreateLpLockArgs {
@@ -10,7 +10,8 @@ export interface CreateLpLockArgs {
   tokenB: string
   amount: number
   beneficiary: string
-  unlockAt: number
+  unlockAt: number // unix seconds
+  metadata?: { description?: string; projectUrl?: string; logoUrl?: string }
 }
 
 export async function submitTokenApproval(
@@ -34,6 +35,13 @@ export async function submitTokenApproval(
   await submitCall(tokenAddress, "approve", scArgs, sourceAddress, signTransaction)
 }
 
+/** LockMetadata is stored non-optionally on-chain; empty strings mean "not set". */
+function parseMetadata(raw: unknown): LockMetadata | undefined {
+  const m = raw as { description: string; project_url: string; logo_url: string } | null | undefined
+  if (!m || (!m.description && !m.project_url && !m.logo_url)) return undefined
+  return { description: m.description, projectUrl: m.project_url, logoUrl: m.logo_url }
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function idArg(id: string): xdr.ScVal {
@@ -42,6 +50,24 @@ function idArg(id: string): xdr.ScVal {
 
 function addressArg(addr: string): xdr.ScVal {
   return new Address(addr).toScVal()
+}
+
+/** LockMetadata is a plain (non-Option) struct on-chain — always send a full map. */
+function metadataArg(metadata: CreateLpLockArgs["metadata"]): xdr.ScVal {
+  return xdr.ScVal.scvMap([
+    new xdr.ScMapEntry({
+      key: xdr.ScVal.scvSymbol("description"),
+      val: nativeToScVal(metadata?.description ?? "", { type: "string" }),
+    }),
+    new xdr.ScMapEntry({
+      key: xdr.ScVal.scvSymbol("logo_url"),
+      val: nativeToScVal(metadata?.logoUrl ?? "", { type: "string" }),
+    }),
+    new xdr.ScMapEntry({
+      key: xdr.ScVal.scvSymbol("project_url"),
+      val: nativeToScVal(metadata?.projectUrl ?? "", { type: "string" }),
+    }),
+  ])
 }
 
 /**
@@ -66,7 +92,11 @@ function toLpLock(raw: Record<string, unknown>, meta?: LpMeta): Lock {
   const poolShare = raw.pool_share as string
   const dexRaw = raw.dex as { tag?: string } | string
   const dex: Dex = (
-    typeof dexRaw === "object" && dexRaw?.tag ? dexRaw.tag.toLowerCase() : String(dexRaw).toLowerCase()
+    typeof dexRaw === "object" && dexRaw?.tag
+      ? dexRaw.tag.toLowerCase()
+      : typeof dexRaw === "string"
+        ? dexRaw.toLowerCase()
+        : ""
   ) as Dex
   const tokenA = raw.token_a as string
   const tokenB = raw.token_b as string
@@ -95,6 +125,7 @@ function toLpLock(raw: Record<string, unknown>, meta?: LpMeta): Lock {
     createdAt: Number(raw.created_at) * 1000,
     unlockAt: Number(raw.unlock_at) * 1000,
     extendedCount: Number(raw.extended_count),
+    metadata: parseMetadata(raw.metadata),
   }
 }
 
@@ -166,7 +197,7 @@ export async function createLpLock(
   sourceAddress: string,
   signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>,
   onProgress?: (phase: TxPhase) => void,
-): Promise<{ id: string }> {
+): Promise<{ id: string; txHash: string }> {
   const scArgs: xdr.ScVal[] = [
     addressArg(sourceAddress),
     addressArg(args.poolShareAddress),
@@ -176,10 +207,19 @@ export async function createLpLock(
     nativeToScVal(BigInt(Math.round(args.amount * 1e7)), { type: "i128" }),
     addressArg(args.beneficiary),
     nativeToScVal(BigInt(Math.floor(args.unlockAt)), { type: "u64" }),
+    metadataArg(args.metadata),
   ]
 
-  await submitCall(CONTRACTS.lpLocker, "create_lock", scArgs, sourceAddress, signTransaction, onProgress)
-  return { id: "pending" }
+  const { result: id, txHash } = await submitCallWithHash<bigint>(
+    CONTRACTS.lpLocker,
+    "create_lock",
+    scArgs,
+    sourceAddress,
+    signTransaction,
+    onProgress,
+  )
+
+  return { id: String(id), txHash }
 }
 
 export async function withdrawLpLock(
@@ -187,8 +227,16 @@ export async function withdrawLpLock(
   sourceAddress: string,
   signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>,
   onProgress?: (phase: TxPhase) => void,
-): Promise<void> {
-  await submitCall(CONTRACTS.lpLocker, "withdraw", [idArg(id)], sourceAddress, signTransaction, onProgress)
+): Promise<{ txHash: string }> {
+  const { txHash } = await submitCallWithHash<void>(
+    CONTRACTS.lpLocker,
+    "withdraw",
+    [idArg(id)],
+    sourceAddress,
+    signTransaction,
+    onProgress,
+  )
+  return { txHash }
 }
 
 export async function extendLpLock(
@@ -197,8 +245,8 @@ export async function extendLpLock(
   sourceAddress: string,
   signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>,
   onProgress?: (phase: TxPhase) => void,
-): Promise<void> {
-  await submitCall(
+): Promise<{ txHash: string }> {
+  const { txHash } = await submitCallWithHash<void>(
     CONTRACTS.lpLocker,
     "extend",
     [idArg(id), nativeToScVal(BigInt(Math.floor(newUnlockAt)), { type: "u64" })],
@@ -206,6 +254,7 @@ export async function extendLpLock(
     signTransaction,
     onProgress,
   )
+  return { txHash }
 }
 
 export async function transferLpBeneficiary(

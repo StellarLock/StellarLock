@@ -1,6 +1,5 @@
 import { useCallback, useState } from "react"
 import { useNotificationPrefs, type NotificationType } from "@/hooks/useNotifications"
-import { Button } from "@/components/ui/Button"
 import { createLogger } from "@/lib/logger"
 
 const log = createLogger("NotificationPreferences")
@@ -130,7 +129,7 @@ export function NotificationPreferences({ lockId }: { lockId?: string }) {
               <div>
                 <div className="text-sm font-medium">
                   {label}
-                  {required && <span className="ml-2 text-xs text-muted-foreground">(Required)</span>}
+                  {required && <span className="ms-2 text-xs text-muted-foreground">(Required)</span>}
                 </div>
                 <p className="text-xs text-muted-foreground">{description}</p>
               </div>

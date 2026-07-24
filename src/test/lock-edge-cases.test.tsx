@@ -1,3 +1,4 @@
+import type { ReactNode } from "react"
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
@@ -7,7 +8,7 @@ import { mockWallet, VALID_CONTRACT_ADDRESS } from "./mocks"
 
 vi.mock("@/hooks/useWallet", () => ({
   useWallet: () => mockWallet,
-  WalletProvider: ({ children }: any) => children,
+  WalletProvider: ({ children }: { children: ReactNode }) => children,
 }))
 
 vi.mock("@/lib/token-locker", async (importOriginal) => {
@@ -56,7 +57,7 @@ describe("Lock Creation Edge Cases", () => {
 
     const tokenInput = screen.getByPlaceholderText(/token/i)
     const amountInput = screen.getByLabelText(/amount to lock/i)
-    const dateInput = screen.getByLabelText(/unlock date/i) as HTMLInputElement
+    const dateInput = screen.getByLabelText(/unlock date/i)
 
     await user.type(tokenInput, VALID_CONTRACT_ADDRESS)
     await user.type(amountInput, "500")
@@ -83,7 +84,7 @@ describe("Lock Creation Edge Cases", () => {
 
     const tokenInput = screen.getByPlaceholderText(/token/i)
     const amountInput = screen.getByLabelText(/amount to lock/i)
-    const dateInput = screen.getByLabelText(/unlock date/i) as HTMLInputElement
+    const dateInput = screen.getByLabelText(/unlock date/i)
 
     await user.type(tokenInput, VALID_CONTRACT_ADDRESS)
     await user.type(amountInput, "999999999999999")
@@ -104,7 +105,7 @@ describe("Lock Creation Edge Cases", () => {
 
     const tokenInput = screen.getByPlaceholderText(/token/i)
     const amountInput = screen.getByLabelText(/amount to lock/i)
-    const dateInput = screen.getByLabelText(/unlock date/i) as HTMLInputElement
+    const dateInput = screen.getByLabelText(/unlock date/i)
 
     await user.type(tokenInput, VALID_CONTRACT_ADDRESS)
     await user.type(amountInput, "0.000001")
@@ -124,7 +125,7 @@ describe("Lock Creation Edge Cases", () => {
 
     const tokenInput = screen.getByPlaceholderText(/token/i)
     const amountInput = screen.getByLabelText(/amount to lock/i)
-    const dateInput = screen.getByLabelText(/unlock date/i) as HTMLInputElement
+    const dateInput = screen.getByLabelText(/unlock date/i)
 
     await user.type(tokenInput, VALID_CONTRACT_ADDRESS)
     await user.type(amountInput, "100")
@@ -145,9 +146,11 @@ describe("Lock Creation Edge Cases", () => {
     const confirmButton = await screen.findByRole("button", { name: /confirm & lock/i })
     await user.click(confirmButton)
 
+    // Unrecognised errors are sanitized to the generic message.
     await waitFor(() => {
-      expect(screen.getByText(/disconnected|connection/i)).toBeInTheDocument()
+      expect(screen.getByText(/something went wrong/i)).toBeInTheDocument()
     })
+    expect(screen.queryByText(/wallet disconnected/i)).not.toBeInTheDocument()
   })
 
   it("should reject invalid token addresses", async () => {
@@ -168,7 +171,7 @@ describe("Lock Creation Edge Cases", () => {
     const tokenInput = screen.getByPlaceholderText(/token/i)
     const amountInput = screen.getByLabelText(/amount to lock/i)
     const beneficiaryInput = screen.getByLabelText(/beneficiary/i)
-    const dateInput = screen.getByLabelText(/unlock date/i) as HTMLInputElement
+    const dateInput = screen.getByLabelText(/unlock date/i)
 
     await user.type(tokenInput, VALID_CONTRACT_ADDRESS)
     await user.type(amountInput, "100")
@@ -190,7 +193,7 @@ describe("Lock Creation Edge Cases", () => {
     const tokenInput = screen.getByPlaceholderText(/token/i)
     const amountInput = screen.getByLabelText(/amount to lock/i)
     const beneficiaryInput = screen.getByLabelText(/beneficiary/i)
-    const dateInput = screen.getByLabelText(/unlock date/i) as HTMLInputElement
+    const dateInput = screen.getByLabelText(/unlock date/i)
 
     await user.type(tokenInput, VALID_CONTRACT_ADDRESS)
     await user.type(amountInput, "100")
@@ -208,10 +211,7 @@ describe("Lock Creation Edge Cases", () => {
   it("should handle timeout during submission", async () => {
     const { createTokenLock } = await import("@/lib/token-locker")
     vi.mocked(createTokenLock).mockImplementationOnce(
-      () =>
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("Request timeout")), 100),
-        ),
+      () => new Promise((_, reject) => setTimeout(() => reject(new Error("Request timeout")), 100)),
     )
 
     const user = userEvent.setup()
@@ -219,7 +219,7 @@ describe("Lock Creation Edge Cases", () => {
 
     const tokenInput = screen.getByPlaceholderText(/token/i)
     const amountInput = screen.getByLabelText(/amount to lock/i)
-    const dateInput = screen.getByLabelText(/unlock date/i) as HTMLInputElement
+    const dateInput = screen.getByLabelText(/unlock date/i)
 
     await user.type(tokenInput, VALID_CONTRACT_ADDRESS)
     await user.type(amountInput, "100")
@@ -235,9 +235,11 @@ describe("Lock Creation Edge Cases", () => {
     const confirmButton = await screen.findByRole("button", { name: /confirm & lock/i })
     await user.click(confirmButton)
 
+    // Timeouts are a recognised code and carry a recovery suggestion.
     await waitFor(() => {
-      expect(screen.getByText(/timeout/i)).toBeInTheDocument()
+      expect(screen.getByText(/transaction timed out/i)).toBeInTheDocument()
     })
+    expect(screen.getByText(/check stellar expert/i)).toBeInTheDocument()
   })
 
   it("should allow max button to set full balance", async () => {

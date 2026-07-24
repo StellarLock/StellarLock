@@ -9,9 +9,8 @@ import { Badge } from "@/components/ui/Badge"
 import { StatusBadge } from "@/components/ui/StatusBadge"
 import { TokenAvatar } from "@/components/ui/TokenAvatar"
 import { RecentActivity } from "@/components/discover/RecentActivity"
-import { SkeletonStatCard, SkeletonLockCard } from "@/components/ui/Skeleton"
-import { useDiscoverStats } from "@/hooks/useLocks"
-import { formatAmount, formatDate, formatUsd, shortAddress } from "@/lib/utils"
+import { MOCK_LOCKS } from "@/lib/mock-data"
+import { formatAmount, formatDate, formatUsd } from "@/lib/utils"
 
 export function Discover() {
   const { t } = useTranslation()

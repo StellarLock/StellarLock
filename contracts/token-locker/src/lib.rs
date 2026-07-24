@@ -2,7 +2,7 @@
 
 use soroban_sdk::{
     contract, contracterror, contractimpl, contracttype, token, vec,
-    Address, BytesN, Env, Vec, Symbol,
+    Address, BytesN, Env, String, Vec, Symbol,
 };
 
 #[cfg(test)]
@@ -16,6 +16,9 @@ const PERSISTENT_BUMP: u32 = 365 * LEDGERS_PER_DAY;
 const PERSISTENT_THRESHOLD: u32 = PERSISTENT_BUMP;
 const INSTANCE_BUMP: u32 = 30 * LEDGERS_PER_DAY;
 const INSTANCE_THRESHOLD: u32 = 7 * LEDGERS_PER_DAY;
+// Withdrawn locks get a short TTL — enough to be queried but not renewed forever (~11.6× cheaper).
+const WITHDRAWN_BUMP: u32 = 30 * LEDGERS_PER_DAY;
+const WITHDRAWN_THRESHOLD: u32 = 7 * LEDGERS_PER_DAY;
 
 // ── Rate limiting ─────────────────────────────────────────────────────────────
 const RATE_LIMIT_COOLDOWN: u64 = 60;
@@ -37,6 +40,7 @@ pub enum DataKey {
     UniqueTokenCount,
     LastLockAt(Address),
     Admin,
+    PendingAdmin,
     UpgradeProposal,
 }
 
@@ -66,6 +70,10 @@ pub enum ContractError {
     TooManyBeneficiaries = 9,
     SharesMustSum10000 = 10,
     RateLimitExceeded = 11,
+    AmountOverflow = 12,
+    NotAdmin = 15,
+    NoPendingAdmin = 13,
+    NotPendingAdmin = 14,
 }
 
 // ── On-chain types ────────────────────────────────────────────────────────────
@@ -100,6 +108,37 @@ pub struct Vesting {
     pub released: i128,
 }
 
+/// Optional public-facing info about the locked project.
+/// Stored on-chain as plain strings (not a hash) so the explorer can render
+/// it directly — keep values short, this isn't meant for arbitrary blobs.
+///
+/// Not wrapped in `Option`: the #[contracttype] macro doesn't generate the
+/// `Option<CustomStruct> -> ScVal` XDR bridge needed for std/testutils builds
+/// (only the bare struct gets one), so "no metadata" is represented by all
+/// fields being empty strings instead.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LockMetadata {
+    pub description: String,
+    pub project_url: String,
+    pub logo_url: String,
+}
+
+impl LockMetadata {
+    pub fn is_empty(&self) -> bool {
+        self.description.is_empty() && self.project_url.is_empty() && self.logo_url.is_empty()
+    }
+
+    /// Sentinel for lock-creation paths that don't (yet) accept metadata, e.g. split locks.
+    pub fn empty(env: &Env) -> Self {
+        LockMetadata {
+            description: String::from_str(env, ""),
+            project_url: String::from_str(env, ""),
+            logo_url: String::from_str(env, ""),
+        }
+    }
+}
+
 #[contracttype]
 #[derive(Clone)]
 pub struct Lock {
@@ -113,6 +152,7 @@ pub struct Lock {
     pub extended_count: u32,
     pub withdrawn: bool,
     pub vesting: Option<Vesting>,
+    pub metadata: LockMetadata,
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -124,11 +164,15 @@ fn next_id(env: &Env) -> u64 {
     id
 }
 
-fn push_index(env: &Env, key: DataKey, id: u64) {
+fn push_index(env: &Env, key: DataKey, id: u64, withdrawn: bool) {
     let mut ids: Vec<u64> = env.storage().persistent().get(&key).unwrap_or(vec![env]);
     ids.push_back(id);
     env.storage().persistent().set(&key, &ids);
-    env.storage().persistent().extend_ttl(&key, PERSISTENT_THRESHOLD, PERSISTENT_BUMP);
+    if withdrawn {
+        env.storage().persistent().extend_ttl(&key, WITHDRAWN_THRESHOLD, WITHDRAWN_BUMP);
+    } else {
+        env.storage().persistent().extend_ttl(&key, PERSISTENT_THRESHOLD, PERSISTENT_BUMP);
+    }
 }
 
 fn remove_from_index(env: &Env, key: DataKey, id: u64) {
@@ -157,7 +201,12 @@ fn load_lock(env: &Env, id: u64) -> Lock {
 fn save_lock(env: &Env, lock: &Lock) {
     let key = DataKey::Lock(lock.id);
     env.storage().persistent().set(&key, lock);
-    env.storage().persistent().extend_ttl(&key, PERSISTENT_THRESHOLD, PERSISTENT_BUMP);
+    if lock.withdrawn {
+        // Withdrawn locks get a short TTL — enough to be queried but not renewed forever.
+        env.storage().persistent().extend_ttl(&key, WITHDRAWN_THRESHOLD, WITHDRAWN_BUMP);
+    } else {
+        env.storage().persistent().extend_ttl(&key, PERSISTENT_THRESHOLD, PERSISTENT_BUMP);
+    }
 }
 
 fn collect_locks_paginated(env: &Env, ids: Vec<u64>, offset: u32, limit: u32) -> Vec<Lock> {
@@ -204,6 +253,7 @@ impl TokenLocker {
         beneficiary: Address,
         unlock_at: u64,
         vesting: Option<Vesting>,
+        metadata: LockMetadata,
     ) -> Result<u64, ContractError> {
         creator.require_auth();
 
@@ -235,14 +285,15 @@ impl TokenLocker {
             extended_count: 0,
             withdrawn: false,
             vesting,
+            metadata,
         };
 
         save_lock(&env, &lock);
         
         // Register indices
-        push_index(&env, DataKey::ByCreator(creator.clone()), id);
-        push_index(&env, DataKey::ByBeneficiary(beneficiary.clone()), id);
-        push_index(&env, DataKey::ByToken(token.clone()), id);
+        push_index(&env, DataKey::ByCreator(creator.clone()), id, false);
+        push_index(&env, DataKey::ByBeneficiary(beneficiary.clone()), id, false);
+        push_index(&env, DataKey::ByToken(token.clone()), id, false);
 
         // Update TVL and global stats
         let current_tvl: i128 = env.storage().persistent().get(&DataKey::TotalLocked(token.clone())).unwrap_or(0);
@@ -318,7 +369,7 @@ impl TokenLocker {
 
         let old_beneficiary = lock.beneficiary.clone();
         remove_from_index(&env, DataKey::ByBeneficiary(lock.beneficiary.clone()), id);
-        push_index(&env, DataKey::ByBeneficiary(new_beneficiary.clone()), id);
+        push_index(&env, DataKey::ByBeneficiary(new_beneficiary.clone()), id, lock.withdrawn);
 
         lock.beneficiary = new_beneficiary.clone();
         save_lock(&env, &lock);
@@ -390,7 +441,10 @@ impl TokenLocker {
 
         for i in 0..n {
             let (beneficiary, bps) = beneficiaries.get(i).unwrap();
-            let share_amount = (total_amount * bps as i128) / 10_000;
+            let share_amount = total_amount
+                .checked_mul(bps as i128)
+                .ok_or(ContractError::AmountOverflow)?
+                / 10_000;
             let lock_id = if i == 0 { group_id } else { next_id(&env) };
             let lock = Lock {
                 id: lock_id,
@@ -403,19 +457,20 @@ impl TokenLocker {
                 extended_count: 0,
                 withdrawn: false,
                 vesting: vesting.clone(),
+                metadata: LockMetadata::empty(&env),
             };
 
             save_lock(&env, &lock);
-            push_index(&env, DataKey::ByCreator(creator.clone()), lock_id);
-            push_index(&env, DataKey::ByBeneficiary(beneficiary.clone()), lock_id);
-            push_index(&env, DataKey::ByToken(token.clone()), lock_id);
+            push_index(&env, DataKey::ByCreator(creator.clone()), lock_id, false);
+            push_index(&env, DataKey::ByBeneficiary(beneficiary.clone()), lock_id, false);
+            push_index(&env, DataKey::ByToken(token.clone()), lock_id, false);
             lock_ids.push_back(lock_id);
         }
 
         let group = SplitGroup { group_id, lock_ids };
         env.storage().persistent().set(&DataKey::SplitGroup(group_id), &group);
         env.storage().persistent().extend_ttl(&DataKey::SplitGroup(group_id), PERSISTENT_THRESHOLD, PERSISTENT_BUMP);
-        push_index(&env, DataKey::SplitByCreator(creator.clone()), group_id);
+        push_index(&env, DataKey::SplitByCreator(creator.clone()), group_id, false);
 
         env.events().publish((Symbol::new(&env, "split_lock_created"), group_id, creator, token, total_amount, unlock_at), ());
         Ok(group_id)
@@ -450,6 +505,52 @@ impl TokenLocker {
         let total_lock_count: u64 = env.storage().persistent().get(&DataKey::GlobalLockCount).unwrap_or(0);
         let unique_token_count: u64 = env.storage().persistent().get(&DataKey::UniqueTokenCount).unwrap_or(0);
         GlobalStats { total_lock_count, unique_token_count }
+    }
+
+    // ── Admin management ──────────────────────────────────────────────────────
+
+    /// Return the current admin address, or `None` if the contract has not been
+    /// initialised yet.
+    pub fn get_admin(env: Env) -> Option<Address> {
+        env.storage().instance().get(&DataKey::Admin)
+    }
+
+    /// Two-step admin transfer — step 1.  Current admin nominates `new_admin`
+    /// as the pending admin.  The transfer is not complete until `new_admin`
+    /// calls `accept_admin`.
+    pub fn propose_admin(env: Env, new_admin: Address) -> Result<(), ContractError> {
+        let admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .expect("not initialised");
+        admin.require_auth();
+        env.storage().instance().set(&DataKey::PendingAdmin, &new_admin);
+        env.storage().instance().extend_ttl(INSTANCE_THRESHOLD, INSTANCE_BUMP);
+        env.events().publish(
+            (Symbol::new(&env, "admin_proposed"), new_admin),
+            (),
+        );
+        Ok(())
+    }
+
+    /// Two-step admin transfer — step 2.  The pending admin accepts the role,
+    /// atomically replacing the current admin and clearing the pending slot.
+    pub fn accept_admin(env: Env) -> Result<(), ContractError> {
+        let pending: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::PendingAdmin)
+            .ok_or(ContractError::NoPendingAdmin)?;
+        pending.require_auth();
+        env.storage().instance().set(&DataKey::Admin, &pending);
+        env.storage().instance().remove(&DataKey::PendingAdmin);
+        env.storage().instance().extend_ttl(INSTANCE_THRESHOLD, INSTANCE_BUMP);
+        env.events().publish(
+            (Symbol::new(&env, "admin_accepted"), pending),
+            (),
+        );
+        Ok(())
     }
 
     // ── Upgrade mechanism (7-day timelock) ───────────────────────────────────

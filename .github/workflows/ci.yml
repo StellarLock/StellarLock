@@ -7,6 +7,38 @@ on:
     branches: [ "main" ]
 
 jobs:
+  commitlint:
+    name: Commit Message Lint
+    runs-on: ubuntu-latest
+    # Conventional commit messages are what the changelog is generated from,
+    # so they have to be enforced for that output to be meaningful.
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint commit messages in this PR
+        run: >
+          pnpm exec commitlint
+          --from ${{ github.event.pull_request.base.sha }}
+          --to ${{ github.event.pull_request.head.sha }}
+          --verbose
+
   frontend:
     name: Frontend Checks
     runs-on: ubuntu-latest
@@ -36,17 +68,57 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # Non-blocking for now: ~325 pre-existing errors (mostly type-aware lint
-      # rules firing in test files) need a dedicated cleanup pass before this
-      # can gate merges. Type Check and Build below are blocking.
       - name: Lint (ESLint)
-        run: pnpm exec eslint . || true
+        run: pnpm exec eslint .
 
       - name: Type Check
         run: pnpm exec tsc -b
 
+      - name: Unit / component tests
+        run: pnpm test
+
+      - name: Storybook build
+        run: pnpm storybook:build
+
       - name: Build Vite App
         run: pnpm build
+
+  visual-regression:
+    name: Visual Regression
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Vite App
+        run: pnpm build
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Visual regression tests
+        run: pnpm test:e2e
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14
 
   contracts:
     name: Smart Contract Checks

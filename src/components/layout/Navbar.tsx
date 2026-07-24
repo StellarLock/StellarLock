@@ -55,8 +55,8 @@ export function Navbar() {
               key={link.to}
               to={link.to}
               title={link.hint}
-              onMouseEnter={link.prefetchFn}
-              onFocus={link.prefetchFn}
+              onMouseEnter={() => void link.prefetchFn?.()}
+              onFocus={() => void link.prefetchFn?.()}
               className={({ isActive }) =>
                 cn(
                   "rounded-md px-3 py-2 text-sm font-medium transition-colors",
@@ -83,10 +83,10 @@ export function Navbar() {
             variant="ghost"
             size="icon"
             onClick={toggleTheme}
-            aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
+            aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
             className="text-muted-foreground hover:text-foreground"
           >
-            {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>
 
           {isConnected ? (
@@ -102,12 +102,21 @@ export function Navbar() {
             </>
           ) : (
             <div className="hidden flex-col items-end sm:flex">
-              <Button onClick={connect} loading={connecting} disabled={connecting || connectState === "retrying"} className="sm:inline-flex">
+              <Button
+                onClick={() => void connect()}
+                loading={connecting}
+                disabled={connecting || connectState === "retrying"}
+                className="sm:inline-flex"
+              >
                 <Wallet className="h-4 w-4" />
-                {connectState === "retrying" ? "Retrying…" : connectState === "connecting" ? "Connecting…" : t("nav.connectWallet")}
+                {connectState === "retrying"
+                  ? "Retrying…"
+                  : connectState === "connecting"
+                    ? "Connecting…"
+                    : t("nav.connectWallet")}
               </Button>
-              {connectError && <p className="mt-1 max-w-48 text-right text-xs text-muted-foreground">{connectError}</p>}
-              {connectHelp && <p className="max-w-48 text-right text-xs text-muted-foreground">{connectHelp}</p>}
+              {connectError && <p className="mt-1 max-w-48 text-end text-xs text-muted-foreground">{connectError}</p>}
+              {connectHelp && <p className="max-w-48 text-end text-xs text-muted-foreground">{connectHelp}</p>}
             </div>
           )}
 
@@ -126,17 +135,14 @@ export function Navbar() {
       {/* Mobile drawer */}
       {menuOpen && (
         <div id="mobile-nav" className="border-t border-border bg-background md:hidden">
-          <nav
-            aria-label="Mobile navigation"
-            className="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-3"
-          >
+          <nav aria-label="Mobile navigation" className="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-3">
             {navLinks.map((link) => (
               <NavLink
                 key={link.to}
                 to={link.to}
                 onClick={() => setMenuOpen(false)}
-                onMouseEnter={link.prefetchFn}
-                onFocus={link.prefetchFn}
+                onMouseEnter={() => void link.prefetchFn?.()}
+                onFocus={() => void link.prefetchFn?.()}
                 className={({ isActive }) =>
                   cn(
                     "rounded-md px-3 py-3 text-sm font-medium transition-colors",
@@ -156,8 +162,11 @@ export function Navbar() {
                   <span className="h-2 w-2 rounded-full bg-success" aria-hidden />
                   <span className="font-mono text-sm text-muted-foreground">{shortAddress(address!)}</span>
                   <button
-                    onClick={() => { disconnect(); setMenuOpen(false) }}
-                    className="ml-auto flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+                    onClick={() => {
+                      disconnect()
+                      setMenuOpen(false)
+                    }}
+                    className="ms-auto flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
                     aria-label={t("nav.disconnectWallet")}
                   >
                     <LogOut className="h-4 w-4" />
@@ -165,9 +174,21 @@ export function Navbar() {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <Button onClick={() => { connect(); setMenuOpen(false) }} loading={connecting} disabled={connecting || connectState === "retrying"} className="w-full">
+                  <Button
+                    onClick={() => {
+                      void connect()
+                      setMenuOpen(false)
+                    }}
+                    loading={connecting}
+                    disabled={connecting || connectState === "retrying"}
+                    className="w-full"
+                  >
                     <Wallet className="h-4 w-4" />
-                    {connectState === "retrying" ? "Retrying…" : connectState === "connecting" ? "Connecting…" : t("nav.connectWallet")}
+                    {connectState === "retrying"
+                      ? "Retrying…"
+                      : connectState === "connecting"
+                        ? "Connecting…"
+                        : t("nav.connectWallet")}
                   </Button>
                   {connectError && <p className="text-center text-xs text-muted-foreground">{connectError}</p>}
                   {connectHelp && <p className="text-center text-xs text-muted-foreground">{connectHelp}</p>}

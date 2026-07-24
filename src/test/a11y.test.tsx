@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest"
-import { axe, configureAxe } from "vitest-axe"
+import { configureAxe } from "vitest-axe"
 import { render } from "./utils"
 
 // ── axe configured for WCAG 2.1 AA ──────────────────────────────────────────

@@ -20,7 +20,7 @@ export function ConnectGate({ children, title }: { children: ReactNode; title?: 
         <h2 className="text-lg font-semibold">{title ?? t("connectGate.title")}</h2>
         <p className="mt-1 text-sm text-muted-foreground">{t("connectGate.desc")}</p>
       </div>
-      <Button onClick={connect} loading={connecting}>
+      <Button onClick={() => void connect()} loading={connecting}>
         <Wallet className="h-4 w-4" />
         {t("connectGate.connect")}
       </Button>

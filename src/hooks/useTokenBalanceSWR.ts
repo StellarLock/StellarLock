@@ -91,7 +91,7 @@ export function useTokenBalanceSWR(
             const isStale = Date.now() - entry.fetchedAt > ttlMs
             if (isStale) {
                 setIsLoading(false)
-                revalidate()
+                void revalidate()
             } else {
                 setIsLoading(false)
                 setIsRevalidating(false)
@@ -100,7 +100,7 @@ export function useTokenBalanceSWR(
         }
 
         setIsLoading(true)
-        revalidate()
+        void revalidate()
     }, [cacheKey, enabled, ttlMs, revalidate])
 
     const clear = useCallback(() => {

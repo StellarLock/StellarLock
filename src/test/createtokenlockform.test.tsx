@@ -1,3 +1,4 @@
+import type { ReactNode } from "react"
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
@@ -18,7 +19,7 @@ vi.mock("@stellar/stellar-sdk", () => ({
 const mockUseWallet = vi.fn()
 vi.mock("@/hooks/useWallet", () => ({
   useWallet: () => mockUseWallet() as unknown as Record<string, unknown>,
-  WalletProvider: ({ children }: any) => children,
+  WalletProvider: ({ children }: { children: ReactNode }) => children,
 }))
 
 const mockUseTokenBalance = vi.fn()

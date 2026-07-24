@@ -16,7 +16,7 @@ import { createLogger } from "@/lib/logger"
 
 const log = createLogger("stellar")
 
-const envNetwork = (import.meta.env.VITE_NETWORK || "testnet").toLowerCase()
+const envNetwork = ((import.meta.env.VITE_NETWORK as string | undefined) || "testnet").toLowerCase()
 const isMainnet = envNetwork === "mainnet" || envNetwork === "public"
 
 const defaultRpcUrl = isMainnet
@@ -29,8 +29,8 @@ const defaultHorizonUrl = isMainnet
 export const NETWORK = {
   id: isMainnet ? "mainnet" : "testnet",
   passphrase: isMainnet ? Networks.PUBLIC : Networks.TESTNET,
-  rpcUrl: import.meta.env.VITE_RPC_URL || defaultRpcUrl,
-  horizonUrl: import.meta.env.VITE_HORIZON_URL || defaultHorizonUrl,
+  rpcUrl: (import.meta.env.VITE_RPC_URL as string | undefined) || defaultRpcUrl,
+  horizonUrl: (import.meta.env.VITE_HORIZON_URL as string | undefined) || defaultHorizonUrl,
   networkName: isMainnet ? "public" : "testnet",
   displayName: isMainnet ? "Mainnet" : "Testnet",
 }
@@ -58,9 +58,9 @@ type SimulateArg = Parameters<SorobanRpc.Server["simulateTransaction"]>[0]
 
 class RpcClient {
   private readonly server: SorobanRpc.Server
-  // In-flight deduplication: XDR key → promise
+  // In-flight deduplication: cache key → promise
   private readonly inflight = new Map<string, Promise<SorobanRpc.Api.SimulateTransactionResponse>>()
-  // Response cache: XDR key → { data, expiry }
+  // Response cache: cache key → { data, expiry }
   private readonly cache = new Map<string, { data: SorobanRpc.Api.SimulateTransactionResponse; expiry: number }>()
   private activeCount = 0
   private readonly queue: Array<() => void> = []
@@ -71,10 +71,6 @@ class RpcClient {
 
   getServer(): SorobanRpc.Server {
     return this.server
-  }
-
-  private cacheKey(tx: SimulateArg): string {
-    return (tx as { toXDR(): string }).toXDR()
   }
 
   private async withConcurrencyLimit<T>(fn: () => Promise<T>): Promise<T> {
@@ -89,17 +85,19 @@ class RpcClient {
       }
     }
     return new Promise<T>((resolve, reject) => {
-      this.queue.push(async () => {
-        this.activeCount++
-        try {
-          resolve(await fn())
-        } catch (e) {
-          reject(e)
-        } finally {
-          this.activeCount--
-          const next = this.queue.shift()
-          if (next) next()
-        }
+      this.queue.push(() => {
+        void (async () => {
+          this.activeCount++
+          try {
+            resolve(await fn())
+          } catch (e) {
+            reject(e instanceof Error ? e : new Error(String(e)))
+          } finally {
+            this.activeCount--
+            const next = this.queue.shift()
+            if (next) next()
+          }
+        })()
       })
     })
   }
@@ -119,8 +117,16 @@ class RpcClient {
     throw lastErr
   }
 
-  async simulate(tx: SimulateArg, cacheTtlMs = CACHE_TTL_MS): Promise<SorobanRpc.Api.SimulateTransactionResponse> {
-    const key = this.cacheKey(tx)
+  // cacheKey must be caller-supplied rather than derived from tx.toXDR():
+  // TransactionBuilder.setTimeout() bakes the current wall-clock time into
+  // timeBounds.maxTime, so the XDR of an otherwise-identical call changes
+  // every second and would defeat both caching and dedup almost entirely.
+  async simulate(
+    tx: SimulateArg,
+    cacheKey: string,
+    cacheTtlMs = CACHE_TTL_MS,
+  ): Promise<SorobanRpc.Api.SimulateTransactionResponse> {
+    const key = cacheKey
 
     // Cache hit
     const cached = this.cache.get(key)
@@ -187,7 +193,7 @@ export async function simulateCall<T>(contractId: string, method: string, args: 
   const client = getClient()
 
   const dummySource = {
-    accountId: () => "GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN",
+    accountId: () => "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF",
     sequenceNumber: () => "0",
     incrementSequenceNumber: () => { },
   }
@@ -201,7 +207,8 @@ export async function simulateCall<T>(contractId: string, method: string, args: 
     .setTimeout(30)
     .build()
 
-  const result = await client.simulate(tx)
+  const cacheKey = `${contractId}:${method}:${args.map((a) => a.toXDR("base64")).join(",")}`
+  const result = await client.simulate(tx, cacheKey)
   log.debug("[simulateCall]", { method, result })
 
   if (SorobanRpc.Api.isSimulationError(result)) {
@@ -378,7 +385,7 @@ export async function estimateLockCost(
   const rpc = getRpc()
 
   const dummySource = {
-    accountId: () => "GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN",
+    accountId: () => "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF",
     sequenceNumber: () => "0",
     incrementSequenceNumber: () => { },
   }
@@ -449,4 +456,8 @@ export async function submitTokenApproval(
 
 export function explorerLink(address: string): string {
   return `https://stellar.expert/explorer/${NETWORK.networkName}/contract/${address}`
+}
+
+export function txExplorerLink(hash: string): string {
+  return `https://stellar.expert/explorer/${NETWORK.networkName}/tx/${hash}`
 }

@@ -17,6 +17,18 @@ interface EventPollingOptions {
   pollInterval?: number
 }
 
+interface RawSorobanEvent {
+  id?: string
+  ledger?: number
+  ledgerClosedAt?: string
+  topic?: string[]
+}
+
+interface GetEventsResponse {
+  error?: { message?: string }
+  result?: { events?: RawSorobanEvent[] }
+}
+
 const EVENT_POLL_INTERVAL = 3000
 
 export function useContractEvents(options: EventPollingOptions = {}) {
@@ -27,7 +39,7 @@ export function useContractEvents(options: EventPollingOptions = {}) {
 
   const fetchEvents = useCallback(async () => {
     try {
-      const rpc = import.meta.env.VITE_RPC_URL || NETWORK.rpcUrl
+      const rpc = (import.meta.env.VITE_RPC_URL as string | undefined) || NETWORK.rpcUrl
 
       const response = await fetch(rpc, {
         method: "POST",
@@ -53,13 +65,13 @@ export function useContractEvents(options: EventPollingOptions = {}) {
         return
       }
 
-      const data = await response.json()
+      const data = (await response.json()) as GetEventsResponse
       if (data.error) {
         log.error("[getEvents error]", { error: data.error })
         return
       }
 
-      const responseEvents = data.result?.events || []
+      const responseEvents = data.result?.events ?? []
       for (const event of responseEvents) {
         if (!event.topic || event.topic.length < 1) continue
 
@@ -95,8 +107,8 @@ export function useContractEvents(options: EventPollingOptions = {}) {
   }, [onEvent])
 
   useEffect(() => {
-    fetchEvents()
-    pollIntervalRef.current = setInterval(fetchEvents, pollInterval)
+    void fetchEvents()
+    pollIntervalRef.current = setInterval(() => void fetchEvents(), pollInterval)
 
     return () => {
       if (pollIntervalRef.current) {

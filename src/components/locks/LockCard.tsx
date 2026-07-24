@@ -25,7 +25,12 @@ export function LockCard({ lock, selectable = false, selected = false, onSelect 
   const verified = useVerifiedToken(lock.token.address)
 
   const inner = (
-    <Card className={cn("p-5 transition-colors hover:border-primary/40", selected && "border-primary ring-1 ring-primary/40")}>
+    <Card
+      className={cn(
+        "p-5 transition-colors hover:border-primary/40",
+        selected && "border-primary ring-1 ring-primary/40",
+      )}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           {selectable && (
@@ -62,7 +67,7 @@ export function LockCard({ lock, selectable = false, selected = false, onSelect 
             <span className="text-sm font-normal text-muted-foreground">({formatUsd(lock.usdValue)})</span>
           </p>
         </div>
-        <div className="text-right">
+        <div className="text-end">
           <p className="text-xs text-muted-foreground">{t("lockCard.unlocksIn")}</p>
           <CountdownTimer target={lock.unlockAt} compact className="text-sm font-medium" />
         </div>

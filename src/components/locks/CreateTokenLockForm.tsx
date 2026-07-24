@@ -11,7 +11,12 @@ import { useTokenBalance, useTokenAllowance } from "@/hooks/useLocks"
 import { createTokenLock } from "@/lib/token-locker"
 import { createSplitLock, type SplitBeneficiary } from "@/lib/split-lock"
 import { trackEvent } from "@/lib/analytics"
-import { cn, formatDate, formatError, isValidStellarAddress } from "@/lib/utils"
+import { addTransaction } from "@/lib/transaction-history"
+import { cn, formatDate, isValidStellarAddress } from "@/lib/utils"
+import { sanitizeError } from "@/lib/error-sanitizer"
+import type { StructuredError } from "@/lib/errors"
+import { TxErrorAlert } from "@/components/ui/TxErrorAlert"
+import { useAnnouncer } from "@/hooks/useAnnouncer"
 import { CONTRACTS, type TxPhase, submitTokenApproval, isValidStellarContractAddress } from "@/lib/stellar"
 import { ConfirmLockModal } from "@/components/locks/ConfirmLockModal"
 import { CostEstimate } from "@/components/locks/CostEstimate"
@@ -33,6 +38,7 @@ interface VestingTemplateConfig {
 
 export function CreateTokenLockForm() {
   const { t } = useTranslation()
+  const { announce } = useAnnouncer()
   const { address, signTransaction } = useWallet()
   const navigate = useNavigate()
 
@@ -46,7 +52,7 @@ export function CreateTokenLockForm() {
   const [submitting, setSubmitting] = useState(false)
   const [approving, setApproving] = useState(false)
   const [txPhase, setTxPhase] = useState<TxPhase | "idle">("idle")
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<StructuredError | null>(null)
   const [showConfirm, setShowConfirm] = useState(false)
   const [metaOpen, setMetaOpen] = useState(false)
   const [description, setDescription] = useState("")
@@ -129,10 +135,7 @@ export function CreateTokenLockForm() {
     splitBeneficiaries.reduce((s, b) => s + b.shareBps, 0) === 10_000
 
   const valid =
-    tokenAddressValid &&
-    Number(amount) > 0 &&
-    unlockTs > Date.now() &&
-    (multiMode ? splitSharesOk : beneficiaryValid)
+    tokenAddressValid && Number(amount) > 0 && unlockTs > Date.now() && (multiMode ? splitSharesOk : beneficiaryValid)
 
   // Build the contract args for cost estimation when form is sufficiently filled in
   const costArgs = useMemo((): xdr.ScVal[] | null => {
@@ -197,6 +200,14 @@ export function CreateTokenLockForm() {
     }
   }
 
+  // Sanitize before display so raw RPC/Soroban text never reaches the UI, and
+  // announce the failure for screen readers.
+  function reportFailure(err: unknown) {
+    const structured = sanitizeError(err)
+    setError(structured)
+    announce(`${t(structured.title)}. ${t(structured.message)}`, "assertive")
+  }
+
   function submit(e: FormEvent) {
     e.preventDefault()
     if (!valid) return
@@ -223,7 +234,7 @@ export function CreateTokenLockForm() {
         trackEvent("lock_create_split", { count: splitBeneficiaries.length, vesting })
         localStorage.setItem(COOLDOWN_KEY, String(Date.now()))
         setCooldownRemaining(COOLDOWN_SECONDS)
-        navigate("/app/locks")
+        void navigate("/app/locks")
       } else {
         const { id, txHash } = await createTokenLock(
           {
@@ -232,15 +243,21 @@ export function CreateTokenLockForm() {
             beneficiary: beneficiary.trim() || address!,
             unlockAt: Math.floor(unlockTs / 1000),
             vesting: vesting ? { start: Math.floor(Date.now() / 1000), end: Math.floor(unlockTs / 1000) } : undefined,
+            metadata: {
+              description: description.trim(),
+              projectUrl: projectUrl.trim(),
+              logoUrl: logoUrl.trim(),
+            },
           },
           address!,
           signTransaction,
           setTxPhase,
         )
+        addTransaction(txHash, "create_lock", { lockId: id, amount: String(amount) })
         trackEvent("lock_create_token", { vesting })
         localStorage.setItem(COOLDOWN_KEY, String(Date.now()))
         setCooldownRemaining(COOLDOWN_SECONDS)
-        navigate("/app/lock-created", {
+        void navigate("/app/lock-created", {
           state: {
             lockId: id,
             lockKind: "token",
@@ -258,7 +275,7 @@ export function CreateTokenLockForm() {
     } catch (err: unknown) {
       log.error("[createLock error]", err)
       setShowConfirm(false)
-      setError(formatError(err))
+      reportFailure(err)
     } finally {
       setSubmitting(false)
       setTxPhase("idle")
@@ -279,13 +296,7 @@ export function CreateTokenLockForm() {
       trackEvent("token_approve")
     } catch (err: unknown) {
       log.error("[approve error]", err)
-      if (err instanceof Error) {
-        setError(err.message)
-      } else if (typeof err === "object" && err !== null) {
-        setError(JSON.stringify(err, null, 2))
-      } else {
-        setError(String(err))
-      }
+      reportFailure(err)
     } finally {
       setApproving(false)
     }
@@ -293,332 +304,327 @@ export function CreateTokenLockForm() {
 
   return (
     <>
-    <form onSubmit={submit} className="flex flex-col gap-5">
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="token">{t("tokenForm.tokenAddress")}</Label>
-        <Input
-          id="token"
-          placeholder={t("tokenForm.tokenPlaceholder")}
-          value={tokenAddress}
-          onChange={(e) => setTokenAddress(e.target.value)}
-          className="font-mono"
-          aria-invalid={!!trimmedTokenAddress && !tokenAddressValid}
-        />
-        <p className="text-xs text-muted-foreground">{t("tokenForm.tokenHint")}</p>
-      </div>
-
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center justify-between">
-          <Label htmlFor="amount">{t("tokenForm.amount")}</Label>
-          {validTokenAddress && (
-            <span className="flex items-center gap-1 text-xs text-muted-foreground">
-              {balanceLoading || allowanceLoading ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
-              ) : balance != null ? (
-                <>
-                  {t("tokenForm.balance")}: {balance.toLocaleString(undefined, { maximumFractionDigits: 7 })}
-                </>
-              ) : null}
-            </span>
-          )}
-        </div>
-        <div className="flex gap-2">
+      <form onSubmit={submit} className="flex flex-col gap-5">
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="token">{t("tokenForm.tokenAddress")}</Label>
           <Input
-            id="amount"
-            type="number"
-            inputMode="decimal"
-            min="0"
-            step="any"
-            placeholder="0.00"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            className="flex-1"
+            id="token"
+            placeholder={t("tokenForm.tokenPlaceholder")}
+            value={tokenAddress}
+            onChange={(e) => setTokenAddress(e.target.value)}
+            className="font-mono"
+            aria-invalid={!!trimmedTokenAddress && !tokenAddressValid}
           />
-          {balance != null && balance > 0 && (
-            <button
-              type="button"
-              onClick={() => setAmount(String(balance))}
-              className="rounded-lg border border-border bg-secondary px-3 py-2 text-xs font-medium transition-colors hover:border-primary/40 cursor-pointer"
-            >
-              {t("tokenForm.max")}
-            </button>
-          )}
+          <p className="text-xs text-muted-foreground">{t("tokenForm.tokenHint")}</p>
         </div>
-      </div>
 
-      {/* Multiple beneficiaries toggle */}
-      <label className={cn(
-        "flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors",
-        multiMode ? "border-primary/40 bg-primary/5" : "border-border bg-background/40",
-      )}>
-        <input
-          type="checkbox"
-          checked={multiMode}
-          onChange={(e) => setMultiMode(e.target.checked)}
-          className="mt-0.5 h-4 w-4 accent-[oklch(0.78_0.16_175)]"
-        />
-        <span className="text-sm">
-          <span className="flex items-center gap-1.5 font-medium">
-            <Users className="h-3.5 w-3.5" />
-            {t("splitLock.toggle")}
-          </span>
-          <span className="block text-muted-foreground">{t("splitLock.toggleDesc")}</span>
-        </span>
-      </label>
-
-      {multiMode ? (
-        <MultiBeneficiaryFields beneficiaries={splitBeneficiaries} onChange={setSplitBeneficiaries} />
-      ) : (
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
-            <Label htmlFor="beneficiary">{t("tokenForm.beneficiary")}</Label>
-            <button
-              type="button"
-              onClick={() => setAddressBookOpen(true)}
-              className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-              title="Open address book"
-            >
-              <BookUser className="h-3.5 w-3.5" />
-              Address Book
-            </button>
+            <Label htmlFor="amount">{t("tokenForm.amount")}</Label>
+            {validTokenAddress && (
+              <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                {balanceLoading || allowanceLoading ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : balance != null ? (
+                  <>
+                    {t("tokenForm.balance")}: {balance.toLocaleString(undefined, { maximumFractionDigits: 7 })}
+                  </>
+                ) : null}
+              </span>
+            )}
           </div>
-          <Input
-            id="beneficiary"
-            placeholder={address ?? "G…"}
-            value={beneficiary}
-            onChange={(e) => setBeneficiary(e.target.value)}
-            aria-invalid={!!trimmedBeneficiary && !beneficiaryValid}
-          />
-          <p className="text-xs text-muted-foreground">{t("tokenForm.beneficiaryHint")}</p>
-        </div>
-      )}
-      {addressBookOpen && (
-        <AddressBookModal
-          onSelect={(entry) => setBeneficiary(entry.address)}
-          onClose={() => setAddressBookOpen(false)}
-        />
-      )}
-
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="unlock">{t("tokenForm.unlockDate")}</Label>
-        <Input
-          id="unlock"
-          type="date"
-          min={minDate}
-          value={unlockDate}
-          onChange={(e) => setUnlockDate(e.target.value)}
-        />
-        <div className="flex flex-wrap gap-2">
-          {presets.map((p) => (
-            <button
-              key={p.days}
-              type="button"
-              onClick={() => applyPreset(p.days)}
-              className="rounded-full border border-border bg-secondary px-3 py-1 text-xs font-medium transition-colors hover:border-primary/40 cursor-pointer"
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="vestingTemplate">{t("tokenForm.vestingTemplate")}</Label>
-        <select
-          id="vestingTemplate"
-          value={vestingTemplate}
-          onChange={(e) => applyVestingTemplate(e.target.value as VestingTemplate)}
-          className="rounded-lg border border-border bg-background px-3 py-2 text-sm transition-colors hover:border-border/80"
-        >
-          <option value="none">{t("tokenForm.vestingTemplateCustom")}</option>
-          <option value="linear6m">{t("tokenForm.vestingTemplateLinear6m")}</option>
-          <option value="linear1y">{t("tokenForm.vestingTemplateLinear1y")}</option>
-          <option value="linear2y">{t("tokenForm.vestingTemplateLinear2y")}</option>
-          <option value="quarterly">{t("tokenForm.vestingTemplateQuarterly")}</option>
-        </select>
-        <p className="text-xs text-muted-foreground">{t("tokenForm.vestingTemplateHint")}</p>
-      </div>
-
-      {vesting && vestingTemplate !== "none" && (
-        <div className="flex flex-col gap-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
-          <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-primary" />
-            <span className="text-sm font-medium">{t("tokenForm.vestingLabel")}</span>
-          </div>
-          <div className="space-y-2 text-sm">
-            <p>
-              <span className="text-muted-foreground">{t("tokenForm.vestingStart")}: </span>
-              <span className="font-medium">{vestingStartDate || formatDate(Date.now())}</span>
-            </p>
-            <p>
-              <span className="text-muted-foreground">{t("tokenForm.vestingEnd")}: </span>
-              <span className="font-medium">{unlockDate ? formatDate(new Date(unlockDate).getTime()) : "—"}</span>
-            </p>
-            {vestingTemplate === "quarterly" && (
-              <div className="mt-2 space-y-1 border-t border-primary/20 pt-2">
-                <p className="text-xs text-muted-foreground">Release schedule:</p>
-                <div className="flex gap-2 text-xs">
-                  {[1, 2, 3, 4].map((quarter) => {
-                    const startTs = vestingStartTs || Date.now()
-                    const endTs = unlockTs || Date.now()
-                    const quarterDuration = (endTs - startTs) / 4
-                    const releaseDate = new Date(startTs + quarterDuration * quarter)
-                    return (
-                      <span key={quarter} className="rounded bg-primary/10 px-2 py-1">
-                        Q{quarter}: {formatDate(releaseDate.getTime())}
-                      </span>
-                    )
-                  })}
-                </div>
-              </div>
+          <div className="flex gap-2">
+            <Input
+              id="amount"
+              type="number"
+              inputMode="decimal"
+              min="0"
+              step="any"
+              placeholder="0.00"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              className="flex-1"
+            />
+            {balance != null && balance > 0 && (
+              <button
+                type="button"
+                onClick={() => setAmount(String(balance))}
+                className="rounded-lg border border-border bg-secondary px-3 py-2 text-xs font-medium transition-colors hover:border-primary/40 cursor-pointer"
+              >
+                {t("tokenForm.max")}
+              </button>
             )}
           </div>
         </div>
-      )}
 
-      {vesting && vestingTemplate === "none" && (
-        <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-background/40 p-3">
+        {/* Multiple beneficiaries toggle */}
+        <label
+          className={cn(
+            "flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors",
+            multiMode ? "border-primary/40 bg-primary/5" : "border-border bg-background/40",
+          )}
+        >
           <input
             type="checkbox"
-            checked={vesting}
-            onChange={(e) => setVesting(e.target.checked)}
+            checked={multiMode}
+            onChange={(e) => setMultiMode(e.target.checked)}
             className="mt-0.5 h-4 w-4 accent-[oklch(0.78_0.16_175)]"
           />
           <span className="text-sm">
-            <span className="font-medium">{t("tokenForm.vestingLabel")}</span>
-            <span className="block text-muted-foreground">{t("tokenForm.vestingDesc")}</span>
+            <span className="flex items-center gap-1.5 font-medium">
+              <Users className="h-3.5 w-3.5" />
+              {t("splitLock.toggle")}
+            </span>
+            <span className="block text-muted-foreground">{t("splitLock.toggleDesc")}</span>
           </span>
         </label>
-      )}
 
-      {/* Lock Details (optional metadata) */}
-      <div className="rounded-lg border border-border">
-        <button
-          type="button"
-          onClick={() => setMetaOpen((v) => !v)}
-          className="flex w-full items-center justify-between px-4 py-3 text-sm font-medium transition-colors hover:bg-secondary/40"
-          aria-expanded={metaOpen}
-        >
-          <span>Lock Details <span className="ml-1 text-xs font-normal text-muted-foreground">(optional)</span></span>
-          {metaOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
-        </button>
-
-        {metaOpen && (
-          <div className="flex flex-col gap-4 border-t border-border px-4 pb-4 pt-3">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="meta-desc">Description</Label>
-              <textarea
-                id="meta-desc"
-                rows={3}
-                maxLength={280}
-                placeholder="Why is this lock being created? (e.g. Team tokens locked for 2 years)"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-              />
-              <p className="text-right text-xs text-muted-foreground">{description.length}/280</p>
+        {multiMode ? (
+          <MultiBeneficiaryFields beneficiaries={splitBeneficiaries} onChange={setSplitBeneficiaries} />
+        ) : (
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="beneficiary">{t("tokenForm.beneficiary")}</Label>
+              <button
+                type="button"
+                onClick={() => setAddressBookOpen(true)}
+                className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                title="Open address book"
+              >
+                <BookUser className="h-3.5 w-3.5" />
+                Address Book
+              </button>
             </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="meta-url">Project URL</Label>
-              <Input
-                id="meta-url"
-                type="url"
-                placeholder="https://your-project.com"
-                value={projectUrl}
-                onChange={(e) => setProjectUrl(e.target.value)}
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="meta-logo">Logo URL</Label>
-              <Input
-                id="meta-logo"
-                type="url"
-                placeholder="https://your-project.com/logo.png"
-                value={logoUrl}
-                onChange={(e) => setLogoUrl(e.target.value)}
-              />
-            </div>
+            <Input
+              id="beneficiary"
+              placeholder={address ?? "G…"}
+              value={beneficiary}
+              onChange={(e) => setBeneficiary(e.target.value)}
+              aria-invalid={!!trimmedBeneficiary && !beneficiaryValid}
+            />
+            <p className="text-xs text-muted-foreground">{t("tokenForm.beneficiaryHint")}</p>
           </div>
         )}
-      </div>
+        {addressBookOpen && (
+          <AddressBookModal
+            onSelect={(entry) => setBeneficiary(entry.address)}
+            onClose={() => setAddressBookOpen(false)}
+          />
+        )}
 
-      <div className="flex items-start gap-2 rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm text-muted-foreground">
-        <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-        <span>
-          {t("tokenForm.lockInfo")}
-          {unlockTs > Date.now() && (
-            <>
-              {" "}
-              <Trans i18nKey="tokenForm.fundsUnlockOn" values={{ date: formatDate(unlockTs) }}>
-                Funds unlock on{" "}
-                <span className="font-medium text-foreground">
-                  {{ date: formatDate(unlockTs) } as unknown as string}
-                </span>
-                .
-              </Trans>
-            </>
-          )}
-        </span>
-      </div>
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="unlock">{t("tokenForm.unlockDate")}</Label>
+          <Input
+            id="unlock"
+            type="date"
+            min={minDate}
+            value={unlockDate}
+            onChange={(e) => setUnlockDate(e.target.value)}
+          />
+          <div className="flex flex-wrap gap-2">
+            {presets.map((p) => (
+              <button
+                key={p.days}
+                type="button"
+                onClick={() => applyPreset(p.days)}
+                className="rounded-full border border-border bg-secondary px-3 py-1 text-xs font-medium transition-colors hover:border-primary/40 cursor-pointer"
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+        </div>
 
-      <div aria-live="polite" aria-atomic="true">
-        {error && (
-          <div
-            role="alert"
-            className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="vestingTemplate">{t("tokenForm.vestingTemplate")}</Label>
+          <select
+            id="vestingTemplate"
+            value={vestingTemplate}
+            onChange={(e) => applyVestingTemplate(e.target.value as VestingTemplate)}
+            className="rounded-lg border border-border bg-background px-3 py-2 text-sm transition-colors hover:border-border/80"
           >
-            {error}
+            <option value="none">{t("tokenForm.vestingTemplateCustom")}</option>
+            <option value="linear6m">{t("tokenForm.vestingTemplateLinear6m")}</option>
+            <option value="linear1y">{t("tokenForm.vestingTemplateLinear1y")}</option>
+            <option value="linear2y">{t("tokenForm.vestingTemplateLinear2y")}</option>
+            <option value="quarterly">{t("tokenForm.vestingTemplateQuarterly")}</option>
+          </select>
+          <p className="text-xs text-muted-foreground">{t("tokenForm.vestingTemplateHint")}</p>
+        </div>
+
+        {vesting && vestingTemplate !== "none" && (
+          <div className="flex flex-col gap-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium">{t("tokenForm.vestingLabel")}</span>
+            </div>
+            <div className="space-y-2 text-sm">
+              <p>
+                <span className="text-muted-foreground">{t("tokenForm.vestingStart")}: </span>
+                <span className="font-medium">{vestingStartDate || formatDate(Date.now())}</span>
+              </p>
+              <p>
+                <span className="text-muted-foreground">{t("tokenForm.vestingEnd")}: </span>
+                <span className="font-medium">{unlockDate ? formatDate(new Date(unlockDate).getTime()) : "—"}</span>
+              </p>
+              {vestingTemplate === "quarterly" && (
+                <div className="mt-2 space-y-1 border-t border-primary/20 pt-2">
+                  <p className="text-xs text-muted-foreground">Release schedule:</p>
+                  <div className="flex gap-2 text-xs">
+                    {[1, 2, 3, 4].map((quarter) => {
+                      const startTs = vestingStartTs || Date.now()
+                      const endTs = unlockTs || Date.now()
+                      const quarterDuration = (endTs - startTs) / 4
+                      const releaseDate = new Date(startTs + quarterDuration * quarter)
+                      return (
+                        <span key={quarter} className="rounded bg-primary/10 px-2 py-1">
+                          Q{quarter}: {formatDate(releaseDate.getTime())}
+                        </span>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         )}
-      </div>
 
-      <CostEstimate
-        contractId={CONTRACTS.tokenLocker}
-        method="create_lock"
-        args={costArgs}
-      />
+        {vesting && vestingTemplate === "none" && (
+          <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-background/40 p-3">
+            <input
+              type="checkbox"
+              checked={vesting}
+              onChange={(e) => setVesting(e.target.checked)}
+              className="mt-0.5 h-4 w-4 accent-[oklch(0.78_0.16_175)]"
+            />
+            <span className="text-sm">
+              <span className="font-medium">{t("tokenForm.vestingLabel")}</span>
+              <span className="block text-muted-foreground">{t("tokenForm.vestingDesc")}</span>
+            </span>
+          </label>
+        )}
 
-      {cooldownRemaining > 0 && (
-        <div className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-muted-foreground">
-          <Timer className="h-4 w-4 shrink-0 text-primary animate-pulse" />
+        {/* Lock Details (optional metadata) */}
+        <div className="rounded-lg border border-border">
+          <button
+            type="button"
+            onClick={() => setMetaOpen((v) => !v)}
+            className="flex w-full items-center justify-between px-4 py-3 text-sm font-medium transition-colors hover:bg-secondary/40"
+            aria-expanded={metaOpen}
+          >
+            <span>
+              Lock Details <span className="ms-1 text-xs font-normal text-muted-foreground">(optional)</span>
+            </span>
+            {metaOpen ? (
+              <ChevronUp className="h-4 w-4 text-muted-foreground" />
+            ) : (
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            )}
+          </button>
+
+          {metaOpen && (
+            <div className="flex flex-col gap-4 border-t border-border px-4 pb-4 pt-3">
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="meta-desc">Description</Label>
+                <textarea
+                  id="meta-desc"
+                  rows={3}
+                  maxLength={280}
+                  placeholder="Why is this lock being created? (e.g. Team tokens locked for 2 years)"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+                <p className="text-end text-xs text-muted-foreground">{description.length}/280</p>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="meta-url">Project URL</Label>
+                <Input
+                  id="meta-url"
+                  type="url"
+                  placeholder="https://your-project.com"
+                  value={projectUrl}
+                  onChange={(e) => setProjectUrl(e.target.value)}
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="meta-logo">Logo URL</Label>
+                <Input
+                  id="meta-logo"
+                  type="url"
+                  placeholder="https://your-project.com/logo.png"
+                  value={logoUrl}
+                  onChange={(e) => setLogoUrl(e.target.value)}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-start gap-2 rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm text-muted-foreground">
+          <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
           <span>
-            Rate limit: next lock available in{" "}
-            <span className="font-semibold tabular-nums text-foreground">{cooldownRemaining}s</span>
+            {t("tokenForm.lockInfo")}
+            {unlockTs > Date.now() && (
+              <>
+                {" "}
+                <Trans i18nKey="tokenForm.fundsUnlockOn" values={{ date: formatDate(unlockTs) }}>
+                  Funds unlock on{" "}
+                  <span className="font-medium text-foreground">
+                    {{ date: formatDate(unlockTs) } as unknown as string}
+                  </span>
+                  .
+                </Trans>
+              </>
+            )}
           </span>
         </div>
+
+        <TxErrorAlert error={error} />
+
+        <CostEstimate contractId={CONTRACTS.tokenLocker} method="create_lock" args={costArgs} />
+
+        {cooldownRemaining > 0 && (
+          <div className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-muted-foreground">
+            <Timer className="h-4 w-4 shrink-0 text-primary animate-pulse" />
+            <span>
+              Rate limit: next lock available in{" "}
+              <span className="font-semibold tabular-nums text-foreground">{cooldownRemaining}s</span>
+            </span>
+          </div>
+        )}
+
+        <Button type="submit" size="lg" loading={submitting} disabled={!valid || cooldownRemaining > 0}>
+          <Lock className="h-4 w-4" />
+          {multiMode ? t("splitLock.submit") : t("tokenForm.submit")}
+          {cooldownRemaining > 0 ? `Wait ${cooldownRemaining}s…` : t("tokenForm.submit")}
+        </Button>
+      </form>
+
+      {showConfirm && (
+        <>
+          <ConfirmLockModal
+            data={{
+              tokenAddress: tokenAddress.trim(),
+              amount: amount,
+              beneficiary: beneficiary.trim() || address!,
+              unlockDate: unlockDate,
+              vesting,
+              balance,
+              allowance,
+              needsApproval: allowance != null && allowance < Number(amount),
+            }}
+            onConfirm={() => void confirmLock()}
+            onApprove={() => void handleApprove()}
+            onCancel={() => setShowConfirm(false)}
+            loading={submitting}
+            approving={approving}
+          />
+          <div className="fixed bottom-6 left-1/2 z-50 w-full max-w-sm -translate-x-1/2 px-4">
+            <TxProgressSteps phase={txPhase} />
+          </div>
+        </>
       )}
-
-      <Button type="submit" size="lg" loading={submitting} disabled={!valid || cooldownRemaining > 0}>
-        <Lock className="h-4 w-4" />
-        {multiMode ? t("splitLock.submit") : t("tokenForm.submit")}
-        {cooldownRemaining > 0 ? `Wait ${cooldownRemaining}s…` : t("tokenForm.submit")}
-      </Button>
-    </form>
-
-    {showConfirm && (
-      <>
-        <ConfirmLockModal
-          data={{
-            tokenAddress: tokenAddress.trim(),
-            amount: amount,
-            beneficiary: beneficiary.trim() || address!,
-            unlockDate: unlockDate,
-            vesting,
-            balance,
-            allowance,
-            needsApproval: allowance != null && allowance < Number(amount),
-          }}
-          onConfirm={confirmLock}
-          onApprove={handleApprove}
-          onCancel={() => setShowConfirm(false)}
-          loading={submitting}
-          approving={approving}
-        />
-        <div className="fixed bottom-6 left-1/2 z-50 w-full max-w-sm -translate-x-1/2 px-4">
-          <TxProgressSteps phase={txPhase} />
-        </div>
-      </>
-    )}
-  </>
+    </>
   )
 }

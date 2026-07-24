@@ -23,9 +23,9 @@ export function SkeletonLockCard() {
           <Skeleton className="h-3 w-16" />
           <Skeleton className="h-5 w-32" />
         </div>
-        <div className="space-y-2 text-right">
-          <Skeleton className="h-3 w-20 ml-auto" />
-          <Skeleton className="h-5 w-24 ml-auto" />
+        <div className="space-y-2 text-end">
+          <Skeleton className="h-3 w-20 ms-auto" />
+          <Skeleton className="h-5 w-24 ms-auto" />
         </div>
       </div>
 

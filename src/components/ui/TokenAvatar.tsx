@@ -43,7 +43,9 @@ export function TokenAvatar({
 
   useEffect(() => {
     if (!contractId) return
-    getTokenMetadata(contractId).then(setMetadata).catch(() => setMetadata(null))
+    getTokenMetadata(contractId)
+      .then(setMetadata)
+      .catch(() => setMetadata(null))
   }, [contractId])
 
   const hasLogo = metadata?.logo && !imageError
@@ -59,7 +61,7 @@ export function TokenAvatar({
           onError={() => setImageError(true)}
         />
         {isVerified && (
-          <div className={cn("absolute -bottom-0.5 -right-0.5 rounded-full bg-green-500 p-0.5", BADGE_SIZES[size])}>
+          <div className={cn("absolute -bottom-0.5 -end-0.5 rounded-full bg-green-500 p-0.5", BADGE_SIZES[size])}>
             <Check className="h-full w-full text-white" strokeWidth={3} />
           </div>
         )}
@@ -71,7 +73,7 @@ export function TokenAvatar({
     <div className="relative">
       <Monogram symbol={symbol} size={size} className={className} />
       {isVerified && (
-        <div className={cn("absolute -bottom-0.5 -right-0.5 rounded-full bg-green-500 p-0.5", BADGE_SIZES[size])}>
+        <div className={cn("absolute -bottom-0.5 -end-0.5 rounded-full bg-green-500 p-0.5", BADGE_SIZES[size])}>
           <Check className="h-full w-full text-white" strokeWidth={3} />
         </div>
       )}

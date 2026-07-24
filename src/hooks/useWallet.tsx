@@ -103,7 +103,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    connectionCheckIntervalRef.current = setInterval(checkConnection, CONNECTION_CHECK_INTERVAL)
+    connectionCheckIntervalRef.current = setInterval(() => void checkConnection(), CONNECTION_CHECK_INTERVAL)
     return () => {
       if (connectionCheckIntervalRef.current) {
         clearInterval(connectionCheckIntervalRef.current)
@@ -121,37 +121,37 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     setConnectHelp(null)
 
     const k = getKit()
-    let lastError: unknown
 
     try {
       for (let attempt = 1; attempt <= 4; attempt++) {
         try {
           await new Promise<void>((resolve, reject) => {
-            k.openModal({
-              onWalletSelected: async (option) => {
-                try {
-                  k.setWallet(option.id)
-                  const { address: publicKey } = await k.getAddress()
-                  if (!publicKey) {
-                    reject(new Error("Wallet returned no public key"))
-                    return
+            void k.openModal({
+              onWalletSelected: (option) => {
+                void (async () => {
+                  try {
+                    k.setWallet(option.id)
+                    const { address: publicKey } = await k.getAddress()
+                    if (!publicKey) {
+                      reject(new Error("Wallet returned no public key"))
+                      return
+                    }
+                    setAddress(publicKey)
+                    localStorage.setItem(STORAGE_KEY, publicKey)
+                    localStorage.setItem(WALLET_ID_KEY, option.id)
+                    trackEvent("wallet_connect")
+                    setConnectState("success")
+                    resolve()
+                  } catch (err) {
+                    reject(err instanceof Error ? err : new Error(String(err)))
                   }
-                  setAddress(publicKey)
-                  localStorage.setItem(STORAGE_KEY, publicKey)
-                  localStorage.setItem(WALLET_ID_KEY, option.id)
-                  trackEvent("wallet_connect")
-                  setConnectState("success")
-                  resolve()
-                } catch (err) {
-                  reject(err)
-                }
+                })()
               },
               onClosed: () => reject(new Error("Connection cancelled")),
             })
           })
           return
         } catch (err: unknown) {
-          lastError = err
           if (attempt < 4) {
             const delay = 1000 * 2 ** (attempt - 1)
             setConnectState("retrying")

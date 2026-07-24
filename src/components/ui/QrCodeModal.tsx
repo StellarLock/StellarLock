@@ -123,7 +123,7 @@ export function QrCodeModal({ url, title = "Share Lock", onClose }: QrCodeModalP
             <Button
               variant="outline"
               className="flex-1"
-              onClick={handleCopy}
+              onClick={() => void handleCopy()}
               aria-label="Copy URL to clipboard"
             >
               {copied ? (

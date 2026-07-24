@@ -3,7 +3,7 @@ import { captureException, captureMessage, addBreadcrumb, setUserContext } from 
 
 describe("Sentry Error Tracking", () => {
   beforeEach(() => {
-    ;(window as any).Sentry = undefined
+    window.Sentry = undefined
     vi.stubEnv("PROD", true)
   })
 
@@ -32,12 +32,12 @@ describe("Sentry Error Tracking", () => {
     const mockSentry = {
       setUser: vi.fn(),
     }
-    ;(window as any).Sentry = mockSentry
+    window.Sentry = mockSentry as unknown as typeof window.Sentry
 
     setUserContext("GACW7OAQAAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAUEGBWQC")
 
     expect(mockSentry.setUser).toHaveBeenCalled()
-    const call = mockSentry.setUser.mock.calls[0]?.[0]
+    const call = mockSentry.setUser.mock.calls[0]?.[0] as { id: string }
     expect(call?.id).toBeDefined()
     expect(typeof call?.id).toBe("string")
     expect(call.id.length).toBeGreaterThan(0)
@@ -47,7 +47,7 @@ describe("Sentry Error Tracking", () => {
     const mockSentry = {
       setUser: vi.fn(),
     }
-    ;(window as any).Sentry = mockSentry
+    window.Sentry = mockSentry as unknown as typeof window.Sentry
 
     setUserContext()
 
@@ -58,7 +58,7 @@ describe("Sentry Error Tracking", () => {
     const mockSentry = {
       captureException: vi.fn(),
     }
-    ;(window as any).Sentry = mockSentry
+    window.Sentry = mockSentry as unknown as typeof window.Sentry
 
     const error = new Error("Test error")
     captureException(error, { lockId: "123", network: "testnet" })

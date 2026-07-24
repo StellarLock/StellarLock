@@ -14,11 +14,11 @@ type EventName =
 type EventProps = Record<string, string | number | boolean>
 
 function getPlausibleDomain(): string | undefined {
-  return import.meta.env.VITE_PLAUSIBLE_DOMAIN
+  return import.meta.env.VITE_PLAUSIBLE_DOMAIN as string | undefined
 }
 
 function getPlausibleApiHost(): string {
-  return import.meta.env.VITE_PLAUSIBLE_API_HOST || "https://plausible.io"
+  return (import.meta.env.VITE_PLAUSIBLE_API_HOST as string | undefined) || "https://plausible.io"
 }
 
 export function initAnalytics(): void {
@@ -28,7 +28,7 @@ export function initAnalytics(): void {
   const script = document.createElement("script")
   script.defer = true
   script.crossOrigin = "anonymous"
-  script.integrity = import.meta.env.VITE_PLAUSIBLE_INTEGRITY || ""
+  script.integrity = (import.meta.env.VITE_PLAUSIBLE_INTEGRITY as string | undefined) || ""
   script.dataset.domain = domain
   script.dataset.api = `${getPlausibleApiHost()}/api/event`
   script.src = `${getPlausibleApiHost()}/js/script.js`

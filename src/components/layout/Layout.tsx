@@ -14,7 +14,7 @@ export function Layout() {
     <div className="flex min-h-screen flex-col">
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground focus:outline-none"
+        className="sr-only focus:not-sr-only focus:fixed focus:start-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground focus:outline-none"
       >
         {t("common.skipToContent")}
       </a>
@@ -50,9 +50,10 @@ function Footer() {
           <Link to="/app/locks" className="hover:text-foreground">
             {t("nav.myLocks")}
           </Link>
-          <span className="rounded-md border border-border px-2 py-0.5 text-xs">
-            {t(`common.${NETWORK.id}`)}
-          </span>
+          <Link to="/app/history" className="hover:text-foreground">
+            {t("nav.history")}
+          </Link>
+          <span className="rounded-md border border-border px-2 py-0.5 text-xs">{t(`common.${NETWORK.id}`)}</span>
         </div>
       </div>
     </footer>

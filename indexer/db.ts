@@ -50,6 +50,23 @@ export function initDb() {
     );
 
     CREATE INDEX IF NOT EXISTS idx_lock_events_ledger ON lock_events(ledger_seq);
+
+    CREATE TABLE IF NOT EXISTS notification_subscriptions (
+      id          TEXT PRIMARY KEY,
+      lock_id     TEXT NOT NULL,
+      address     TEXT NOT NULL,
+      email       TEXT,
+      webhook_url TEXT,
+      reminded_7d INTEGER DEFAULT 0,
+      reminded_1d INTEGER DEFAULT 0,
+      reminded_0d INTEGER DEFAULT 0,
+      created_at  INTEGER DEFAULT (unixepoch())
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_subs_lock    ON notification_subscriptions(lock_id);
+    CREATE INDEX IF NOT EXISTS idx_subs_address ON notification_subscriptions(address);
+    CREATE INDEX IF NOT EXISTS idx_subs_pending ON notification_subscriptions(reminded_0d)
+      WHERE reminded_0d = 0;
   `)
 }
 
