@@ -191,6 +191,25 @@ describe('lock indexer', () => {
     expect(restarted.getLastIndexed()).toBe(120)
   })
 
+  it('paginates locks for a token and reports the total independent of the page size', async () => {
+    const page = indexer.getLocksForTokenPage(tokenAddr, 0, 1)
+    expect(page.total).toBe(1)
+    expect(page.locks).toHaveLength(1)
+    expect(page.locks[0].id).toBe('token:1')
+
+    const emptyPage = indexer.getLocksForTokenPage(tokenAddr, 5, 10)
+    expect(emptyPage.total).toBe(1)
+    expect(emptyPage.locks).toHaveLength(0)
+  })
+
+  it('aggregates per-token totals across still-locked locks for cross-token views', () => {
+    const topTokens = indexer.getTopTokens()
+    // The token-locker lock was withdrawn in an earlier test, so only the
+    // still-locked LP lock (indexed under its pool-share address) remains.
+    expect(topTokens).toHaveLength(1)
+    expect(topTokens[0]).toMatchObject({ token: poolShareAddr, lockCount: 1, totalLocked: 250n })
+  })
+
   it('runs the polling loop on an interval via startPolling', async () => {
     vi.resetModules()
     const fresh: Indexer = await import('./index')

@@ -92,6 +92,19 @@ vi.mock("@/hooks/useLocks", () => ({
   useLockCountByToken: () => ({ data: 0, loading: false }),
   useTokenBalance: () => ({ data: null, loading: false }),
   useTokenAllowance: () => ({ data: null, loading: false }),
+  useDiscoverStats: () => ({
+    data: {
+      source: "mock",
+      totalLocks: 0,
+      totalValueLocked: 0,
+      uniqueTokens: 0,
+      recentLocks: [],
+      upcomingUnlocks: [],
+      tokenGroups: [],
+    },
+    loading: false,
+    error: null,
+  }),
 }))
 
 vi.mock("@/hooks/useRpcHealth", () => ({

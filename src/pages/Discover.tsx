@@ -10,35 +10,19 @@ import { StatusBadge } from "@/components/ui/StatusBadge"
 import { TokenAvatar } from "@/components/ui/TokenAvatar"
 import { RecentActivity } from "@/components/discover/RecentActivity"
 import { SkeletonStatCard, SkeletonLockCard } from "@/components/ui/Skeleton"
-import { MOCK_LOCKS, TOKENS } from "@/lib/mock-data"
+import { useDiscoverStats } from "@/hooks/useLocks"
 import { formatAmount, formatDate, formatUsd, shortAddress } from "@/lib/utils"
-
-const activeLocks = MOCK_LOCKS.filter((l) => l.status !== "withdrawn")
-const totalValueLocked = activeLocks.reduce((s, l) => s + l.usdValue, 0)
-const uniqueTokens = new Set(activeLocks.map((l) => l.token.address)).size
-
-const recentLocks = [...MOCK_LOCKS].sort((a, b) => b.createdAt - a.createdAt).slice(0, 5)
-
-const upcomingUnlocks = activeLocks
-  .filter((l) => l.status === "locked")
-  .sort((a, b) => a.unlockAt - b.unlockAt)
-  .slice(0, 5)
-
-const tokenGroups = Object.values(
-  activeLocks.reduce<Record<string, { token: (typeof activeLocks)[0]["token"]; count: number; totalValue: number }>>(
-    (acc, lock) => {
-      const key = lock.token.address
-      if (!acc[key]) acc[key] = { token: lock.token, count: 0, totalValue: 0 }
-      acc[key].count++
-      acc[key].totalValue += lock.usdValue
-      return acc
-    },
-    {},
-  ),
-).sort((a, b) => b.totalValue - a.totalValue)
 
 export function Discover() {
   const { t } = useTranslation()
+  const { data, loading } = useDiscoverStats()
+
+  const activeLocksCount = data?.totalLocks ?? 0
+  const totalValueLocked = data?.totalValueLocked ?? 0
+  const uniqueTokens = data?.uniqueTokens ?? 0
+  const recentLocks = data?.recentLocks ?? []
+  const upcomingUnlocks = data?.upcomingUnlocks ?? []
+  const tokenGroups = data?.tokenGroups ?? []
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
@@ -60,31 +44,46 @@ export function Discover() {
       </div>
 
       {/* Stats */}
-      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <StatCard
-          label={t("discover.totalLocks")}
-          value={String(activeLocks.length)}
-          hint={t("explorer.enforced")}
-          icon={<Lock className="h-4 w-4" />}
-        />
-        <StatCard
-          label={t("discover.totalValueLocked")}
-          value={formatUsd(totalValueLocked)}
-          hint={t("explorer.approxUsd")}
-          icon={<Coins className="h-4 w-4" />}
-        />
-        <StatCard
-          label={t("discover.tokensSecured")}
-          value={String(uniqueTokens)}
-          hint={t("explorer.enforced")}
-          icon={<ShieldCheck className="h-4 w-4" />}
-        />
-      </div>
+      {loading ? (
+        <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <SkeletonStatCard key={i} />
+          ))}
+        </div>
+      ) : (
+        <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <StatCard
+            label={t("discover.totalLocks")}
+            value={String(activeLocksCount)}
+            hint={t("explorer.enforced")}
+            icon={<Lock className="h-4 w-4" />}
+          />
+          <StatCard
+            label={t("discover.totalValueLocked")}
+            value={formatUsd(totalValueLocked)}
+            hint={t("explorer.approxUsd")}
+            icon={<Coins className="h-4 w-4" />}
+          />
+          <StatCard
+            label={t("discover.tokensSecured")}
+            value={String(uniqueTokens)}
+            hint={t("explorer.enforced")}
+            icon={<ShieldCheck className="h-4 w-4" />}
+          />
+        </div>
+      )}
 
       <div className="grid gap-8 lg:grid-cols-2">
         {/* Recent Locks */}
         <section>
           <h2 className="mb-4 text-lg font-semibold">{t("discover.recentLocks")}</h2>
+          {loading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <SkeletonLockCard key={i} />
+              ))}
+            </div>
+          ) : (
           <Card className="divide-y divide-border">
             {recentLocks.map((lock) => (
               <Link
@@ -108,11 +107,19 @@ export function Discover() {
               </Link>
             ))}
           </Card>
+          )}
         </section>
 
         {/* Upcoming Unlocks */}
         <section>
           <h2 className="mb-4 text-lg font-semibold">{t("discover.upcomingUnlocks")}</h2>
+          {loading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <SkeletonLockCard key={i} />
+              ))}
+            </div>
+          ) : (
           <Card className="divide-y divide-border">
             {upcomingUnlocks.map((lock) => (
               <Link
@@ -138,10 +145,12 @@ export function Discover() {
               </Link>
             ))}
           </Card>
+          )}
         </section>
       </div>
 
       {/* Featured Tokens */}
+      {tokenGroups.length > 0 && (
       <section className="mt-8">
         <h2 className="mb-4 text-lg font-semibold">{t("discover.featuredTokens")}</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -169,6 +178,7 @@ export function Discover() {
           ))}
         </div>
       </section>
+      )}
 
       {/* Recent Activity */}
       <RecentActivity />
