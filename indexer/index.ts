@@ -264,6 +264,51 @@ export function getLocksForToken(token: string): IndexedLock[] {
   return rows.map(rowToLock);
 }
 
+export interface LockPage {
+  locks: IndexedLock[];
+  total: number;
+}
+
+/** Paginated variant of getLocksForToken, for the HTTP API's lock-list endpoint. */
+export function getLocksForTokenPage(token: string, offset = 0, limit = 50): LockPage {
+  ensureDb();
+  const { total } = db.prepare('SELECT COUNT(*) AS total FROM locks WHERE token = ?').get(token) as { total: number };
+  const rows = db.prepare(
+    'SELECT * FROM locks WHERE token = ? ORDER BY created_at ASC LIMIT ? OFFSET ?'
+  ).all(token, limit, offset) as LockRow[];
+  return { locks: rows.map(rowToLock), total };
+}
+
+export interface TokenAggregate {
+  token: string;
+  lockCount: number;
+  totalLocked: bigint;
+}
+
+/**
+ * Per-token totals across all still-locked locks, sorted by amount locked
+ * (descending). Powers cross-token views (e.g. "top tokens by TVL") that a
+ * direct RPC client can't answer without iterating every lock.
+ */
+export function getTopTokens(limit = 50): TokenAggregate[] {
+  ensureDb();
+  const rows = db.prepare(
+    "SELECT token, amount FROM locks WHERE status = 'locked'"
+  ).all() as { token: string; amount: string }[];
+
+  const byToken = new Map<string, TokenAggregate>();
+  for (const r of rows) {
+    const entry = byToken.get(r.token) ?? { token: r.token, lockCount: 0, totalLocked: 0n };
+    entry.lockCount++;
+    entry.totalLocked += BigInt(r.amount);
+    byToken.set(r.token, entry);
+  }
+
+  return [...byToken.values()]
+    .sort((a, b) => (a.totalLocked === b.totalLocked ? 0 : a.totalLocked < b.totalLocked ? 1 : -1))
+    .slice(0, limit);
+}
+
 export function getLastIndexed(): number {
   ensureDb();
   return Number(getMeta(META_LAST_LEDGER) ?? 0);
