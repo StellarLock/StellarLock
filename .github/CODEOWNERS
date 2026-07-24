@@ -1,0 +1,25 @@
+# CODEOWNERS — GitHub uses this file to auto-request reviews from the right people.
+# Patterns follow .gitignore rules; last matching pattern wins.
+# Teams must be created in the StellarLock GitHub org before this takes effect.
+
+# Catch-all: any file not matched below requires core-team review
+* @StellarLock/core-team
+
+# Smart contract changes (Rust/WASM) — highest-risk area, require core-team sign-off
+/contracts/ @StellarLock/core-team
+
+# Stellar SDK integration and on-chain helpers
+/src/lib/ @StellarLock/core-team
+
+# Frontend — product/UI changes
+/src/ @StellarLock/frontend-team
+
+# CI/CD and repository configuration — require lead review
+/.github/ @StellarLock/lead
+/vercel.json @StellarLock/lead
+
+# Dependency manifests — any change to deps requires core-team awareness
+/package.json @StellarLock/core-team
+/pnpm-lock.yaml @StellarLock/core-team
+/contracts/Cargo.toml @StellarLock/core-team
+/contracts/Cargo.lock @StellarLock/core-team

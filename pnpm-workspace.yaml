@@ -1,5 +1,6 @@
 allowBuilds:
-  '@stellar/stellar-sdk': true
+  "@stellar/stellar-sdk": true
+  better-sqlite3: true
   blake-hash: true
   bufferutil: true
   protobufjs: true
@@ -7,3 +8,6 @@ allowBuilds:
   tiny-secp256k1: true
   usb: true
   utf-8-validate: true
+
+packages:
+  - '.'

@@ -8,13 +8,22 @@ const mockSignTransaction = vi.fn()
 
 vi.mock("@/hooks/useWallet", () => ({
   useWallet: () => ({
-    address: "GALICE000000000000000000000000000000000000000000000000",
+    address: "GALICE00000000000000000000000000000000000000000000000000",
     signTransaction: mockSignTransaction,
   }),
 }))
 
+vi.mock("@/hooks/useLocks", async () => {
+  const actual = await vi.importActual<typeof import("@/hooks/useLocks")>("@/hooks/useLocks")
+  return {
+    ...actual,
+    useTokenBalance: () => ({ data: null, loading: false }),
+    useTokenAllowance: () => ({ data: null, loading: false }),
+  }
+})
+
 vi.mock("@/lib/token-locker", () => ({
-  createTokenLock: vi.fn().mockResolvedValue({ id: "42", hash: "deadbeef" }),
+  createTokenLock: vi.fn().mockResolvedValue({ id: "42", txHash: "deadbeef" }),
 }))
 
 const addTransactionMock = vi.fn()
@@ -42,7 +51,7 @@ describe("CreateTokenLockForm", () => {
     )
 
     fireEvent.change(screen.getByLabelText(/token contract address/i), {
-      target: { value: "CTOKENADDRESS000000000000000000000000000000000000000000" },
+      target: { value: "CBFCKEOQRQIXKLGU4QBUQVOINOKFBOXJ37LXEKLKNUO6TW4FNGDU26AW" },
     })
     fireEvent.change(screen.getByLabelText(/amount to lock/i), { target: { value: "100" } })
 
@@ -51,19 +60,20 @@ describe("CreateTokenLockForm", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /lock tokens/i }))
 
+    const confirmButton = await screen.findByRole("button", { name: /confirm & lock/i })
+    fireEvent.click(confirmButton)
+
     await waitFor(() => {
       expect(addTransactionMock).toHaveBeenCalledTimes(1)
     })
 
-    expect(addTransactionMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        hash: "deadbeef",
-        action: "create_token_lock",
-        kind: "token",
-        lockId: "42",
-        amount: 100,
-      }),
+    expect(addTransactionMock).toHaveBeenCalledWith("deadbeef", "create_lock", {
+      lockId: "42",
+      amount: "100",
+    })
+    expect(navigateMock).toHaveBeenCalledWith(
+      "/app/lock-created",
+      expect.objectContaining({ state: expect.objectContaining({ lockId: "42", txHash: "deadbeef" }) }),
     )
-    expect(navigateMock).toHaveBeenCalledWith("/app/lock/42")
   })
 })

@@ -3,17 +3,23 @@
     "appName": "StellarLock",
     "tagline": "Bloqueos de tokens y LP en Stellar",
     "testnet": "Testnet",
+    "mainnet": "Mainnet",
     "loading": "Cargando…",
     "tryAgain": "Intentar de nuevo",
     "back": "Volver",
     "you": "Tú",
+    "stellar": "Stellar",
     "skipToContent": "Ir al contenido principal"
   },
   "nav": {
     "createLock": "Crear bloqueo",
     "myLocks": "Mis bloqueos",
+    "explore": "Explorar",
     "connectWallet": "Conectar billetera",
-    "disconnectWallet": "Desconectar billetera"
+    "disconnectWallet": "Desconectar billetera",
+    "openMenu": "Abrir menú",
+    "closeMenu": "Cerrar menú",
+    "history": "Historial"
   },
   "landing": {
     "badge": "Construido en Stellar · Contratos inteligentes Soroban",
@@ -65,11 +71,17 @@
     "vestingDesc": "Libera gradualmente desde ahora hasta la fecha de desbloqueo, en lugar de todo de una vez.",
     "lockInfo": "Los bloqueos son inmutables: puedes extender la fecha de desbloqueo después, pero nunca acortarla.",
     "fundsUnlockOn": "Los fondos se desbloquean el <1>{{date}}</1>.",
+    "balance": "Saldo",
+    "max": "Máx",
     "submit": "Bloquear tokens",
     "days30": "30 días",
     "days90": "90 días",
     "months6": "6 meses",
-    "year1": "1 año"
+    "year1": "1 año",
+    "insufficientBalance": "Saldo insuficiente. Tienes {{balance}} pero necesitas {{amount}}.",
+    "needsApproval": "Necesitas aprobar el contrato para transferir tus tokens antes de bloquear.",
+    "approveAndContinue": "Aprobar y continuar",
+    "approving": "Aprobando…"
   },
   "lpForm": {
     "dex": "DEX",
@@ -90,7 +102,11 @@
     "days90": "90 días",
     "months6": "6 meses",
     "year1": "1 año",
-    "years2": "2 años"
+    "years2": "2 años",
+    "insufficientBalance": "Saldo insuficiente. Tienes {{balance}} pero necesitas {{amount}}.",
+    "needsApproval": "Necesitas aprobar el contrato para transferir tus tokens LP antes de bloquear.",
+    "approveAndContinue": "Aprobar y continuar",
+    "approving": "Aprobando…"
   },
   "myLocks": {
     "title": "Mis bloqueos",
@@ -125,10 +141,15 @@
     "beneficiary": "Beneficiario",
     "timeRemaining": "Tiempo restante",
     "withdraw": "Retirar tokens",
+    "claimVested": "Reclamar {{amount}} {{symbol}} (adquiridos)",
     "extendLock": "Extender bloqueo",
     "newUnlockDate": "Nueva fecha de desbloqueo",
     "extendHint": "Debe ser posterior a la fecha de desbloqueo actual. Los bloqueos solo pueden extenderse, nunca acortarse.",
     "confirmExtension": "Confirmar extensión",
+    "transferBeneficiary": "Transferir beneficiario",
+    "newBeneficiary": "Nueva dirección de beneficiario",
+    "transferHint": "Transfiere los derechos de retiro a una nueva dirección Stellar. Esta acción es irreversible.",
+    "confirmTransfer": "Confirmar transferencia",
     "securityNotice": "Estos tokens están asegurados por el contrato StellarLock hasta la fecha de desbloqueo. Ni el creador ni StellarLock pueden moverlos anticipadamente.",
     "viewExplorer": "Ver explorador de tokens"
   },
@@ -151,6 +172,19 @@
     "noLocksDesc": "No pudimos encontrar bloqueos para <1>{{query}}</1>. Verifica el símbolo del token o la dirección del contrato, o crea el primer bloqueo para este token.",
     "createLock": "Crear un bloqueo"
   },
+  "discover": {
+    "title": "Explorar bloqueos",
+    "subtitle": "Explora todos los bloqueos de tokens y LP en StellarLock.",
+    "recentLocks": "Bloqueos recientes",
+    "upcomingUnlocks": "Próximos desbloqueos",
+    "featuredTokens": "Tokens destacados",
+    "totalLocks": "Total de bloqueos",
+    "totalValueLocked": "Valor total bloqueado",
+    "tokensSecured": "Tokens asegurados",
+    "viewAll": "Ver todos los bloqueos",
+    "noLocks": "No se encontraron bloqueos para este token.",
+    "searchHint": "Busca por símbolo de token o dirección de contrato para encontrar bloqueos específicos."
+  },
   "search": {
     "placeholder": "Buscar un token por símbolo o dirección de contrato…",
     "ariaLabel": "Buscar token para verificar bloqueos",
@@ -162,10 +196,82 @@
     "desc": "Conecta una billetera Stellar para continuar.",
     "connect": "Conectar billetera"
   },
+  "notifications": {
+    "title": "Notificaciones de desbloqueo",
+    "browser": "Notificaciones del navegador",
+    "browserDesc": "Recibe avisos 7 días, 1 día antes y cuando ocurra el desbloqueo.",
+    "email": "Recordatorios por email",
+    "emailDesc": "Recibe recordatorios por email 7 días y 1 día antes, y al momento del desbloqueo. Requiere billetera conectada.",
+    "emailPlaceholder": "tu@ejemplo.com",
+    "emailNeedsWallet": "Conecta tu billetera para activar los recordatorios por email.",
+    "emailError": "No se pudo guardar la suscripción de email. Inténtalo de nuevo.",
+    "webhook": "Webhook",
+    "webhookDesc": "Envía eventos de desbloqueo a una URL (bot de Telegram, Discord, etc).",
+    "enable": "Activar",
+    "enabled": "Activado",
+    "save": "Guardar"
+  },
   "lockCard": {
     "lockedAmount": "Cantidad bloqueada",
     "unlocksIn": "Se desbloquea en",
     "lock": "Bloqueo #{{id}}",
     "view": "Ver"
+  },
+  "breadcrumbs": {
+    "home": "Home",
+    "myLocks": "My Locks",
+    "lockId": "Lock #{{id}}",
+    "discover": "Discover",
+    "createLock": "Crear bloqueo",
+    "history": "Historial de transacciones"
+  },
+  "costEstimate": {
+    "title": "Costos estimados",
+    "networkFee": "Comisión de transacción",
+    "storageFee": "Depósito de almacenamiento",
+    "total": "Total",
+    "tooltip": "Soroban requiere un depósito de almacenamiento reembolsable para alquilar estado on-chain. Este depósito es independiente de la comisión de transacción.",
+    "highCostWarning": "Costo de almacenamiento inusualmente alto",
+    "estimating": "Estimando costos…",
+    "error": "No se pudo estimar el costo",
+    "unit": "XLM"
+  },
+  "history": {
+    "title": "Historial de transacciones",
+    "subtitle": "Todas las transacciones de StellarLock enviadas desde este navegador.",
+    "empty": "Aún no hay transacciones",
+    "emptyDesc": "Las transacciones aparecerán aquí después de crear, retirar, extender o transferir un bloqueo.",
+    "filterAll": "Todas",
+    "filterType": "Tipo",
+    "filterStatus": "Estado",
+    "colHash": "Transacción",
+    "colType": "Tipo",
+    "colStatus": "Estado",
+    "colDate": "Fecha",
+    "colLock": "Bloqueo",
+    "viewOnExplorer": "Ver en Stellar Expert",
+    "copyHash": "Copiar hash",
+    "typeCreateLock": "Crear bloqueo",
+    "typeWithdraw": "Retirar",
+    "typeExtend": "Extender",
+    "typeTransfer": "Transferir beneficiario",
+    "typeSplitLock": "Bloqueo dividido",
+    "statusPending": "Pendiente",
+    "statusSuccess": "Éxito",
+    "statusFailed": "Fallida",
+    "cleanupNote": "Las transacciones de más de 90 días se eliminan automáticamente."
+  },
+  "splitLock": {
+    "toggle": "Múltiples beneficiarios",
+    "toggleDesc": "Divide este bloqueo entre múltiples direcciones con participaciones proporcionales.",
+    "addBeneficiary": "Agregar beneficiario",
+    "removeBeneficiary": "Eliminar",
+    "addressLabel": "Dirección",
+    "shareLabel": "Participación (%)",
+    "totalShare": "Total",
+    "totalShareError": "Las participaciones deben sumar 100%",
+    "minBeneficiaries": "Agrega al menos 2 beneficiarios o usa el modo de un solo beneficiario.",
+    "maxBeneficiaries": "Máximo 10 beneficiarios permitidos.",
+    "submit": "Crear bloqueo dividido"
   }
 }

@@ -7,6 +7,7 @@ import { DexBadge } from "@/components/ui/DexBadge"
 import { CountdownTimer } from "@/components/ui/CountdownTimer"
 import { Badge } from "@/components/ui/Badge"
 import { formatAmount, formatDate, formatUsd, shortAddress } from "@/lib/utils"
+import { CopyButton } from "@/components/ui/CopyButton"
 
 export function TokenLockList({ locks }: { locks: Lock[] }) {
   const sorted = [...locks].sort((a, b) => a.unlockAt - b.unlockAt)
@@ -29,19 +30,21 @@ export function TokenLockList({ locks }: { locks: Lock[] }) {
             className="grid grid-cols-1 gap-3 border-b border-border px-5 py-4 last:border-b-0 transition-colors hover:bg-secondary/40 md:grid-cols-12 md:items-center md:gap-4"
           >
             <div className="col-span-3 flex flex-col gap-1">
-              <span className="font-semibold tabular-nums">
-                {formatAmount(lock.amount, { compact: true })}
-              </span>
+              <span className="font-semibold tabular-nums">{formatAmount(lock.amount, { compact: true })}</span>
               <span className="flex items-center gap-2 text-xs text-muted-foreground">
                 {formatUsd(lock.usdValue)}
                 {lock.kind === "lp" && lock.dex && <DexBadge dex={lock.dex} />}
                 {lock.extendedCount > 0 && <Badge variant="outline">{lock.extendedCount}× extended</Badge>}
               </span>
+              {lock.metadata?.description && (
+                <span className="text-xs text-muted-foreground line-clamp-1">{lock.metadata.description}</span>
+              )}
             </div>
 
-            <div className="col-span-3 font-mono text-sm">
+            <div className="col-span-3 flex items-center gap-1 font-mono text-sm">
               <span className="md:hidden text-xs text-muted-foreground">Beneficiary: </span>
               {shortAddress(lock.beneficiary, 6, 6)}
+              <CopyButton text={lock.beneficiary} />
             </div>
 
             <div className="col-span-2 text-sm text-muted-foreground">
@@ -56,7 +59,7 @@ export function TokenLockList({ locks }: { locks: Lock[] }) {
             <div className="col-span-2 flex items-center justify-between gap-2 md:justify-end">
               <StatusBadge status={lock.status} />
               <Link
-                to={`/app/lock/${lock.id}`}
+                to={`/app/lock/${lock.kind ?? "token"}/${lock.id}`}
                 className="text-muted-foreground transition-colors hover:text-primary"
                 aria-label={`View lock ${lock.id}`}
               >

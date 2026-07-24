@@ -14,13 +14,7 @@ export function DexBadge({ dex, className }: { dex: Dex; className?: string }) {
         className,
       )}
     >
-      <span
-        className={cn(
-          "h-1.5 w-1.5 rounded-full",
-          dex === "aquarius" ? "bg-primary" : "bg-warning",
-        )}
-        aria-hidden
-      />
+      <span className={cn("h-1.5 w-1.5 rounded-full", dex === "aquarius" ? "bg-primary" : "bg-warning")} aria-hidden />
       {LABELS[dex]}
     </span>
   )

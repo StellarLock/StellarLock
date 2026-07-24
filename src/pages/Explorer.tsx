@@ -1,24 +1,42 @@
+import { useState } from "react"
 import { useParams, Link } from "react-router-dom"
 import { Lock, Coins, CalendarClock, PieChart, ShieldCheck, ArrowLeft, ExternalLink, SearchX } from "lucide-react"
+import { Helmet } from "react-helmet-async"
 import { Trans, useTranslation } from "react-i18next"
-import { useLocksByToken } from "@/hooks/useLocks"
+import { useLocksByToken, useLockCountByToken } from "@/hooks/useLocks"
 import { TokenAvatar } from "@/components/ui/TokenAvatar"
 import { StatCard } from "@/components/ui/StatCard"
 import { Button } from "@/components/ui/Button"
 import { Badge } from "@/components/ui/Badge"
+import { Pagination } from "@/components/ui/Pagination"
 import { TokenLockList } from "@/components/explorer/TokenLockList"
 import { LockBadge } from "@/components/explorer/LockBadge"
 import { TokenSearchBar } from "@/components/explorer/TokenSearchBar"
+import { SkeletonTokenHeader, SkeletonLockCard, SkeletonStatCard } from "@/components/ui/Skeleton"
 import { explorerLink } from "@/lib/stellar"
 import { formatAmount, formatDate, formatUsd, shortAddress } from "@/lib/utils"
+import { CopyButton } from "@/components/ui/CopyButton"
+
+const PAGE_SIZE = 20
 
 export function Explorer() {
   const { t } = useTranslation()
   const { token } = useParams<{ token: string }>()
-  const { data, loading, error } = useLocksByToken(token)
+  const [page, setPage] = useState(1)
+  const { data, loading, error } = useLocksByToken(token, (page - 1) * PAGE_SIZE, PAGE_SIZE)
+  const { data: totalCount } = useLockCountByToken(token)
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
+      {data && (
+        <Helmet>
+          <title>{data.token.symbol} Liquidity Locks | StellarLock</title>
+          <meta
+            name="description"
+            content={`${formatAmount(data.totalLocked)} ${data.token.symbol} locked across ${data.activeLocks} active locks on StellarLock.`}
+          />
+        </Helmet>
+      )}
       <Link
         to="/"
         className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
@@ -35,21 +53,24 @@ export function Explorer() {
           {/* Header */}
           <div className="flex flex-col gap-6 rounded-2xl border border-border bg-card p-6 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-4">
-              <TokenAvatar symbol={data.token.symbol} size="lg" />
+              <TokenAvatar symbol={data.token.symbol} contractId={data.token.address} size="lg" showVerified />
               <div>
                 <div className="flex items-center gap-2">
                   <h1 className="text-2xl font-bold">{data.token.name}</h1>
                   <Badge variant="primary">{data.token.symbol}</Badge>
                 </div>
-                <a
-                  href={explorerLink(data.token.address)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-1 inline-flex items-center gap-1.5 font-mono text-sm text-muted-foreground transition-colors hover:text-primary"
-                >
-                  {shortAddress(data.token.address, 8, 8)}
-                  <ExternalLink className="h-3.5 w-3.5" />
-                </a>
+                <div className="flex items-center gap-1">
+                  <a
+                    href={explorerLink(data.token.address)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-1 inline-flex items-center gap-1.5 font-mono text-sm text-muted-foreground transition-colors hover:text-primary"
+                  >
+                    {shortAddress(data.token.address, 8, 8)}
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                  <CopyButton text={data.token.address} />
+                </div>
                 {data.locks.find((l) => l.metadata)?.metadata?.description && (
                   <p className="mt-2 max-w-lg text-sm text-muted-foreground">
                     {data.locks.find((l) => l.metadata)!.metadata!.description}
@@ -97,9 +118,7 @@ export function Explorer() {
           {/* Shareable badge */}
           <section className="rounded-2xl border border-border bg-card p-6">
             <h2 className="text-lg font-semibold">{t("explorer.shareTitle")}</h2>
-            <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-              {t("explorer.shareDesc")}
-            </p>
+            <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{t("explorer.shareDesc")}</p>
             <div className="mt-5">
               <LockBadge summary={data} />
             </div>
@@ -108,9 +127,17 @@ export function Explorer() {
           {/* Locks list */}
           <section>
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-lg font-semibold">{t("explorer.allLocks", { count: data.locks.length })}</h2>
+              <h2 className="text-lg font-semibold">
+                {t("explorer.allLocks", { count: totalCount ?? data.locks.length })}
+              </h2>
             </div>
             <TokenLockList locks={data.locks} />
+            <Pagination
+              page={page}
+              pageSize={PAGE_SIZE}
+              total={totalCount ?? 0}
+              onChange={(p) => { setPage(p); window.scrollTo({ top: 0, behavior: "smooth" }) }}
+            />
           </section>
         </div>
       )}
@@ -121,13 +148,17 @@ export function Explorer() {
 function ExplorerSkeleton() {
   return (
     <div className="flex flex-col gap-8">
-      <div className="h-28 animate-pulse rounded-2xl border border-border bg-card" />
+      <SkeletonTokenHeader />
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="h-28 animate-pulse rounded-xl border border-border bg-card" />
+          <SkeletonStatCard key={i} />
         ))}
       </div>
-      <div className="h-64 animate-pulse rounded-2xl border border-border bg-card" />
+      <div className="space-y-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <SkeletonLockCard key={i} />
+        ))}
+      </div>
     </div>
   )
 }
@@ -143,7 +174,9 @@ function NotFound({ query }: { query: string }) {
       <h1 className="text-xl font-semibold">{t("explorer.noLocksTitle")}</h1>
       <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
         <Trans i18nKey="explorer.noLocksDesc" values={{ query: shortAddress(query, 6, 6) }}>
-          We couldn&apos;t find any locks for <span className="font-mono text-foreground">{{ query: shortAddress(query, 6, 6) } as unknown as string}</span>.
+          We couldn&apos;t find any locks for{" "}
+          <span className="font-mono text-foreground">{{ query: shortAddress(query, 6, 6) } as unknown as string}</span>
+          .
         </Trans>
       </p>
       <div className="mt-6">

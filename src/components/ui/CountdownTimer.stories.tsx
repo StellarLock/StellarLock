@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/react-vite"
+import type { Meta, StoryObj } from "@storybook/react"
 import { CountdownTimer } from "./CountdownTimer"
 
 const DAY = 86_400_000

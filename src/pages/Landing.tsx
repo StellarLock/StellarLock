@@ -1,32 +1,29 @@
 import { Link } from "react-router-dom"
+import { Helmet } from "react-helmet-async"
 import { Trans, useTranslation } from "react-i18next"
-import {
-  ShieldCheck,
-  Lock,
-  Eye,
-  Droplets,
-  Clock,
-  Share2,
-  ArrowRight,
-  TrendingUp,
-} from "lucide-react"
+import { ShieldCheck, Lock, Eye, Droplets, Clock, Share2, ArrowRight, TrendingUp } from "lucide-react"
 import { TokenSearchBar } from "@/components/explorer/TokenSearchBar"
+import { NETWORK } from "@/lib/stellar"
 import { Button } from "@/components/ui/Button"
 import { Badge } from "@/components/ui/Badge"
 import { Card } from "@/components/ui/Card"
 import { formatUsd } from "@/lib/utils"
 import { MOCK_LOCKS } from "@/lib/mock-data"
 
-const totalSecured = MOCK_LOCKS.filter((l) => l.status !== "withdrawn").reduce(
-  (s, l) => s + l.usdValue,
-  0,
-)
+const totalSecured = MOCK_LOCKS.filter((l) => l.status !== "withdrawn").reduce((s, l) => s + l.usdValue, 0)
 
 export function Landing() {
   const { t } = useTranslation()
 
   return (
     <div>
+      <Helmet>
+        <title>StellarLock — Token & LP Locks on Stellar</title>
+        <meta
+          name="description"
+          content="Lock tokens and liquidity on Stellar. Prove to your community you haven't rugged with a public, verifiable lock explorer."
+        />
+      </Helmet>
       {/* Hero */}
       <section className="relative overflow-hidden">
         <div className="bg-grid bg-grid-fade absolute inset-0 -z-10" aria-hidden />
@@ -67,21 +64,20 @@ export function Landing() {
       <section className="border-y border-border bg-card/40">
         <div className="mx-auto grid max-w-6xl grid-cols-2 gap-px px-4 sm:grid-cols-4">
           <Stat label={t("landing.valueSecured")} value={formatUsd(totalSecured)} />
-          <Stat label={t("landing.activeLocks")} value={String(MOCK_LOCKS.filter((l) => l.status !== "withdrawn").length)} />
+          <Stat
+            label={t("landing.activeLocks")}
+            value={String(MOCK_LOCKS.filter((l) => l.status !== "withdrawn").length)}
+          />
           <Stat label={t("landing.supportedDexs")} value="2" hint={t("landing.dexHint")} />
-          <Stat label={t("landing.network")} value={t("landing.networkValue")} hint={t("common.testnet")} />
+          <Stat label={t("landing.network")} value={NETWORK.displayName} hint={t("common.stellar")} />
         </div>
       </section>
 
       {/* Problem / Solution */}
       <section className="mx-auto max-w-6xl px-4 py-20">
         <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-balance text-3xl font-bold tracking-tight">
-            {t("landing.problemTitle")}
-          </h2>
-          <p className="mt-4 text-pretty text-muted-foreground">
-            {t("landing.problemDesc")}
-          </p>
+          <h2 className="text-balance text-3xl font-bold tracking-tight">{t("landing.problemTitle")}</h2>
+          <p className="mt-4 text-pretty text-muted-foreground">{t("landing.problemDesc")}</p>
         </div>
 
         <div className="mt-12 grid grid-cols-1 gap-5 md:grid-cols-3">
@@ -136,12 +132,8 @@ export function Landing() {
           <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
             <TrendingUp className="h-6 w-6" />
           </span>
-          <h2 className="max-w-xl text-balance text-3xl font-bold tracking-tight">
-            {t("landing.ctaTitle")}
-          </h2>
-          <p className="max-w-xl text-pretty text-muted-foreground">
-            {t("landing.ctaDesc")}
-          </p>
+          <h2 className="max-w-xl text-balance text-3xl font-bold tracking-tight">{t("landing.ctaTitle")}</h2>
+          <p className="max-w-xl text-pretty text-muted-foreground">{t("landing.ctaDesc")}</p>
           <Link to="/app/create">
             <Button size="lg">
               {t("landing.ctaButton")} <ArrowRight className="h-4 w-4" />
@@ -166,26 +158,14 @@ function Stat({ label, value, hint }: { label: string; value: string; hint?: str
 function Feature({ icon, title, desc }: { icon: React.ReactNode; title: string; desc: string }) {
   return (
     <Card className="p-6">
-      <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary/15 text-primary">
-        {icon}
-      </span>
+      <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary/15 text-primary">{icon}</span>
       <h3 className="mt-4 text-lg font-semibold">{title}</h3>
       <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{desc}</p>
     </Card>
   )
 }
 
-function Step({
-  n,
-  icon,
-  title,
-  desc,
-}: {
-  n: number
-  icon: React.ReactNode
-  title: string
-  desc: string
-}) {
+function Step({ n, icon, title, desc }: { n: number; icon: React.ReactNode; title: string; desc: string }) {
   const { t } = useTranslation()
 
   return (

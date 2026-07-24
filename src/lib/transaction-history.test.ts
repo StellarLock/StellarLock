@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from "vitest"
-import { addTransaction, getTransactions } from "@/lib/transaction-history"
+import { addTransaction, getTransactions, clearTransactions, refreshPendingStatuses } from "@/lib/transaction-history"
 
 describe("transaction-history", () => {
   beforeEach(() => {
-    localStorage.clear()
+    clearTransactions()
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue({
@@ -14,46 +14,26 @@ describe("transaction-history", () => {
     )
   })
 
-  it("records a transaction as pending and persists it to localStorage", () => {
-    const record = addTransaction({
-      hash: "abc123",
-      action: "create_token_lock",
-      kind: "token",
-      address: "GALICE",
-      lockId: "1",
-      token: "CTOKEN",
-      amount: 100,
-    })
+  it("records a transaction as pending", () => {
+    addTransaction("abc123", "create_lock", { lockId: "1", amount: "100" })
 
-    expect(record.status).toBe("pending")
-    expect(getTransactions("GALICE")).toHaveLength(1)
-    expect(getTransactions("GALICE")[0].hash).toBe("abc123")
-  })
-
-  it("only returns transactions for the requested address", () => {
-    addTransaction({ hash: "h1", action: "withdraw", kind: "token", address: "GALICE" })
-    addTransaction({ hash: "h2", action: "withdraw", kind: "token", address: "GBOB" })
-
-    expect(getTransactions("GALICE").map((r) => r.hash)).toEqual(["h1"])
-    expect(getTransactions("GBOB").map((r) => r.hash)).toEqual(["h2"])
+    const records = getTransactions()
+    expect(records).toHaveLength(1)
+    expect(records[0]).toMatchObject({ hash: "abc123", type: "create_lock", status: "pending" })
   })
 
   it("orders transactions newest first", () => {
-    const now = Date.now()
-    vi.spyOn(Date, "now").mockReturnValueOnce(now).mockReturnValueOnce(now + 1000)
+    addTransaction("older", "withdraw")
+    addTransaction("newer", "extend")
 
-    addTransaction({ hash: "older", action: "withdraw", kind: "token", address: "GALICE" })
-    addTransaction({ hash: "newer", action: "withdraw", kind: "token", address: "GALICE" })
-
-    expect(getTransactions("GALICE").map((r) => r.hash)).toEqual(["newer", "older"])
+    expect(getTransactions().map((r) => r.hash)).toEqual(["newer", "older"])
   })
 
   it("updates status to success once Horizon confirms the transaction", async () => {
-    addTransaction({ hash: "abc123", action: "withdraw", kind: "token", address: "GALICE" })
+    addTransaction("abc123", "withdraw")
 
-    await vi.waitFor(() => {
-      expect(getTransactions("GALICE")[0].status).toBe("success")
-    })
+    const updated = await refreshPendingStatuses()
+    expect(updated[0].status).toBe("success")
   })
 
   it("marks the transaction failed when Horizon reports it unsuccessful", async () => {
@@ -66,10 +46,15 @@ describe("transaction-history", () => {
       }),
     )
 
-    addTransaction({ hash: "abc123", action: "withdraw", kind: "token", address: "GALICE" })
+    addTransaction("abc123", "withdraw")
 
-    await vi.waitFor(() => {
-      expect(getTransactions("GALICE")[0].status).toBe("failed")
-    })
+    const updated = await refreshPendingStatuses()
+    expect(updated[0].status).toBe("failed")
+  })
+
+  it("clearTransactions empties the store", () => {
+    addTransaction("abc123", "withdraw")
+    clearTransactions()
+    expect(getTransactions()).toHaveLength(0)
   })
 })

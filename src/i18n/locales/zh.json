@@ -3,17 +3,23 @@
     "appName": "StellarLock",
     "tagline": "Stellar 上的代币和 LP 锁定",
     "testnet": "测试网",
+    "mainnet": "主网",
     "loading": "加载中…",
     "tryAgain": "重试",
     "back": "返回",
     "you": "你",
+    "stellar": "Stellar",
     "skipToContent": "跳转到主要内容"
   },
   "nav": {
     "createLock": "创建锁定",
     "myLocks": "我的锁定",
+    "explore": "浏览",
     "connectWallet": "连接钱包",
-    "disconnectWallet": "断开钱包"
+    "disconnectWallet": "断开钱包",
+    "openMenu": "打开菜单",
+    "closeMenu": "关闭菜单",
+    "history": "历史"
   },
   "landing": {
     "badge": "基于 Stellar 构建 · Soroban 智能合约",
@@ -65,11 +71,17 @@
     "vestingDesc": "从现在到解锁日期逐步释放，而不是一次性释放。",
     "lockInfo": "锁定是不可变的：你可以延长解锁日期，但永远不能缩短。",
     "fundsUnlockOn": "资金在 <1>{{date}}</1> 解锁。",
+    "balance": "余额",
+    "max": "最大",
     "submit": "锁定代币",
     "days30": "30 天",
     "days90": "90 天",
     "months6": "6 个月",
-    "year1": "1 年"
+    "year1": "1 年",
+    "insufficientBalance": "余额不足。你有 {{balance}}，但需要 {{amount}}。",
+    "needsApproval": "在锁定之前，你需要授权合约转移你的代币。",
+    "approveAndContinue": "授权并继续",
+    "approving": "授权中…"
   },
   "lpForm": {
     "dex": "DEX",
@@ -90,7 +102,11 @@
     "days90": "90 天",
     "months6": "6 个月",
     "year1": "1 年",
-    "years2": "2 年"
+    "years2": "2 年",
+    "insufficientBalance": "余额不足。你有 {{balance}}，但需要 {{amount}}。",
+    "needsApproval": "在锁定之前，你需要授权合约转移你的 LP 代币。",
+    "approveAndContinue": "授权并继续",
+    "approving": "授权中…"
   },
   "myLocks": {
     "title": "我的锁定",
@@ -125,10 +141,15 @@
     "beneficiary": "受益人",
     "timeRemaining": "剩余时间",
     "withdraw": "提取代币",
+    "claimVested": "领取 {{amount}} {{symbol}}（已归属）",
     "extendLock": "延长锁定",
     "newUnlockDate": "新解锁日期",
     "extendHint": "必须晚于当前解锁日期。锁定只能延长，不能缩短。",
     "confirmExtension": "确认延长",
+    "transferBeneficiary": "转移受益人",
+    "newBeneficiary": "新受益人地址",
+    "transferHint": "将提取权转移至新的 Stellar 地址。此操作不可逆。",
+    "confirmTransfer": "确认转移",
     "securityNotice": "这些代币由 StellarLock 合约保护直到解锁日期。创建者和 StellarLock 都无法提前移动它们。",
     "viewExplorer": "查看代币浏览器"
   },
@@ -151,6 +172,19 @@
     "noLocksDesc": "未找到 <1>{{query}}</1> 的任何锁定。请检查代币符号或合约地址，或为此代币创建第一个锁定。",
     "createLock": "创建锁定"
   },
+  "discover": {
+    "title": "浏览锁定",
+    "subtitle": "浏览 StellarLock 上的所有代币和 LP 锁定。",
+    "recentLocks": "最近锁定",
+    "upcomingUnlocks": "即将解锁",
+    "featuredTokens": "热门代币",
+    "totalLocks": "总锁定数",
+    "totalValueLocked": "总锁定价值",
+    "tokensSecured": "已保护代币",
+    "viewAll": "查看所有锁定",
+    "noLocks": "未找到此代币的锁定。",
+    "searchHint": "按代币符号或合约地址搜索特定锁定。"
+  },
   "search": {
     "placeholder": "通过符号或合约地址搜索代币…",
     "ariaLabel": "搜索代币以验证锁定",
@@ -162,10 +196,77 @@
     "desc": "连接 Stellar 钱包以继续。",
     "connect": "连接钱包"
   },
+  "notifications": {
+    "title": "解锁通知",
+    "browser": "浏览器通知",
+    "browserDesc": "在解锁前7天、1天以及解锁时收到通知。",
+    "webhook": "Webhook",
+    "webhookDesc": "将解锁事件发送到URL（Telegram机器人、Discord等）。",
+    "enable": "启用",
+    "enabled": "已启用",
+    "save": "保存"
+  },
   "lockCard": {
     "lockedAmount": "锁定数量",
     "unlocksIn": "解锁倒计时",
     "lock": "锁定 #{{id}}",
     "view": "查看"
+  },
+  "breadcrumbs": {
+    "home": "Home",
+    "myLocks": "My Locks",
+    "lockId": "Lock #{{id}}",
+    "discover": "Discover",
+    "createLock": "创建锁定",
+    "history": "交易历史"
+  },
+  "costEstimate": {
+    "title": "预计费用",
+    "networkFee": "交易费",
+    "storageFee": "存储押金",
+    "total": "合计",
+    "tooltip": "Soroban 需要可退还的存储押金来租用链上状态。此押金与交易费用分开。",
+    "highCostWarning": "存储费用异常偏高",
+    "estimating": "正在估算费用…",
+    "error": "无法估算费用",
+    "unit": "XLM"
+  },
+  "history": {
+    "title": "交易历史",
+    "subtitle": "此浏览器提交的所有 StellarLock 交易。",
+    "empty": "暂无交易",
+    "emptyDesc": "创建、提取、延期或转让锁定后，交易将显示在此处。",
+    "filterAll": "全部",
+    "filterType": "类型",
+    "filterStatus": "状态",
+    "colHash": "交易",
+    "colType": "类型",
+    "colStatus": "状态",
+    "colDate": "日期",
+    "colLock": "锁定",
+    "viewOnExplorer": "在 Stellar Expert 上查看",
+    "copyHash": "复制哈希",
+    "typeCreateLock": "创建锁定",
+    "typeWithdraw": "提取",
+    "typeExtend": "延期",
+    "typeTransfer": "转移受益人",
+    "typeSplitLock": "分割锁定",
+    "statusPending": "待处理",
+    "statusSuccess": "成功",
+    "statusFailed": "失败",
+    "cleanupNote": "超过 90 天的交易将自动删除。"
+  },
+  "splitLock": {
+    "toggle": "多受益人",
+    "toggleDesc": "按比例份额将此锁定分配给多个地址。",
+    "addBeneficiary": "添加受益人",
+    "removeBeneficiary": "移除",
+    "addressLabel": "地址",
+    "shareLabel": "份额 (%)",
+    "totalShare": "合计",
+    "totalShareError": "份额之和必须为 100%",
+    "minBeneficiaries": "请添加至少 2 位受益人，或使用单受益人模式。",
+    "maxBeneficiaries": "最多允许 10 位受益人。",
+    "submit": "创建分割锁定"
   }
 }

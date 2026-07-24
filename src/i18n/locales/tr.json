@@ -3,17 +3,23 @@
     "appName": "StellarLock",
     "tagline": "Stellar üzerinde Token ve LP Kilitleri",
     "testnet": "Testnet",
+    "mainnet": "Mainnet",
     "loading": "Yükleniyor…",
     "tryAgain": "Tekrar dene",
     "back": "Geri",
     "you": "Sen",
+    "stellar": "Stellar",
     "skipToContent": "Ana içeriğe geç"
   },
   "nav": {
     "createLock": "Kilit Oluştur",
     "myLocks": "Kilitelerim",
+    "explore": "Keşfet",
     "connectWallet": "Cüzdanı Bağla",
-    "disconnectWallet": "Cüzdanı ayır"
+    "disconnectWallet": "Cüzdanı ayır",
+    "openMenu": "Menüyü aç",
+    "closeMenu": "Menüyü kapat",
+    "history": "Geçmiş"
   },
   "landing": {
     "badge": "Stellar üzerine inşa edildi · Soroban akıllı sözleşmeleri",
@@ -65,11 +71,17 @@
     "vestingDesc": "Kilit açma tarihine kadar hepsini bir kerede değil, kademeli olarak serbest bırakır.",
     "lockInfo": "Kilitler değiştirilemez: kilit açma tarihini daha sonra uzatabilirsiniz, ancak asla kısaltamazsınız.",
     "fundsUnlockOn": "Fonlar <1>{{date}}</1> tarihinde açılır.",
+    "balance": "Bakiye",
+    "max": "Maks",
     "submit": "Tokenleri kilitle",
     "days30": "30 gün",
     "days90": "90 gün",
     "months6": "6 ay",
-    "year1": "1 yıl"
+    "year1": "1 yıl",
+    "insufficientBalance": "Yetersiz bakiye. {{balance}} var ama {{amount}} gerekli.",
+    "needsApproval": "Kilitlemeden önce sözleşmenin tokenlerinizi transfer etmesine izin vermeniz gerekiyor.",
+    "approveAndContinue": "Onayla ve Devam Et",
+    "approving": "Onaylanıyor…"
   },
   "lpForm": {
     "dex": "DEX",
@@ -90,7 +102,11 @@
     "days90": "90 gün",
     "months6": "6 ay",
     "year1": "1 yıl",
-    "years2": "2 yıl"
+    "years2": "2 yıl",
+    "insufficientBalance": "Yetersiz bakiye. {{balance}} var ama {{amount}} gerekli.",
+    "needsApproval": "Kilitlemeden önce sözleşmenin LP tokenlerinizi transfer etmesine izin vermeniz gerekiyor.",
+    "approveAndContinue": "Onayla ve Devam Et",
+    "approving": "Onaylanıyor…"
   },
   "myLocks": {
     "title": "Kilitlerim",
@@ -125,10 +141,15 @@
     "beneficiary": "Yararlanıcı",
     "timeRemaining": "Kalan süre",
     "withdraw": "Tokenleri çek",
+    "claimVested": "{{amount}} {{symbol}} talep et (hak edilmiş)",
     "extendLock": "Kilidi uzat",
     "newUnlockDate": "Yeni kilit açma tarihi",
     "extendHint": "Mevcut kilit açma tarihinden sonra olmalıdır. Kilitler yalnızca uzatılabilir, asla kısaltılamaz.",
     "confirmExtension": "Uzatmayı onayla",
+    "transferBeneficiary": "Lehdarı devret",
+    "newBeneficiary": "Yeni lehdar adresi",
+    "transferHint": "Çekim haklarını yeni bir Stellar adresine devredin. Bu işlem geri alınamaz.",
+    "confirmTransfer": "Devri onayla",
     "securityNotice": "Bu tokenler kilit açma tarihine kadar StellarLock sözleşmesi tarafından güvence altındadır. Ne oluşturan ne de StellarLock bunları erken taşıyabilir.",
     "viewExplorer": "Token gezginini görüntüle"
   },
@@ -151,6 +172,19 @@
     "noLocksDesc": "<1>{{query}}</1> için herhangi bir kilit bulamadık. Token sembolünü veya sözleşme adresini kontrol edin veya bu token için ilk kilidi oluşturun.",
     "createLock": "Kilit oluştur"
   },
+  "discover": {
+    "title": "Kilitleri Keşfet",
+    "subtitle": "StellarLock'taki tüm token ve LP kilitlerini keşfedin.",
+    "recentLocks": "Son Kilitler",
+    "upcomingUnlocks": "Yaklaşan Kilit Açılmaları",
+    "featuredTokens": "Öne Çıkan Tokenler",
+    "totalLocks": "Toplam Kilit",
+    "totalValueLocked": "Toplam Kilitli Değer",
+    "tokensSecured": "Güvence Altına Alınan Tokenler",
+    "viewAll": "Tüm kilitleri görüntüle",
+    "noLocks": "Bu token için kilit bulunamadı.",
+    "searchHint": "Belirli kilitleri bulmak için token sembolü veya sözleşme adresine göre arayın."
+  },
   "search": {
     "placeholder": "Sembol veya sözleşme adresine göre token arayın…",
     "ariaLabel": "Kilitleri doğrulamak için token arayın",
@@ -162,10 +196,77 @@
     "desc": "Devam etmek için bir Stellar cüzdanı bağlayın.",
     "connect": "Cüzdanı Bağla"
   },
+  "notifications": {
+    "title": "Kilit Açma Bildirimleri",
+    "browser": "Tarayıcı bildirimleri",
+    "browserDesc": "Kilit açılmadan 7 gün, 1 gün önce ve açıldığında bildirim alın.",
+    "webhook": "Webhook",
+    "webhookDesc": "Kilit açma olaylarını bir URL'ye gönderin (Telegram botu, Discord, vb).",
+    "enable": "Etkinleştir",
+    "enabled": "Etkin",
+    "save": "Kaydet"
+  },
   "lockCard": {
     "lockedAmount": "Kilitli miktar",
     "unlocksIn": "Açılma süresi",
     "lock": "Kilit #{{id}}",
     "view": "Görüntüle"
+  },
+  "breadcrumbs": {
+    "home": "Home",
+    "myLocks": "My Locks",
+    "lockId": "Lock #{{id}}",
+    "discover": "Discover",
+    "createLock": "Kilit Oluştur",
+    "history": "İşlem Geçmişi"
+  },
+  "costEstimate": {
+    "title": "Tahmini Maliyetler",
+    "networkFee": "İşlem ücreti",
+    "storageFee": "Depolama depozitosu",
+    "total": "Toplam",
+    "tooltip": "Soroban, zincir üstü durum kiralamak için iade edilebilir bir depolama depozitosu gerektirir. Bu depozito işlem ücretinden ayrıdır.",
+    "highCostWarning": "Alışılmadık yüksek depolama maliyeti",
+    "estimating": "Maliyetler tahmin ediliyor…",
+    "error": "Maliyet tahmin edilemedi",
+    "unit": "XLM"
+  },
+  "history": {
+    "title": "İşlem Geçmişi",
+    "subtitle": "Bu tarayıcıdan gönderilen tüm StellarLock işlemleri.",
+    "empty": "Henüz işlem yok",
+    "emptyDesc": "Kilit oluşturduktan, çektikten, uzattıktan veya aktardıktan sonra işlemler burada görünecektir.",
+    "filterAll": "Tümü",
+    "filterType": "Tür",
+    "filterStatus": "Durum",
+    "colHash": "İşlem",
+    "colType": "Tür",
+    "colStatus": "Durum",
+    "colDate": "Tarih",
+    "colLock": "Kilit",
+    "viewOnExplorer": "Stellar Expert'te Görüntüle",
+    "copyHash": "Hash'i kopyala",
+    "typeCreateLock": "Kilit Oluştur",
+    "typeWithdraw": "Çek",
+    "typeExtend": "Uzat",
+    "typeTransfer": "Yararlanıcıyı Aktar",
+    "typeSplitLock": "Bölünmüş Kilit",
+    "statusPending": "Bekliyor",
+    "statusSuccess": "Başarılı",
+    "statusFailed": "Başarısız",
+    "cleanupNote": "90 günden eski işlemler otomatik olarak kaldırılır."
+  },
+  "splitLock": {
+    "toggle": "Çoklu yararlanıcı",
+    "toggleDesc": "Bu kilidi orantılı paylarla birden fazla adrese bölün.",
+    "addBeneficiary": "Yararlanıcı ekle",
+    "removeBeneficiary": "Kaldır",
+    "addressLabel": "Adres",
+    "shareLabel": "Pay (%)",
+    "totalShare": "Toplam",
+    "totalShareError": "Paylar %100'e ulaşmalıdır",
+    "minBeneficiaries": "En az 2 yararlanıcı ekleyin veya tek yararlanıcı modunu kullanın.",
+    "maxBeneficiaries": "Maksimum 10 yararlanıcıya izin verilir.",
+    "submit": "Bölünmüş kilit oluştur"
   }
 }

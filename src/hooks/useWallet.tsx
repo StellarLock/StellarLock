@@ -1,112 +1,255 @@
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-  type ReactNode,
-} from "react"
-import {
-  isConnected,
-  requestAccess,
-  getAddress,
-  signTransaction as freighterSignTx,
-} from "@stellar/freighter-api"
+  StellarWalletsKit,
+  WalletNetwork,
+  allowAllModules,
+} from "@creit.tech/stellar-wallets-kit"
 import { trackEvent } from "@/lib/analytics"
+import { NETWORK } from "@/lib/stellar"
+import { notify } from "../lib/utils"
+import { createLogger } from "@/lib/logger"
+
+const log = createLogger("useWallet")
 
 const STORAGE_KEY = "stellarlock:wallet"
-const NETWORK_PASSPHRASE = "Test SDF Network ; September 2015"
+const WALLET_ID_KEY = "stellarlock:wallet-id"
+const CONNECTION_CHECK_INTERVAL = 10_000
 
 interface WalletContextValue {
   address: string | null
   isConnected: boolean
   connecting: boolean
+  connectState: "idle" | "connecting" | "retrying" | "failed" | "success"
+  connectError: string | null
+  connectHelp: string | null
+  disconnected: boolean
+  networkChanged: boolean
   connect: () => Promise<void>
   disconnect: () => void
+  dismissDisconnectAlert: () => void
+  dismissNetworkAlert: () => void
   signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>
 }
 
 const WalletContext = createContext<WalletContextValue | null>(null)
 
+const walletNetwork = NETWORK.id === "mainnet" ? WalletNetwork.PUBLIC : WalletNetwork.TESTNET
+
 export function WalletProvider({ children }: { children: ReactNode }) {
   const [address, setAddress] = useState<string | null>(null)
   const [connecting, setConnecting] = useState(false)
+  const [connectState, setConnectState] = useState<WalletContextValue["connectState"]>("idle")
+  const [connectError, setConnectError] = useState<string | null>(null)
+  const [connectHelp, setConnectHelp] = useState<string | null>(null)
+  const [disconnected, setDisconnected] = useState(false)
+  const [networkChanged, setNetworkChanged] = useState(false)
+  const connectionCheckIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const kitRef = useRef<StellarWalletsKit | null>(null)
+  const connectAttemptRef = useRef(false)
+
+  function getKit(): StellarWalletsKit {
+    if (!kitRef.current) {
+      const savedWalletId = localStorage.getItem(WALLET_ID_KEY) ?? ""
+      kitRef.current = new StellarWalletsKit({
+        network: walletNetwork,
+        selectedWalletId: savedWalletId,
+        modules: allowAllModules(),
+      })
+    }
+    return kitRef.current
+  }
 
   // Restore persisted session and verify it's still accessible
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY)
-    if (!saved) return
-    // Check freighter is still connected before restoring
-    isConnected().then((res) => {
-      if (res.isConnected) {
-        setAddress(saved)
-      } else {
+    const savedWalletId = localStorage.getItem(WALLET_ID_KEY)
+    if (!saved || !savedWalletId) return
+    const k = getKit()
+    k.setWallet(savedWalletId)
+    k.getAddress()
+      .then(({ address: publicKey }) => {
+        if (publicKey && publicKey === saved) {
+          setAddress(saved)
+        } else {
+          localStorage.removeItem(STORAGE_KEY)
+          localStorage.removeItem(WALLET_ID_KEY)
+        }
+      })
+      .catch(() => {
         localStorage.removeItem(STORAGE_KEY)
-      }
-    }).catch(() => localStorage.removeItem(STORAGE_KEY))
+        localStorage.removeItem(WALLET_ID_KEY)
+      })
   }, [])
 
+  // Poll wallet connection status every 10 seconds
+  useEffect(() => {
+    if (!address) return
+
+    const checkConnection = async () => {
+      try {
+        const k = getKit()
+        const { address: publicKey } = await k.getAddress()
+        if (!publicKey || publicKey !== address) {
+          setDisconnected(true)
+          setAddress(null)
+          localStorage.removeItem(STORAGE_KEY)
+          localStorage.removeItem(WALLET_ID_KEY)
+        }
+      } catch {
+        setDisconnected(true)
+        setAddress(null)
+        localStorage.removeItem(STORAGE_KEY)
+        localStorage.removeItem(WALLET_ID_KEY)
+      }
+    }
+
+    connectionCheckIntervalRef.current = setInterval(() => void checkConnection(), CONNECTION_CHECK_INTERVAL)
+    return () => {
+      if (connectionCheckIntervalRef.current) {
+        clearInterval(connectionCheckIntervalRef.current)
+      }
+    }
+  }, [address])
+
   const connect = useCallback(async () => {
+    if (connectAttemptRef.current) return
+
+    connectAttemptRef.current = true
     setConnecting(true)
+    setConnectState("connecting")
+    setConnectError(null)
+    setConnectHelp(null)
+
+    const k = getKit()
+
     try {
-      const connected = await isConnected()
-      if (!connected.isConnected) {
-        alert("Freighter extension not found. Please install it from freighter.app")
-        return
+      for (let attempt = 1; attempt <= 4; attempt++) {
+        try {
+          await new Promise<void>((resolve, reject) => {
+            void k.openModal({
+              onWalletSelected: (option) => {
+                void (async () => {
+                  try {
+                    k.setWallet(option.id)
+                    const { address: publicKey } = await k.getAddress()
+                    if (!publicKey) {
+                      reject(new Error("Wallet returned no public key"))
+                      return
+                    }
+                    setAddress(publicKey)
+                    localStorage.setItem(STORAGE_KEY, publicKey)
+                    localStorage.setItem(WALLET_ID_KEY, option.id)
+                    trackEvent("wallet_connect")
+                    setConnectState("success")
+                    resolve()
+                  } catch (err) {
+                    reject(err instanceof Error ? err : new Error(String(err)))
+                  }
+                })()
+              },
+              onClosed: () => reject(new Error("Connection cancelled")),
+            })
+          })
+          return
+        } catch (err: unknown) {
+          if (attempt < 4) {
+            const delay = 1000 * 2 ** (attempt - 1)
+            setConnectState("retrying")
+            const message = err instanceof Error ? err.message : String(err)
+            setConnectError(`Retrying in ${delay / 1000}s…`)
+            setConnectHelp(getConnectHelp(message))
+            await new Promise((resolve) => setTimeout(resolve, delay))
+            continue
+          }
+
+          const msg = err instanceof Error ? err.message : String(err)
+          log.error("Wallet connect error", { msg })
+          setConnectState("failed")
+          setConnectError(getFriendlyError(msg))
+          setConnectHelp(getConnectHelp(msg))
+          notify.error(getFriendlyError(msg))
+        }
       }
-      // requestAccess opens the Freighter popup for the user to approve
-      const accessResult = await requestAccess()
-      if (accessResult.error) {
-        throw new Error(accessResult.error)
-      }
-      const addrResult = await getAddress()
-      if (addrResult.error) {
-        throw new Error(addrResult.error)
-      }
-      setAddress(addrResult.address)
-      localStorage.setItem(STORAGE_KEY, addrResult.address)
-      trackEvent("wallet_connect")
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err)
-      console.error("Wallet connect error:", msg)
     } finally {
       setConnecting(false)
+      connectAttemptRef.current = false
     }
   }, [])
 
   const disconnect = useCallback(() => {
     setAddress(null)
+    setDisconnected(false)
+    setNetworkChanged(false)
+    setConnectState("idle")
+    setConnectError(null)
+    setConnectHelp(null)
     localStorage.removeItem(STORAGE_KEY)
+    localStorage.removeItem(WALLET_ID_KEY)
+    if (connectionCheckIntervalRef.current) {
+      clearInterval(connectionCheckIntervalRef.current)
+      connectionCheckIntervalRef.current = null
+    }
     trackEvent("wallet_disconnect")
+  }, [])
+
+  const dismissDisconnectAlert = useCallback(() => {
+    setDisconnected(false)
+  }, [])
+
+  const dismissNetworkAlert = useCallback(() => {
+    setNetworkChanged(false)
   }, [])
 
   const signTransaction = useCallback(
     async (xdr: string): Promise<{ signedTxXdr: string }> => {
       if (!address) throw new Error("Wallet not connected")
-      const result = await freighterSignTx(xdr, {
-        networkPassphrase: NETWORK_PASSPHRASE,
+      const k = getKit()
+      const result = await k.signTransaction(xdr, {
+        networkPassphrase: NETWORK.passphrase,
         address,
       })
-      console.log("[signTransaction result]", result)
-      if (result.error) {
-        const errMsg = typeof result.error === "string"
-          ? result.error
-          : (result.error as { message?: string }).message ?? JSON.stringify(result.error)
-        throw new Error(errMsg)
-      }
-      if (!result.signedTxXdr) throw new Error("Freighter returned empty transaction — did you approve it?")
+      if (!result.signedTxXdr) throw new Error("Wallet returned empty transaction — did you approve it?")
       return { signedTxXdr: result.signedTxXdr }
     },
     [address],
   )
 
   const value = useMemo<WalletContextValue>(
-    () => ({ address, isConnected: !!address, connecting, connect, disconnect, signTransaction }),
-    [address, connecting, connect, disconnect, signTransaction],
+    () => ({
+      address,
+      isConnected: !!address,
+      connecting,
+      connectState,
+      connectError,
+      connectHelp,
+      disconnected,
+      networkChanged,
+      connect,
+      disconnect,
+      dismissDisconnectAlert,
+      dismissNetworkAlert,
+      signTransaction,
+    }),
+    [address, connecting, connectState, connectError, connectHelp, disconnected, networkChanged, connect, disconnect, dismissDisconnectAlert, dismissNetworkAlert, signTransaction],
   )
 
   return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>
+}
+
+function getFriendlyError(message: string): string {
+  const normalized = message.toLowerCase()
+  if (normalized.includes("cancel") || normalized.includes("rejected")) return "Connection was rejected. Please approve the prompt in Freighter."
+  if (normalized.includes("network")) return "The wallet is on the wrong network. Switch Freighter to the app network and try again."
+  if (normalized.includes("freighter") || normalized.includes("extension")) return "Freighter was not detected. Install or unlock the extension and retry."
+  return message
+}
+
+function getConnectHelp(message: string): string {
+  const normalized = message.toLowerCase()
+  if (normalized.includes("cancel") || normalized.includes("rejected")) return "Approve the connection popup in Freighter to continue."
+  if (normalized.includes("network")) return "Switch Freighter to Testnet or Mainnet to match the app and try again."
+  if (normalized.includes("freighter") || normalized.includes("extension")) return "Install the Freighter extension or unlock it, then try again."
+  return "Check your browser extension and network connection, then retry."
 }
 
 export function useWallet(): WalletContextValue {

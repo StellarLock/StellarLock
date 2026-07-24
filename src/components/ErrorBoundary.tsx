@@ -1,7 +1,14 @@
 import { Component, type ErrorInfo, type ReactNode } from "react"
+import { createLogger } from "@/lib/logger"
 
-interface Props { children: ReactNode }
-interface State { error: Error | null }
+const log = createLogger("ErrorBoundary")
+
+interface Props {
+  children: ReactNode
+}
+interface State {
+  error: Error | null
+}
 
 export class ErrorBoundary extends Component<Props, State> {
   state: State = { error: null }
@@ -11,7 +18,7 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error("App error:", error, info)
+    log.error("App error", { error, info })
   }
 
   render() {
@@ -20,7 +27,8 @@ export class ErrorBoundary extends Component<Props, State> {
         <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-8 text-center">
           <h1 className="text-xl font-bold text-destructive">Something went wrong</h1>
           <pre className="max-w-xl overflow-auto rounded-lg border border-border bg-card p-4 text-left text-xs text-muted-foreground">
-            {this.state.error.message}
+            {/* Avoid leaking internal error details (RPC/Soroban/stack traces) */}
+            Something went wrong. Please try again.
           </pre>
           <button
             className="rounded-lg border border-border px-4 py-2 text-sm hover:bg-secondary"

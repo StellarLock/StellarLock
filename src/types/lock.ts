@@ -1,6 +1,7 @@
 export type LockKind = "token" | "lp"
 
-export type Dex = "aquarius" | "soroswap"
+export const DEX_VALUES = ["aquarius", "soroswap"] as const
+export type Dex = (typeof DEX_VALUES)[number]
 
 export type LockStatus = "locked" | "unlockable" | "withdrawn"
 
@@ -14,12 +15,6 @@ export interface TokenMeta {
   logo?: string
 }
 
-export interface LockMetadata {
-  description: string
-  projectUrl: string
-  logoUrl: string
-}
-
 export interface VestingSchedule {
   /** Unix ms when linear vesting begins. */
   start: number
@@ -27,6 +22,16 @@ export interface VestingSchedule {
   end: number
   /** Amount already released to the beneficiary. */
   released: number
+}
+
+/** Optional contextual metadata attached at lock creation. Immutable after creation. */
+export interface LockMetadata {
+  /** Up to 280 characters describing why this lock exists. */
+  description?: string
+  /** Project or team website URL. */
+  projectUrl?: string
+  /** Token or project logo URL. */
+  logoUrl?: string
 }
 
 export interface Lock {
@@ -62,8 +67,28 @@ export interface Lock {
   /** Optional linear vesting schedule. */
   vesting?: VestingSchedule
 
-  /** Optional public-facing project info, set at lock creation. */
+  /** Optional immutable metadata set at lock creation. */
   metadata?: LockMetadata
+}
+
+/** One share within a split lock. */
+export interface SplitAllocation {
+  beneficiary: string
+  /** Basis points (0–10 000). All allocations in a split lock sum to 10 000. */
+  shareBps: number
+  lockId: string
+}
+
+/** A split lock groups multiple individual locks created in one transaction. */
+export interface SplitLock {
+  groupId: string
+  token: TokenMeta
+  totalAmount: number
+  creator: string
+  unlockAt: number
+  createdAt: number
+  allocations: SplitAllocation[]
+  vesting?: VestingSchedule
 }
 
 /** Aggregate stats for a single token's explorer page. */

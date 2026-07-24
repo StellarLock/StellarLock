@@ -1,10 +1,7 @@
-import {
-  Address,
-  nativeToScVal,
-  xdr,
-} from "@stellar/stellar-sdk"
+import { Address, nativeToScVal, xdr } from "@stellar/stellar-sdk"
 import type { Lock, LockMetadata, TokenLockSummary } from "@/types/lock"
-import { CONTRACTS, simulateCall, submitCall } from "@/lib/stellar"
+import { CONTRACTS, simulateCall, submitCall, submitCallWithHash, type TxPhase } from "@/lib/stellar"
+import { getOnChainTokenMeta, type OnChainTokenMeta } from "@/lib/token-metadata"
 
 export interface CreateTokenLockArgs {
   tokenAddress: string
@@ -18,8 +15,10 @@ export interface CreateTokenLockArgs {
 // ── Converters ────────────────────────────────────────────────────────────────
 
 /** Map a raw on-chain lock object (as returned by scValToNative) to our Lock type. */
-function toLock(raw: Record<string, unknown>): Lock {
+function toLock(raw: Record<string, unknown>, meta?: OnChainTokenMeta): Lock {
   const token = raw.token as string
+  const decimals = meta?.decimals ?? 7
+  const multiplier = 10 ** decimals
 
   const vestingRaw = raw.vesting as { start: bigint; end: bigint; released: bigint } | null | undefined
   const metadata = parseMetadata(raw.metadata)
@@ -27,20 +26,16 @@ function toLock(raw: Record<string, unknown>): Lock {
   return {
     id: String(raw.id),
     kind: "token",
-    status: raw.withdrawn
-      ? "withdrawn"
-      : Number(raw.unlock_at) * 1000 <= Date.now()
-      ? "unlockable"
-      : "locked",
+    status: raw.withdrawn ? "withdrawn" : Number(raw.unlock_at) * 1000 <= Date.now() ? "unlockable" : "locked",
     token: {
       address: token,
-      symbol: token.slice(0, 6),
-      name: token.slice(0, 6),
-      decimals: 7,
+      symbol: meta?.symbol ?? token.slice(0, 6),
+      name: meta?.name ?? token.slice(0, 6),
+      decimals,
     },
     creator: raw.creator as string,
     beneficiary: raw.beneficiary as string,
-    amount: Number(raw.amount) / 1e7,
+    amount: Number(raw.amount) / multiplier,
     usdValue: 0, // computed client-side if needed
     createdAt: Number(raw.created_at) * 1000,
     unlockAt: Number(raw.unlock_at) * 1000,
@@ -49,7 +44,7 @@ function toLock(raw: Record<string, unknown>): Lock {
       ? {
           start: Number(vestingRaw.start) * 1000,
           end: Number(vestingRaw.end) * 1000,
-          released: Number(vestingRaw.released) / 1e7,
+          released: Number(vestingRaw.released) / multiplier,
         }
       : undefined,
     metadata,
@@ -61,6 +56,14 @@ function parseMetadata(raw: unknown): LockMetadata | undefined {
   const m = raw as { description: string; project_url: string; logo_url: string } | null | undefined
   if (!m || (!m.description && !m.project_url && !m.logo_url)) return undefined
   return { description: m.description, projectUrl: m.project_url, logoUrl: m.logo_url }
+}
+
+/** Fetch on-chain metadata for all unique token addresses in a batch, then map raw locks. */
+async function enrichLocks(raws: Record<string, unknown>[]): Promise<Lock[]> {
+  const unique = [...new Set(raws.map((r) => r.token as string))]
+  const entries = await Promise.all(unique.map(async (addr) => [addr, await getOnChainTokenMeta(addr)] as const))
+  const metaMap = new Map(entries)
+  return raws.map((r) => toLock(r, metaMap.get(r.token as string)))
 }
 
 function idArg(id: string): xdr.ScVal {
@@ -89,44 +92,64 @@ function metadataArg(metadata: CreateTokenLockArgs["metadata"]): xdr.ScVal {
   ])
 }
 
+const DEFAULT_PAGE_SIZE = 50
+
+function paginationArgs(offset: number, limit: number): xdr.ScVal[] {
+  return [nativeToScVal(offset, { type: "u32" }), nativeToScVal(limit, { type: "u32" })]
+}
+
 // ── Read methods ──────────────────────────────────────────────────────────────
 
 export async function getLock(id: string): Promise<Lock | null> {
-  const raw = await simulateCall<Record<string, unknown> | null>(
-    CONTRACTS.tokenLocker,
-    "get_lock",
-    [idArg(id)],
-  )
-  return raw ? toLock(raw) : null
+  const raw = await simulateCall<Record<string, unknown> | null>(CONTRACTS.tokenLocker, "get_lock", [idArg(id)])
+  if (!raw) return null
+  const meta = await getOnChainTokenMeta(raw.token as string)
+  return toLock(raw, meta)
 }
 
-export async function getLocksByCreator(address: string): Promise<Lock[]> {
-  const raw = await simulateCall<Record<string, unknown>[]>(
-    CONTRACTS.tokenLocker,
-    "get_locks_by_creator",
-    [addressArg(address)],
-  )
-  return (raw ?? []).map(toLock)
+export async function getLocksByCreator(address: string, offset = 0, limit = DEFAULT_PAGE_SIZE): Promise<Lock[]> {
+  const raw = await simulateCall<Record<string, unknown>[]>(CONTRACTS.tokenLocker, "get_locks_by_creator", [
+    addressArg(address),
+    ...paginationArgs(offset, limit),
+  ])
+  return enrichLocks(raw ?? [])
 }
 
-export async function getLocksByBeneficiary(address: string): Promise<Lock[]> {
-  const raw = await simulateCall<Record<string, unknown>[]>(
-    CONTRACTS.tokenLocker,
-    "get_locks_by_beneficiary",
-    [addressArg(address)],
-  )
-  return (raw ?? []).map(toLock)
+export async function getLocksByBeneficiary(address: string, offset = 0, limit = DEFAULT_PAGE_SIZE): Promise<Lock[]> {
+  const raw = await simulateCall<Record<string, unknown>[]>(CONTRACTS.tokenLocker, "get_locks_by_beneficiary", [
+    addressArg(address),
+    ...paginationArgs(offset, limit),
+  ])
+  return enrichLocks(raw ?? [])
 }
 
-export async function getLocksByToken(tokenAddress: string): Promise<TokenLockSummary | null> {
-  const raw = await simulateCall<Record<string, unknown>[]>(
-    CONTRACTS.tokenLocker,
-    "get_locks_by_token",
-    [addressArg(tokenAddress)],
-  )
+export async function getLockCountByCreator(address: string): Promise<number> {
+  const raw = await simulateCall<number>(CONTRACTS.tokenLocker, "get_lock_count_by_creator", [addressArg(address)])
+  return Number(raw ?? 0)
+}
+
+export async function getLockCountByBeneficiary(address: string): Promise<number> {
+  const raw = await simulateCall<number>(CONTRACTS.tokenLocker, "get_lock_count_by_beneficiary", [addressArg(address)])
+  return Number(raw ?? 0)
+}
+
+export async function getLockCountByToken(address: string): Promise<number> {
+  const raw = await simulateCall<number>(CONTRACTS.tokenLocker, "get_lock_count_by_token", [addressArg(address)])
+  return Number(raw ?? 0)
+}
+
+export async function getLocksByToken(
+  tokenAddress: string,
+  offset = 0,
+  limit = DEFAULT_PAGE_SIZE,
+): Promise<TokenLockSummary | null> {
+  const raw = await simulateCall<Record<string, unknown>[]>(CONTRACTS.tokenLocker, "get_locks_by_token", [
+    addressArg(tokenAddress),
+    ...paginationArgs(offset, limit),
+  ])
   if (!raw || raw.length === 0) return null
 
-  const locks = raw.map(toLock)
+  const locks = await enrichLocks(raw)
   const active = locks.filter((l) => l.status !== "withdrawn")
   const totalLocked = active.reduce((s, l) => s + l.amount, 0)
   const upcoming = active
@@ -150,7 +173,8 @@ export async function createTokenLock(
   args: CreateTokenLockArgs,
   sourceAddress: string,
   signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>,
-): Promise<{ id: string; hash: string }> {
+  onProgress?: (phase: TxPhase) => void,
+): Promise<{ id: string; txHash: string }> {
   const unlockAtSecs = Math.floor(args.unlockAt)
   const amountStroops = BigInt(Math.round(args.amount * 1e7))
 
@@ -187,24 +211,49 @@ export async function createTokenLock(
 
   scArgs.push(metadataArg(args.metadata))
 
-  const { hash } = await submitCall(CONTRACTS.tokenLocker, "create_lock", scArgs, sourceAddress, signTransaction)
+  const { result: id, txHash } = await submitCallWithHash<bigint>(
+    CONTRACTS.tokenLocker,
+    "create_lock",
+    scArgs,
+    sourceAddress,
+    signTransaction,
+    onProgress,
+  )
 
-  // The contract returns a u64 id, but submitCall doesn't surface return values.
-  // We return a temporary client-side id; the caller can re-fetch to get the real one.
-  return { id: "pending", hash }
+  return { id: String(id), txHash }
 }
 
 export async function withdrawLock(
   id: string,
   sourceAddress: string,
   signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>,
-): Promise<{ hash: string }> {
-  return submitCall(
+  onProgress?: (phase: TxPhase) => void,
+): Promise<{ txHash: string }> {
+  const { txHash } = await submitCallWithHash<void>(
     CONTRACTS.tokenLocker,
     "withdraw",
     [idArg(id)],
     sourceAddress,
     signTransaction,
+    onProgress,
+  )
+  return { txHash }
+}
+
+export async function transferBeneficiary(
+  id: string,
+  newBeneficiary: string,
+  sourceAddress: string,
+  signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>,
+  onProgress?: (phase: TxPhase) => void,
+): Promise<void> {
+  await submitCall(
+    CONTRACTS.tokenLocker,
+    "transfer_beneficiary",
+    [idArg(id), addressArg(newBeneficiary)],
+    sourceAddress,
+    signTransaction,
+    onProgress,
   )
 }
 
@@ -213,12 +262,15 @@ export async function extendLock(
   newUnlockAt: number,
   sourceAddress: string,
   signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>,
-): Promise<{ hash: string }> {
-  return submitCall(
+  onProgress?: (phase: TxPhase) => void,
+): Promise<{ txHash: string }> {
+  const { txHash } = await submitCallWithHash<void>(
     CONTRACTS.tokenLocker,
     "extend",
     [idArg(id), nativeToScVal(BigInt(Math.floor(newUnlockAt)), { type: "u64" })],
     sourceAddress,
     signTransaction,
+    onProgress,
   )
+  return { txHash }
 }

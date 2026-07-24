@@ -1,0 +1,36 @@
+# ── StellarLock — development Dockerfile ─────────────────────────────────────
+#
+# Optimised for fast rebuilds:
+#  • Installs dependencies in a separate layer so code changes don't trigger
+#    a fresh `pnpm install`.
+#  • Source tree is mounted as a volume at runtime, so Vite hot-reload works
+#    without rebuilding the image.
+#
+# Usage (via docker-compose):
+#   docker-compose up frontend
+#
+# Usage standalone:
+#   docker build -f Dockerfile.dev -t stellarlock-dev .
+#   docker run -p 5173:5173 -v $(pwd):/app stellarlock-dev
+
+FROM node:20-slim AS base
+
+# Install pnpm via corepack
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+WORKDIR /app
+
+# ── Dependency layer ──────────────────────────────────────────────────────────
+# Copy only the lockfile + manifests first so this layer is cached as long as
+# dependencies don't change.
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN pnpm install --frozen-lockfile
+
+# ── Runtime ───────────────────────────────────────────────────────────────────
+# Source code is intentionally NOT copied here — it is mounted as a volume at
+# runtime so that Vite's hot-module replacement picks up edits immediately.
+EXPOSE 5173
+
+# Default: start the Vite dev server bound to 0.0.0.0 so it is reachable from
+# the host machine.
+CMD ["pnpm", "dev", "--host", "0.0.0.0"]

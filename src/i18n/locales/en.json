@@ -3,18 +3,23 @@
     "appName": "StellarLock",
     "tagline": "Token & LP locks on Stellar",
     "testnet": "Testnet",
+    "mainnet": "Mainnet",
     "loading": "Loading…",
     "tryAgain": "Try again",
     "back": "Back",
     "you": "You",
+    "stellar": "Stellar",
     "skipToContent": "Skip to main content"
   },
   "nav": {
     "createLock": "Create Lock",
     "myLocks": "My Locks",
-    "history": "History",
+    "explore": "Explore",
     "connectWallet": "Connect Wallet",
-    "disconnectWallet": "Disconnect wallet"
+    "disconnectWallet": "Disconnect wallet",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "history": "History"
   },
   "landing": {
     "badge": "Built on Stellar · Soroban smart contracts",
@@ -64,8 +69,19 @@
     "unlockDate": "Unlock date",
     "vestingLabel": "Linear vesting",
     "vestingDesc": "Release gradually from now until the unlock date, instead of all at once.",
+    "vestingTemplate": "Vesting schedule",
+    "vestingTemplateHint": "Choose a preset vesting schedule or set a custom unlock date.",
+    "vestingTemplateCustom": "Custom",
+    "vestingTemplateLinear6m": "6-month linear",
+    "vestingTemplateLinear1y": "1-year linear",
+    "vestingTemplateLinear2y": "2-year linear",
+    "vestingTemplateQuarterly": "Quarterly (25% per quarter)",
+    "vestingStart": "Vesting starts",
+    "vestingEnd": "Vesting ends",
     "lockInfo": "Locks are immutable: you can extend the unlock date later, but never shorten it.",
     "fundsUnlockOn": "Funds unlock on <1>{{date}}</1>.",
+    "balance": "Balance",
+    "max": "Max",
     "submit": "Lock tokens",
     "days30": "30 days",
     "days90": "90 days",
@@ -76,7 +92,11 @@
     "description": "Description",
     "descriptionPlaceholder": "What is this lock for?",
     "projectUrl": "Project URL",
-    "logoUrl": "Logo URL"
+    "logoUrl": "Logo URL",
+    "insufficientBalance": "Insufficient balance. You have {{balance}} but need {{amount}}.",
+    "needsApproval": "You need to approve the contract to transfer your tokens before locking.",
+    "approveAndContinue": "Approve & Continue",
+    "approving": "Approving…"
   },
   "lpForm": {
     "dex": "DEX",
@@ -97,7 +117,11 @@
     "days90": "90 days",
     "months6": "6 months",
     "year1": "1 year",
-    "years2": "2 years"
+    "years2": "2 years",
+    "insufficientBalance": "Insufficient balance. You have {{balance}} but need {{amount}}.",
+    "needsApproval": "You need to approve the contract to transfer your LP tokens before locking.",
+    "approveAndContinue": "Approve & Continue",
+    "approving": "Approving…"
   },
   "myLocks": {
     "title": "My Locks",
@@ -132,14 +156,20 @@
     "beneficiary": "Beneficiary",
     "timeRemaining": "Time remaining",
     "withdraw": "Withdraw tokens",
+    "claimVested": "Claim {{amount}} {{symbol}} (vested)",
     "extendLock": "Extend lock",
     "newUnlockDate": "New unlock date",
     "extendHint": "Must be later than the current unlock date. Locks can only be extended, never shortened.",
     "confirmExtension": "Confirm extension",
+    "transferBeneficiary": "Transfer beneficiary",
+    "newBeneficiary": "New beneficiary address",
+    "transferHint": "Transfer withdrawal rights to a new Stellar address. This action is irreversible.",
+    "confirmTransfer": "Confirm transfer",
     "securityNotice": "These tokens are secured by the StellarLock contract until the unlock date. Neither the creator nor StellarLock can move them early.",
     "viewExplorer": "View token explorer",
-    "aboutProject": "About this project",
-    "visitWebsite": "Visit website"
+    "withdrawSuccess": "Withdrawal confirmed.",
+    "extendSuccess": "Lock extended.",
+    "transferSuccess": "Beneficiary transferred."
   },
   "explorer": {
     "backToSearch": "Back to search",
@@ -160,6 +190,21 @@
     "noLocksDesc": "We couldn't find any locks for <1>{{query}}</1>. Double-check the token symbol or contract address, or create the first lock for this token.",
     "createLock": "Create a lock"
   },
+  "discover": {
+    "title": "Explore Locks",
+    "subtitle": "Browse all token and LP locks on StellarLock.",
+    "recentLocks": "Recent Locks",
+    "upcomingUnlocks": "Upcoming Unlocks",
+    "featuredTokens": "Featured Tokens",
+    "recentActivity": "Recent Activity",
+    "noRecentActivity": "No recent activity yet.",
+    "totalLocks": "Total Locks",
+    "totalValueLocked": "Total Value Locked",
+    "tokensSecured": "Tokens Secured",
+    "viewAll": "View all locks",
+    "noLocks": "No locks found for this token.",
+    "searchHint": "Search by token symbol or contract address to find specific locks."
+  },
   "search": {
     "placeholder": "Search a token by symbol or contract address…",
     "ariaLabel": "Search token to verify locks",
@@ -171,28 +216,160 @@
     "desc": "Connect a Stellar wallet to continue.",
     "connect": "Connect Wallet"
   },
+  "notifications": {
+    "title": "Unlock Notifications",
+    "browser": "Browser notifications",
+    "browserDesc": "Get notified 7 days, 1 day before, and when unlock happens.",
+    "email": "Email reminders",
+    "emailDesc": "Receive email reminders at 7 days, 1 day, and at unlock. Requires a connected wallet.",
+    "emailPlaceholder": "you@example.com",
+    "emailNeedsWallet": "Connect your wallet to enable email reminders.",
+    "emailError": "Failed to save email subscription. Please try again.",
+    "webhook": "Webhook",
+    "webhookDesc": "Send unlock events to a URL (Telegram bot, Discord, etc).",
+    "enable": "Enable",
+    "enabled": "Enabled",
+    "save": "Save"
+  },
   "lockCard": {
     "lockedAmount": "Locked amount",
     "unlocksIn": "Unlocks in",
     "lock": "Lock #{{id}}",
     "view": "View"
   },
+  "wallet": {
+    "disconnected": "Wallet disconnected",
+    "disconnectedDesc": "Your Freighter wallet was disconnected or the extension became unavailable. Please reconnect to continue.",
+    "networkChanged": "Network changed",
+    "networkChangedDesc": "Your wallet's network changed. Please reconnect to continue using StellarLock."
+  },
+  "breadcrumbs": {
+    "home": "Home",
+    "myLocks": "My Locks",
+    "lockId": "Lock #{{id}}",
+    "discover": "Discover",
+    "createLock": "Create Lock",
+    "history": "Transaction History"
+  },
+  "costEstimate": {
+    "title": "Estimated Costs",
+    "networkFee": "Transaction fee",
+    "storageFee": "Storage deposit",
+    "total": "Total",
+    "tooltip": "Soroban requires a refundable storage deposit to rent on-chain state. This deposit is separate from the transaction fee.",
+    "highCostWarning": "Unusually high storage cost",
+    "estimating": "Estimating costs…",
+    "error": "Unable to estimate cost",
+    "unit": "XLM"
+  },
   "history": {
     "title": "Transaction History",
-    "subtitle": "Every lock transaction you've submitted from this browser, with live status.",
-    "emptyTitle": "No transactions yet",
-    "emptyDesc": "Create, withdraw, or extend a lock and it'll show up here.",
-    "viewOnExplorer": "View on stellar.expert",
-    "action": {
-      "create_token_lock": "Created token lock",
-      "create_lp_lock": "Created LP lock",
-      "withdraw": "Withdrew lock",
-      "extend": "Extended lock"
+    "subtitle": "All StellarLock transactions submitted from this browser.",
+    "empty": "No transactions yet",
+    "emptyDesc": "Transactions will appear here after you create, withdraw, extend, or transfer a lock.",
+    "filterAll": "All",
+    "filterType": "Type",
+    "filterStatus": "Status",
+    "colHash": "Transaction",
+    "colType": "Type",
+    "colStatus": "Status",
+    "colDate": "Date",
+    "colLock": "Lock",
+    "viewOnExplorer": "View on Stellar Expert",
+    "copyHash": "Copy hash",
+    "typeCreateLock": "Create Lock",
+    "typeWithdraw": "Withdraw",
+    "typeExtend": "Extend",
+    "typeTransfer": "Transfer Beneficiary",
+    "typeSplitLock": "Split Lock",
+    "statusPending": "Pending",
+    "statusSuccess": "Success",
+    "statusFailed": "Failed",
+    "cleanupNote": "Transactions older than 90 days are removed automatically."
+  },
+  "splitLock": {
+    "toggle": "Multiple beneficiaries",
+    "toggleDesc": "Split this lock among multiple addresses with proportional shares.",
+    "addBeneficiary": "Add beneficiary",
+    "removeBeneficiary": "Remove",
+    "addressLabel": "Address",
+    "shareLabel": "Share (%)",
+    "totalShare": "Total",
+    "totalShareError": "Shares must add up to 100%",
+    "minBeneficiaries": "Add at least 2 beneficiaries or use single-beneficiary mode.",
+    "maxBeneficiaries": "Maximum 10 beneficiaries allowed.",
+    "submit": "Create split lock"
+  },
+  "errors": {
+    "alreadyWithdrawn": {
+      "title": "Already Withdrawn",
+      "message": "Tokens have already been withdrawn from this lock.",
+      "recovery": null
     },
-    "status": {
-      "pending": "Pending",
-      "success": "Success",
-      "failed": "Failed"
+    "amountMustBePositive": {
+      "title": "Invalid Amount",
+      "message": "Lock amount must be greater than zero.",
+      "recovery": "Enter a positive amount to continue."
+    },
+    "canOnlyExtend": {
+      "title": "Invalid Extension Date",
+      "message": "New date must be after the current unlock date.",
+      "recovery": "Choose a later date."
+    },
+    "extensionLimitReached": {
+      "title": "Extension Limit Reached",
+      "message": "This lock has reached the maximum number of extensions.",
+      "recovery": null
+    },
+    "insufficientBalance": {
+      "title": "Insufficient Balance",
+      "message": "You don't have enough tokens to lock this amount.",
+      "recovery": "Reduce the amount or add funds to your wallet."
+    },
+    "lockDurationTooLong": {
+      "title": "Lock Duration Too Long",
+      "message": "Lock duration cannot exceed 10 years.",
+      "recovery": "Choose an unlock date within 10 years from today."
+    },
+    "stillLocked": {
+      "title": "Lock Not Expired",
+      "message": "This lock hasn't reached its unlock date yet.",
+      "recovery": "Check back on the unlock date shown on the lock card."
+    },
+    "timeout": {
+      "title": "Transaction Timed Out",
+      "message": "The transaction took too long to confirm.",
+      "recovery": "Check Stellar Expert for the transaction status."
+    },
+    "unknown": {
+      "title": "Something Went Wrong",
+      "message": "An unexpected error occurred.",
+      "recovery": "Please try again. If this persists, contact support."
+    },
+    "unlockExceedsMax": {
+      "title": "Unlock Date Too Far Out",
+      "message": "The unlock date exceeds the maximum allowed lock duration.",
+      "recovery": "Choose an earlier unlock date."
+    },
+    "unlockMustBeFuture": {
+      "title": "Invalid Unlock Date",
+      "message": "Unlock date must be in the future.",
+      "recovery": "Choose a date after today."
+    },
+    "unlockTooSoon": {
+      "title": "Unlock Date Too Soon",
+      "message": "The unlock date does not meet the minimum lock duration.",
+      "recovery": "Choose an unlock date further in the future."
+    },
+    "userRejected": {
+      "title": "Transaction Cancelled",
+      "message": "You cancelled the transaction in your wallet.",
+      "recovery": "Click the button again when you're ready to proceed."
+    },
+    "wrongNetwork": {
+      "title": "Wrong Network",
+      "message": "Your wallet is connected to the wrong network.",
+      "recovery": "Switch to the correct network in Freighter settings."
     }
   }
 }

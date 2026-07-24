@@ -1,0 +1,6 @@
+dist
+contracts
+pnpm-lock.yaml
+node_modules
+.env*
+*.md

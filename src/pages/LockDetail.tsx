@@ -1,40 +1,68 @@
 import { useEffect, useRef, useState } from "react"
-import { Link, useNavigate, useParams } from "react-router-dom"
-import { ArrowLeft, Lock as LockIcon, Repeat, ExternalLink, ShieldCheck, Globe } from "lucide-react"
+import { Link, useNavigate, useParams, useLocation } from "react-router-dom"
+import {
+  ArrowLeft,
+  Lock as LockIcon,
+  Repeat,
+  ExternalLink,
+  ShieldCheck,
+  UserRoundPen,
+  FileDown,
+  QrCode,
+} from "lucide-react"
+import { Helmet } from "react-helmet-async"
 import { useTranslation } from "react-i18next"
 import { useLock } from "@/hooks/useLocks"
 import { useWallet } from "@/hooks/useWallet"
-import { withdrawLock, extendLock } from "@/lib/token-locker"
-import { withdrawLpLock, extendLpLock } from "@/lib/lp-locker"
+import { withdrawLock, extendLock, transferBeneficiary } from "@/lib/token-locker"
+import { withdrawLpLock, extendLpLock, transferLpBeneficiary } from "@/lib/lp-locker"
 import { trackEvent } from "@/lib/analytics"
 import { addTransaction } from "@/lib/transaction-history"
+import { sanitizeError } from "@/lib/error-sanitizer"
+import type { StructuredError } from "@/lib/errors"
+import { useAnnouncer } from "@/hooks/useAnnouncer"
+import { type TxPhase } from "@/lib/stellar"
+import { downloadLockReport } from "@/lib/pdf-report"
+import { QrCodeModal } from "@/components/ui/QrCodeModal"
 import { Card } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
 import { Badge } from "@/components/ui/Badge"
 import { TokenAvatar } from "@/components/ui/TokenAvatar"
+import { SkeletonLockDetail } from "@/components/ui/Skeleton"
 import { StatusBadge } from "@/components/ui/StatusBadge"
 import { DexBadge } from "@/components/ui/DexBadge"
+import { CopyButton } from "@/components/ui/CopyButton"
 import { CountdownTimer } from "@/components/ui/CountdownTimer"
 import { LockProgressBar } from "@/components/ui/LockProgressBar"
-import {
-  formatAmount,
-  formatUsd,
-  formatDateTime,
-  shortAddress,
-} from "@/lib/utils"
+import { TxProgressSteps } from "@/components/ui/TxProgressSteps"
+import { TxErrorAlert } from "@/components/ui/TxErrorAlert"
+import { VerifiedBadge } from "@/components/ui/VerifiedBadge"
+import { NotificationSettings } from "@/components/locks/NotificationSettings"
+import { useVerifiedToken } from "@/hooks/useVerifiedToken"
+import { formatAmount, formatUsd, formatDateTime, shortAddress } from "@/lib/utils"
 import type { Lock } from "@/types/lock"
 
 export function LockDetail() {
   const { t } = useTranslation()
   const { id } = useParams<{ id: string }>()
-  const { data: lock, loading, error, reload } = useLock(id)
+  const location = useLocation()
+  // Derive type from URL: /app/lock/lp/:id → "lp", everything else → "token"
+  const lockType: "token" | "lp" = location.pathname.includes("/app/lock/lp/") ? "lp" : "token"
+  const { data: lock, loading, error, reload } = useLock(id, lockType)
 
   if (loading) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-10 md:px-6">
-        <div className="h-8 w-32 animate-pulse rounded bg-card" />
-        <div className="mt-6 h-96 animate-pulse rounded-xl border border-border bg-card/50" />
+        <Link to="/app/locks">
+          <Button variant="ghost" size="sm">
+            <ArrowLeft className="h-4 w-4" />
+            {t("lockDetail.backToLocks")}
+          </Button>
+        </Link>
+        <div className="mt-6">
+          <SkeletonLockDetail />
+        </div>
       </div>
     )
   }
@@ -43,9 +71,7 @@ export function LockDetail() {
     return (
       <div className="mx-auto max-w-3xl px-4 py-20 text-center md:px-6">
         <h1 className="text-2xl font-bold">{t("lockDetail.notFoundTitle")}</h1>
-        <p className="mt-2 text-muted-foreground">
-          {t("lockDetail.notFoundDesc", { id })}
-        </p>
+        <p className="mt-2 text-muted-foreground">{t("lockDetail.notFoundDesc", { id })}</p>
         <Link to="/app/locks">
           <Button variant="outline" className="mt-6">
             <ArrowLeft className="h-4 w-4" />
@@ -56,7 +82,21 @@ export function LockDetail() {
     )
   }
 
-  return <LockDetailView lock={lock} onChange={reload} />
+  return (
+    <>
+      <Helmet>
+        <title>
+          Lock #{lock.id} — {formatAmount(lock.amount)} {lock.token.symbol} locked until {formatDateTime(lock.unlockAt)}{" "}
+          | StellarLock
+        </title>
+        <meta
+          name="description"
+          content={`Lock #${lock.id}: ${formatAmount(lock.amount)} ${lock.token.symbol} locked until ${formatDateTime(lock.unlockAt)} on StellarLock.`}
+        />
+      </Helmet>
+      <LockDetailView lock={lock} onChange={reload} />
+    </>
+  )
 }
 
 function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }) {
@@ -64,17 +104,37 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
   const { address, signTransaction } = useWallet()
   const navigate = useNavigate()
   const isLp = lock.kind === "lp"
+  const verified = useVerifiedToken(lock.token.address)
 
   const now = Date.now()
   const isBeneficiary = address === lock.beneficiary
   const isCreator = address === lock.creator
-  const canWithdraw = isBeneficiary && lock.unlockAt <= now && lock.status !== "withdrawn"
-  const canExtend = isCreator && lock.status !== "withdrawn"
 
-  const [busy, setBusy] = useState<"withdraw" | "extend" | null>(null)
+  const vestingClaimable = lock.vesting
+    ? Math.max(
+        0,
+        (lock.amount * Math.max(0, Math.min(now, lock.vesting.end) - lock.vesting.start)) /
+          Math.max(1, lock.vesting.end - lock.vesting.start) -
+          lock.vesting.released,
+      )
+    : 0
+
+  const canWithdraw =
+    isBeneficiary && lock.status !== "withdrawn" && lock.unlockAt <= now && (lock.vesting ? vestingClaimable > 0 : true)
+  const canExtend = isCreator && lock.status !== "withdrawn"
+  const canTransfer = isBeneficiary && lock.status !== "withdrawn"
+
+  const { announce } = useAnnouncer()
+  const [busy, setBusy] = useState<"withdraw" | "extend" | "transfer" | null>(null)
+  const [txPhase, setTxPhase] = useState<TxPhase | "idle">("idle")
+  const [txError, setTxError] = useState<StructuredError | null>(null)
   const [extendOpen, setExtendOpen] = useState(false)
+  const [transferOpen, setTransferOpen] = useState(false)
+  const [qrOpen, setQrOpen] = useState(false)
   const [newDate, setNewDate] = useState("")
+  const [newBeneficiary, setNewBeneficiary] = useState("")
   const extendPanelRef = useRef<HTMLDivElement>(null)
+  const transferPanelRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (extendOpen) {
@@ -83,26 +143,38 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
     }
   }, [extendOpen])
 
+  useEffect(() => {
+    if (transferOpen) {
+      const input = transferPanelRef.current?.querySelector("input")
+      input?.focus()
+    }
+  }, [transferOpen])
+
+  // Turns a thrown transaction error into sanitized, translated guidance and
+  // announces it, instead of letting the rejection disappear silently.
+  function reportTxFailure(err: unknown) {
+    const structured = sanitizeError(err)
+    setTxError(structured)
+    announce(`${t(structured.title)}. ${t(structured.message)}`, "assertive")
+  }
+
   async function handleWithdraw() {
     setBusy("withdraw")
+    setTxPhase("simulating")
+    setTxError(null)
     try {
-      const { hash } = await (isLp
-        ? withdrawLpLock(lock.id, address!, signTransaction)
-        : withdrawLock(lock.id, address!, signTransaction))
-      addTransaction({
-        hash,
-        action: "withdraw",
-        kind: lock.kind,
-        address: address!,
-        lockId: lock.id,
-        token: lock.token.address,
-        tokenSymbol: lock.token.symbol,
-        amount: lock.amount,
-      })
+      const { txHash } = await (isLp
+        ? withdrawLpLock(lock.id, address!, signTransaction, setTxPhase)
+        : withdrawLock(lock.id, address!, signTransaction, setTxPhase))
+      addTransaction(txHash, "withdraw", { lockId: lock.id, amount: String(lock.amount) })
       trackEvent("lock_withdraw", { kind: lock.kind })
+      announce(t("lockDetail.withdrawSuccess"))
       onChange()
+    } catch (err) {
+      reportTxFailure(err)
     } finally {
       setBusy(null)
+      setTxPhase("idle")
     }
   }
 
@@ -111,32 +183,51 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
     const ts = Math.floor(new Date(newDate).getTime() / 1000)
     if (ts <= Math.floor(lock.unlockAt / 1000)) return
     setBusy("extend")
+    setTxPhase("simulating")
+    setTxError(null)
     try {
-      const { hash } = await (isLp
-        ? extendLpLock(lock.id, ts, address!, signTransaction)
-        : extendLock(lock.id, ts, address!, signTransaction))
-      addTransaction({
-        hash,
-        action: "extend",
-        kind: lock.kind,
-        address: address!,
-        lockId: lock.id,
-        token: lock.token.address,
-        tokenSymbol: lock.token.symbol,
-        amount: lock.amount,
-      })
+      const { txHash } = await (isLp
+        ? extendLpLock(lock.id, ts, address!, signTransaction, setTxPhase)
+        : extendLock(lock.id, ts, address!, signTransaction, setTxPhase))
+      addTransaction(txHash, "extend", { lockId: lock.id, amount: String(lock.amount) })
       trackEvent("lock_extend", { kind: lock.kind })
+      announce(t("lockDetail.extendSuccess"))
       setExtendOpen(false)
       onChange()
+    } catch (err) {
+      reportTxFailure(err)
     } finally {
       setBusy(null)
+      setTxPhase("idle")
+    }
+  }
+
+  async function handleTransfer() {
+    if (!newBeneficiary.trim()) return
+    setBusy("transfer")
+    setTxPhase("simulating")
+    setTxError(null)
+    try {
+      await (isLp
+        ? transferLpBeneficiary(lock.id, newBeneficiary.trim(), address!, signTransaction, setTxPhase)
+        : transferBeneficiary(lock.id, newBeneficiary.trim(), address!, signTransaction, setTxPhase))
+      trackEvent("lock_transfer_beneficiary", { kind: lock.kind })
+      announce(t("lockDetail.transferSuccess"))
+      setTransferOpen(false)
+      setNewBeneficiary("")
+      onChange()
+    } catch (err) {
+      reportTxFailure(err)
+    } finally {
+      setBusy(null)
+      setTxPhase("idle")
     }
   }
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 md:px-6">
       <button
-        onClick={() => navigate(-1)}
+        onClick={() => void navigate(-1)}
         className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
         <ArrowLeft className="h-4 w-4" />
@@ -146,18 +237,39 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
       <Card className="mt-4 overflow-hidden">
         <div className="flex flex-col gap-4 border-b border-border p-6 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
-            <TokenAvatar symbol={lock.token.symbol} size="lg" />
+            <TokenAvatar symbol={lock.token.symbol} contractId={lock.token.address} size="lg" showVerified />
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-2xl font-bold">{lock.token.symbol}</h1>
                 {isLp && lock.dex && <DexBadge dex={lock.dex} />}
                 <Badge variant="outline">{isLp ? t("lockDetail.lpLock") : t("lockDetail.tokenLock")}</Badge>
+                <VerifiedBadge verified={verified} showUnverified={true} />
               </div>
               <p className="text-sm text-muted-foreground">{lock.token.name}</p>
             </div>
           </div>
-          <StatusBadge status={lock.status} />
+          <div className="flex flex-col items-end gap-2">
+            <StatusBadge status={lock.status} />
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setQrOpen(true)} title="Share via QR code">
+                <QrCode className="h-4 w-4" />
+                Share QR
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => downloadLockReport(lock)} title="Download lock report">
+                <FileDown className="h-4 w-4" />
+                Download Report
+              </Button>
+            </div>
+          </div>
         </div>
+
+        {qrOpen && (
+          <QrCodeModal
+            url={`${window.location.origin}/app/lock/${isLp ? "lp" : "token"}/${lock.id}`}
+            title={`Share Lock #${lock.id}`}
+            onClose={() => setQrOpen(false)}
+          />
+        )}
 
         <div className="grid gap-px bg-border sm:grid-cols-2">
           <Field label={t("lockDetail.lockedAmount")} className="bg-card">
@@ -168,6 +280,7 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
           </Field>
           <Field label={t("lockDetail.lockId")} className="bg-card">
             <span className="font-mono">#{lock.id}</span>
+            <CopyButton text={lock.id} className="ml-1" />
             {lock.extendedCount > 0 && (
               <span className="ml-3 inline-flex items-center gap-1 text-xs text-muted-foreground">
                 <Repeat className="h-3 w-3" />
@@ -183,10 +296,12 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
           </Field>
           <Field label={t("lockDetail.creator")} className="bg-card">
             <span className="font-mono">{shortAddress(lock.creator)}</span>
+            <CopyButton text={lock.creator} className="ml-1" />
             {isCreator && <Badge className="ml-2">{t("common.you")}</Badge>}
           </Field>
           <Field label={t("lockDetail.beneficiary")} className="bg-card">
             <span className="font-mono">{shortAddress(lock.beneficiary)}</span>
+            <CopyButton text={lock.beneficiary} className="ml-1" />
             {isBeneficiary && <Badge className="ml-2">{t("common.you")}</Badge>}
           </Field>
         </div>
@@ -199,7 +314,6 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
           <CountdownTimer target={lock.unlockAt} className="mb-5 justify-center sm:justify-start" />
           <LockProgressBar createdAt={lock.createdAt} unlockAt={lock.unlockAt} />
         </div>
-
 
         {/* Vesting schedule */}
         {lock.vesting && (
@@ -221,58 +335,101 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
             <div className="mb-3">
               <div className="mb-2 flex justify-between text-sm">
                 <span className="text-muted-foreground">Progress</span>
-                <span className="font-medium tabular-nums">{Math.min(100, Math.max(0, Math.round(((now - lock.vesting.start) / (lock.vesting.end - lock.vesting.start)) * 100)))}%</span>
+                <span className="font-medium tabular-nums">
+                  {Math.min(
+                    100,
+                    Math.max(
+                      0,
+                      Math.round(((now - lock.vesting.start) / (lock.vesting.end - lock.vesting.start)) * 100),
+                    ),
+                  )}
+                  %
+                </span>
               </div>
               <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
-                <div className="h-full rounded-full bg-gradient-to-r from-primary to-primary/60 transition-all" style={{ width: `${Math.min(100, Math.max(0, ((now - lock.vesting.start) / (lock.vesting.end - lock.vesting.start)) * 100))}%` }} />
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-primary to-primary/60 transition-all"
+                  style={{
+                    width: `${Math.min(100, Math.max(0, ((now - lock.vesting.start) / (lock.vesting.end - lock.vesting.start)) * 100))}%`,
+                  }}
+                />
               </div>
             </div>
             <div className="mt-4 grid gap-3 sm:grid-cols-3">
               <div className="rounded-lg bg-secondary/30 p-3 text-center">
                 <p className="text-xs text-muted-foreground">Total</p>
-                <p className="font-semibold tabular-nums">{formatAmount(lock.amount)} {lock.token.symbol}</p>
+                <p className="font-semibold tabular-nums">
+                  {formatAmount(lock.amount)} {lock.token.symbol}
+                </p>
               </div>
               <div className="rounded-lg bg-secondary/30 p-3 text-center">
                 <p className="text-xs text-muted-foreground">Released</p>
-                <p className="font-semibold tabular-nums text-success">{formatAmount(lock.vesting.released)} {lock.token.symbol}</p>
+                <p className="font-semibold tabular-nums text-success">
+                  {formatAmount(lock.vesting.released)} {lock.token.symbol}
+                </p>
               </div>
               <div className="rounded-lg bg-secondary/30 p-3 text-center">
                 <p className="text-xs text-muted-foreground">Claimable</p>
-                <p className="font-semibold tabular-nums text-primary">{formatAmount(Math.max(0, (lock.amount * Math.min(now, lock.vesting.end) - lock.vesting.start) / Math.max(1, lock.vesting.end - lock.vesting.start)))} {lock.token.symbol}</p>
+                <p className="font-semibold tabular-nums text-primary">
+                  {formatAmount(vestingClaimable)} {lock.token.symbol}
+                </p>
               </div>
             </div>
           </div>
         )}
-
-        {/* Project metadata */}
-        {lock.metadata && (
+        {lock.metadata && (lock.metadata.description || lock.metadata.projectUrl || lock.metadata.logoUrl) && (
           <div className="border-t border-border p-6">
-            <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-              {t("lockDetail.aboutProject")}
-            </h3>
-            {lock.metadata.description && (
-              <p className="text-sm text-foreground">{lock.metadata.description}</p>
-            )}
-            {lock.metadata.projectUrl && (
-              <a
-                href={lock.metadata.projectUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-2 inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
-              >
-                <Globe className="h-3.5 w-3.5" />
-                {t("lockDetail.visitWebsite")}
-              </a>
-            )}
+            <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">Lock Details</h3>
+            <div className="flex flex-col gap-3">
+              {lock.metadata.logoUrl && (
+                <img
+                  src={lock.metadata.logoUrl}
+                  alt="Project logo"
+                  className="h-10 w-10 rounded-full border border-border object-cover"
+                  onError={(e) => {
+                    e.currentTarget.style.display = "none"
+                  }}
+                />
+              )}
+              {lock.metadata.description && (
+                <p className="text-sm text-muted-foreground">{lock.metadata.description}</p>
+              )}
+              {lock.metadata.projectUrl && (
+                <a
+                  href={lock.metadata.projectUrl}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
+                >
+                  {lock.metadata.projectUrl}
+                </a>
+              )}
+            </div>
           </div>
         )}
 
-        {(canWithdraw || canExtend) && (
+        {(isBeneficiary || isCreator) && <NotificationSettings lockId={lock.id} unlockAt={lock.unlockAt} address={address} />}
+
+        {txPhase !== "idle" && (
+          <div className="border-t border-border px-6 pb-4 pt-3">
+            <TxProgressSteps phase={txPhase} />
+          </div>
+        )}
+
+        {txError && (
+          <div className="border-t border-border px-6 pb-4 pt-3">
+            <TxErrorAlert error={txError} />
+          </div>
+        )}
+
+        {(canWithdraw || canExtend || canTransfer) && (
           <div className="flex flex-col gap-3 border-t border-border p-6 sm:flex-row">
             {canWithdraw && (
-              <Button onClick={handleWithdraw} loading={busy === "withdraw"} className="flex-1">
+              <Button onClick={() => void handleWithdraw()} loading={busy === "withdraw"} className="flex-1">
                 <LockIcon className="h-4 w-4" />
-                {t("lockDetail.withdraw")}
+                {lock.vesting
+                  ? t("lockDetail.claimVested", { amount: formatAmount(vestingClaimable), symbol: lock.token.symbol })
+                  : t("lockDetail.withdraw")}
               </Button>
             )}
             {canExtend && (
@@ -286,17 +443,31 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
                 {t("lockDetail.extendLock")}
               </Button>
             )}
+            {canTransfer && (
+              <Button
+                variant="outline"
+                onClick={() => setTransferOpen((v) => !v)}
+                aria-expanded={transferOpen}
+                className="flex-1"
+              >
+                <UserRoundPen className="h-4 w-4" />
+                {t("lockDetail.transferBeneficiary")}
+              </Button>
+            )}
           </div>
         )}
 
         {extendOpen && canExtend && (
-          <div ref={extendPanelRef} role="region" aria-label={t("lockDetail.extendLock")} className="border-t border-border bg-secondary/30 p-6">
+          <div
+            ref={extendPanelRef}
+            role="region"
+            aria-label={t("lockDetail.extendLock")}
+            className="border-t border-border bg-secondary/30 p-6"
+          >
             <label className="text-sm font-medium" htmlFor="new-unlock">
               {t("lockDetail.newUnlockDate")}
             </label>
-            <p className="mb-3 text-xs text-muted-foreground">
-              {t("lockDetail.extendHint")}
-            </p>
+            <p className="mb-3 text-xs text-muted-foreground">{t("lockDetail.extendHint")}</p>
             <div className="flex flex-col gap-3 sm:flex-row">
               <Input
                 id="new-unlock"
@@ -305,8 +476,38 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
                 onChange={(e) => setNewDate(e.target.value)}
                 className="flex-1"
               />
-              <Button onClick={handleExtend} loading={busy === "extend"} disabled={!newDate}>
+              <Button onClick={() => void handleExtend()} loading={busy === "extend"} disabled={!newDate}>
                 {t("lockDetail.confirmExtension")}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {transferOpen && canTransfer && (
+          <div
+            ref={transferPanelRef}
+            role="region"
+            aria-label={t("lockDetail.transferBeneficiary")}
+            className="border-t border-border bg-secondary/30 p-6"
+          >
+            <label className="text-sm font-medium" htmlFor="new-beneficiary">
+              {t("lockDetail.newBeneficiary")}
+            </label>
+            <p className="mb-3 text-xs text-muted-foreground">{t("lockDetail.transferHint")}</p>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Input
+                id="new-beneficiary"
+                placeholder="G…"
+                value={newBeneficiary}
+                onChange={(e) => setNewBeneficiary(e.target.value)}
+                className="flex-1 font-mono"
+              />
+              <Button
+                onClick={() => void handleTransfer()}
+                loading={busy === "transfer"}
+                disabled={!newBeneficiary.trim()}
+              >
+                {t("lockDetail.confirmTransfer")}
               </Button>
             </div>
           </div>
@@ -327,19 +528,21 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
           </p>
         </div>
       )}
+
+      {verified === false && (
+        <div className="mt-4 flex items-start gap-3 rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-4 text-sm text-yellow-700 dark:text-yellow-400">
+          <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0" />
+          <p>
+            This token is <strong>not on the StellarLock verified allowlist</strong>. Anyone can lock any token — always
+            verify the token contract address independently before trusting this lock.
+          </p>
+        </div>
+      )}
     </div>
   )
 }
 
-function Field({
-  label,
-  children,
-  className,
-}: {
-  label: string
-  children: React.ReactNode
-  className?: string
-}) {
+function Field({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
   return (
     <div className={className}>
       <div className="p-5">

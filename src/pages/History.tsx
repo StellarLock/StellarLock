@@ -1,102 +1,196 @@
-import { Link } from "react-router-dom"
-import { ExternalLink, Lock as LockIcon, Droplets, Unlock, Repeat, History as HistoryIcon } from "lucide-react"
+import { useEffect, useState } from "react"
+import { ExternalLink, Clock, CheckCircle2, XCircle, Copy, Trash2 } from "lucide-react"
+import { Helmet } from "react-helmet-async"
 import { useTranslation } from "react-i18next"
-import { useWallet } from "@/hooks/useWallet"
-import { useTransactionHistory } from "@/hooks/useTransactionHistory"
-import { ConnectGate } from "@/components/layout/ConnectGate"
-import { Card } from "@/components/ui/Card"
+import {
+  getTransactions,
+  refreshPendingStatuses,
+  clearTransactions,
+  stellarExpertLink,
+} from "@/lib/transaction-history"
+import type { TransactionRecord, TxType, TxStatus } from "@/types/transaction"
+import { Button } from "@/components/ui/Button"
 import { Badge } from "@/components/ui/Badge"
-import { shortAddress, formatAmount, formatDateTime } from "@/lib/utils"
-import { txExplorerLink } from "@/lib/stellar"
-import type { TransactionRecord, TransactionAction, TransactionStatus } from "@/types/transaction"
-
-const ACTION_ICONS: Record<TransactionAction, typeof LockIcon> = {
-  create_token_lock: LockIcon,
-  create_lp_lock: Droplets,
-  withdraw: Unlock,
-  extend: Repeat,
-}
+import { cn, formatDateTime } from "@/lib/utils"
+import toast from "react-hot-toast"
 
 export function History() {
   const { t } = useTranslation()
-  const { address } = useWallet()
-  const records = useTransactionHistory(address)
+  const [records, setRecords] = useState<TransactionRecord[]>([])
+  const [typeFilter, setTypeFilter] = useState<TxType | "all">("all")
+  const [statusFilter, setStatusFilter] = useState<TxStatus | "all">("all")
+  const [refreshing, setRefreshing] = useState(false)
+
+  useEffect(() => {
+    setRecords(getTransactions())
+    let active = true
+    setRefreshing(true)
+    void refreshPendingStatuses()
+      .then((updated) => { if (active) setRecords(updated) })
+      .finally(() => { if (active) setRefreshing(false) })
+    return () => { active = false }
+  }, [])
+
+  const filtered = records.filter((r) => {
+    if (typeFilter !== "all" && r.type !== typeFilter) return false
+    if (statusFilter !== "all" && r.status !== statusFilter) return false
+    return true
+  })
+
+  function handleClear() {
+    clearTransactions()
+    setRecords([])
+  }
 
   return (
-    <ConnectGate title={t("connectGate.title")}>
-      <div className="mx-auto max-w-3xl px-4 py-10 md:px-6">
-        <header>
-          <h1 className="text-balance text-3xl font-bold tracking-tight md:text-4xl">{t("history.title")}</h1>
-          <p className="mt-2 text-muted-foreground">{t("history.subtitle")}</p>
-        </header>
+    <div className="mx-auto max-w-4xl px-4 py-10 md:px-6">
+      <Helmet>
+        <title>Transaction History | StellarLock</title>
+        <meta name="description" content="View your StellarLock transaction history." />
+      </Helmet>
 
-        {records.length === 0 ? (
-          <div className="mt-10 rounded-xl border border-dashed border-border bg-card/40 p-12 text-center">
-            <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-primary/15 text-primary">
-              <HistoryIcon className="h-6 w-6" />
-            </span>
-            <h3 className="mt-4 text-lg font-semibold">{t("history.emptyTitle")}</h3>
-            <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">{t("history.emptyDesc")}</p>
-          </div>
-        ) : (
-          <Card className="mt-8 divide-y divide-border overflow-hidden">
-            {records.map((record) => (
-              <TransactionRow key={record.hash} record={record} />
-            ))}
-          </Card>
-        )}
-      </div>
-    </ConnectGate>
-  )
-}
-
-function TransactionRow({ record }: { record: TransactionRecord }) {
-  const { t } = useTranslation()
-  const Icon = ACTION_ICONS[record.action]
-
-  return (
-    <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex items-center gap-3">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-secondary text-foreground">
-          <Icon className="h-4 w-4" />
-        </span>
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="font-medium">
-            {t(`history.action.${record.action}`)}
-            {record.lockId && record.lockId !== "pending" && (
-              <Link to={`/app/lock/${record.lockId}`} className="ml-2 text-sm text-primary hover:underline">
-                #{record.lockId}
-              </Link>
-            )}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            {record.amount !== undefined && `${formatAmount(record.amount)} · `}
-            {record.token && shortAddress(record.token)}
-            {record.token && " · "}
-            {formatDateTime(record.createdAt)}
+          <h1 className="text-3xl font-bold tracking-tight">{t("history.title")}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{t("history.subtitle")}</p>
+        </div>
+        {records.length > 0 && (
+          <Button variant="outline" size="sm" onClick={handleClear}>
+            <Trash2 className="h-4 w-4" />
+            Clear all
+          </Button>
+        )}
+      </header>
+
+      {/* Filters */}
+      {records.length > 0 && (
+        <div className="mt-6 flex flex-wrap gap-3">
+          <select
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value as TxType | "all")}
+            className="rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+            aria-label={t("history.filterType")}
+          >
+            <option value="all">{t("history.filterAll")} {t("history.filterType")}</option>
+            <option value="create_lock">{t("history.typeCreateLock")}</option>
+            <option value="split_lock">{t("history.typeSplitLock")}</option>
+            <option value="withdraw">{t("history.typeWithdraw")}</option>
+            <option value="extend">{t("history.typeExtend")}</option>
+            <option value="transfer">{t("history.typeTransfer")}</option>
+          </select>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as TxStatus | "all")}
+            className="rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+            aria-label={t("history.filterStatus")}
+          >
+            <option value="all">{t("history.filterAll")} {t("history.filterStatus")}</option>
+            <option value="pending">{t("history.statusPending")}</option>
+            <option value="success">{t("history.statusSuccess")}</option>
+            <option value="failed">{t("history.statusFailed")}</option>
+          </select>
+          {refreshing && (
+            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Clock className="h-3.5 w-3.5 animate-spin" />
+              Checking statuses…
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* List */}
+      {filtered.length === 0 ? (
+        <div className="mt-16 flex flex-col items-center gap-3 text-center">
+          <Clock className="h-10 w-10 text-muted-foreground/40" />
+          <h2 className="text-lg font-semibold">
+            {records.length === 0 ? t("history.empty") : "No results match your filters"}
+          </h2>
+          <p className="max-w-sm text-sm text-muted-foreground">
+            {records.length === 0 ? t("history.emptyDesc") : "Try changing the type or status filter."}
           </p>
         </div>
-      </div>
+      ) : (
+        <div className="mt-6 flex flex-col divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
+          {filtered.map((record) => (
+            <TxRow key={record.hash} record={record} onCopy={() => toast.success("Hash copied")} />
+          ))}
+        </div>
+      )}
 
-      <div className="flex items-center gap-3 sm:justify-end">
-        <StatusPill status={record.status} />
-        <a
-          href={txExplorerLink(record.hash)}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-          aria-label={t("history.viewOnExplorer")}
-        >
-          {shortAddress(record.hash, 6, 6)}
-          <ExternalLink className="h-3 w-3" />
-        </a>
-      </div>
+      {records.length > 0 && (
+        <p className="mt-6 text-center text-xs text-muted-foreground">{t("history.cleanupNote")}</p>
+      )}
     </div>
   )
 }
 
-function StatusPill({ status }: { status: TransactionStatus }) {
+const TYPE_LABELS: Record<TxType, string> = {
+  create_lock: "history.typeCreateLock",
+  split_lock: "history.typeSplitLock",
+  withdraw: "history.typeWithdraw",
+  extend: "history.typeExtend",
+  transfer: "history.typeTransfer",
+}
+
+function StatusIcon({ status }: { status: TxStatus }) {
+  if (status === "success") return <CheckCircle2 className="h-4 w-4 text-success" />
+  if (status === "failed") return <XCircle className="h-4 w-4 text-destructive" />
+  return <Clock className="h-4 w-4 animate-spin text-muted-foreground" />
+}
+
+function TxRow({ record, onCopy }: { record: TransactionRecord; onCopy: () => void }) {
   const { t } = useTranslation()
-  const variant = status === "success" ? "success" : status === "failed" ? "destructive" : "warning"
-  return <Badge variant={variant}>{t(`history.status.${status}`)}</Badge>
+  const short = `${record.hash.slice(0, 8)}…${record.hash.slice(-6)}`
+
+  function copyHash() {
+    void navigator.clipboard.writeText(record.hash).then(onCopy)
+  }
+
+  return (
+    <div className="flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:gap-4">
+      <div className="flex items-center gap-2">
+        <StatusIcon status={record.status} />
+        <Badge
+          variant="outline"
+          className={cn(
+            "shrink-0 text-xs",
+            record.status === "success" && "border-success/40 text-success",
+            record.status === "failed" && "border-destructive/40 text-destructive",
+          )}
+        >
+          {t(TYPE_LABELS[record.type])}
+        </Badge>
+      </div>
+
+      <div className="flex flex-1 flex-col gap-0.5">
+        <span className="font-mono text-sm">{short}</span>
+        {record.lockId && (
+          <span className="text-xs text-muted-foreground">Lock #{record.lockId}</span>
+        )}
+      </div>
+
+      <span className="shrink-0 text-xs text-muted-foreground">
+        {formatDateTime(record.timestamp)}
+      </span>
+
+      <div className="flex shrink-0 items-center gap-1">
+        <button
+          onClick={copyHash}
+          aria-label={t("history.copyHash")}
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+        >
+          <Copy className="h-3.5 w-3.5" />
+        </button>
+        <a
+          href={stellarExpertLink(record.hash, record.network)}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={t("history.viewOnExplorer")}
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+        >
+          <ExternalLink className="h-3.5 w-3.5" />
+        </a>
+      </div>
+    </div>
+  )
 }

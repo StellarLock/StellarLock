@@ -3,17 +3,23 @@
     "appName": "StellarLock",
     "tagline": "Stellar의 토큰 및 LP 잠금",
     "testnet": "테스트넷",
+    "mainnet": "메인넷",
     "loading": "로딩 중…",
     "tryAgain": "다시 시도",
     "back": "뒤로",
     "you": "나",
+    "stellar": "Stellar",
     "skipToContent": "주요 콘텐츠로 건너뛰기"
   },
   "nav": {
     "createLock": "잠금 생성",
     "myLocks": "내 잠금",
+    "explore": "탐색",
     "connectWallet": "지갑 연결",
-    "disconnectWallet": "지갑 연결 해제"
+    "disconnectWallet": "지갑 연결 해제",
+    "openMenu": "메뉴 열기",
+    "closeMenu": "메뉴 닫기",
+    "history": "내역"
   },
   "landing": {
     "badge": "Stellar 기반 · Soroban 스마트 컨트랙트",
@@ -53,7 +59,7 @@
     "tabToken": "토큰 잠금",
     "tabLp": "LP 잠금"
   },
-  "tokenForm": {
+"tokenForm": {
     "tokenAddress": "토큰 컨트랙트 주소",
     "tokenPlaceholder": "C… (Soroban 토큰 컨트랙트)",
     "tokenHint": "잠그려는 토큰의 Soroban 컨트랙트 주소입니다.",
@@ -63,15 +69,30 @@
     "unlockDate": "잠금 해제 날짜",
     "vestingLabel": "선형 베스팅",
     "vestingDesc": "잠금 해제 날짜까지 한 번에 전부가 아닌 점진적으로 릴리스합니다.",
+    "vestingTemplate": "베스팅 일정",
+    "vestingTemplateHint": "미리 설정된 베스팅 일정을 선택하거나 맞춤형 잠금 해제 날짜를 설정하세요.",
+    "vestingTemplateCustom": "맞춤형",
+    "vestingTemplateLinear6m": "6 개월 선형",
+    "vestingTemplateLinear1y": "1 년 선형",
+    "vestingTemplateLinear2y": "2 년 선형",
+    "vestingTemplateQuarterly": "분기별 (25% 분기)",
+    "vestingStart": "베스팅 시작",
+    "vestingEnd": "베스팅 종료",
     "lockInfo": "잠금은 불변입니다: 나중에 잠금 해제 날짜를 연장할 수 있지만, 절대 단축할 수 없습니다.",
     "fundsUnlockOn": "자금은 <1>{{date}}</1>에 잠금 해제됩니다.",
+    "balance": "잔액",
+    "max": "최대",
     "submit": "토큰 잠금",
-    "days30": "30일",
-    "days90": "90일",
-    "months6": "6개월",
-    "year1": "1년"
+    "days30": "30 일",
+    "days90": "90 일",
+    "months6": "6 개월",
+    "year1": "1 년",
+    "insufficientBalance": "잔액이 부족합니다. {{balance}}이 있지만 {{amount}}이 필요합니다.",
+    "needsApproval": "잠그기 전에 컨트랙트가 토큰을 이체할 수 있도록 승인해야 합니다.",
+    "approveAndContinue": "승인 및 계속",
+    "approving": "승인 중…"
   },
-  "lpForm": {
+"lpForm": {
     "dex": "DEX",
     "aquarius": "Aquarius",
     "aquariusDesc": "AMM 및 SDEX 풀",
@@ -87,10 +108,14 @@
     "lockInfo": "LP 점유율을 잠그면 트레이더에게 유동성 바닥이 보호됨을 알립니다.",
     "liquidityUnlockOn": "유동성은 <1>{{date}}</1>에 잠금 해제됩니다.",
     "submit": "유동성 잠금",
-    "days90": "90일",
-    "months6": "6개월",
-    "year1": "1년",
-    "years2": "2년"
+    "days90": "90 일",
+    "months6": "6 개월",
+    "year1": "1 년",
+    "years2": "2 년",
+    "insufficientBalance": "잔액이 부족합니다. {{balance}}이 있지만 {{amount}}이 필요합니다.",
+    "needsApproval": "잠그기 전에 컨트랙트가 LP 토큰을 이체할 수 있도록 승인해야 합니다.",
+    "approveAndContinue": "승인 및 계속",
+    "approving": "승인 중…"
   },
   "myLocks": {
     "title": "내 잠금",
@@ -125,10 +150,15 @@
     "beneficiary": "수혜자",
     "timeRemaining": "남은 시간",
     "withdraw": "토큰 인출",
+    "claimVested": "{{amount}} {{symbol}} 청구 (베스팅)",
     "extendLock": "잠금 연장",
     "newUnlockDate": "새 잠금 해제 날짜",
     "extendHint": "현재 잠금 해제 날짜보다 늦어야 합니다. 잠금은 연장만 가능하며, 절대 단축할 수 없습니다.",
     "confirmExtension": "연장 확인",
+    "transferBeneficiary": "수혜자 이전",
+    "newBeneficiary": "새 수혜자 주소",
+    "transferHint": "인출 권한을 새 Stellar 주소로 이전합니다. 이 작업은 되돌릴 수 없습니다.",
+    "confirmTransfer": "이전 확인",
     "securityNotice": "이 토큰들은 잠금 해제 날짜까지 StellarLock 컨트랙트에 의해 보호됩니다. 생성자도 StellarLock도 조기에 이동할 수 없습니다.",
     "viewExplorer": "토큰 탐색기 보기"
   },
@@ -151,6 +181,21 @@
     "noLocksDesc": "<1>{{query}}</1>에 대한 잠금을 찾을 수 없습니다. 토큰 심볼이나 컨트랙트 주소를 확인하거나, 이 토큰의 첫 번째 잠금을 생성하세요.",
     "createLock": "잠금 생성"
   },
+  "discover": {
+    "title": "잠금 탐색",
+    "subtitle": "StellarLock의 모든 토큰 및 LP 잠금을 탐색하세요.",
+    "recentLocks": "최근 잠금",
+    "upcomingUnlocks": "다가오는 잠금 해제",
+    "featuredTokens": "주요 토큰",
+    "recentActivity": "최근 활동",
+    "noRecentActivity": "최근 활동이 없습니다.",
+    "totalLocks": "총 잠금 수",
+    "totalValueLocked": "총 잠금 가치",
+    "tokensSecured": "보호된 토큰",
+    "viewAll": "모든 잠금 보기",
+    "noLocks": "이 토큰에 대한 잠금을 찾을 수 없습니다.",
+    "searchHint": "토큰 심볼이나 컨트랙트 주소로 특정 잠금을 검색하세요."
+  },
   "search": {
     "placeholder": "심볼이나 컨트랙트 주소로 토큰 검색…",
     "ariaLabel": "잠금 검증을 위한 토큰 검색",
@@ -162,10 +207,83 @@
     "desc": "계속하려면 Stellar 지갑을 연결하세요.",
     "connect": "지갑 연결"
   },
+  "notifications": {
+    "title": "잠금 해제 알림",
+    "browser": "브라우저 알림",
+    "browserDesc": "잠금 해제 7일 전, 1일 전, 그리고 해제 시 알림을 받으세요.",
+    "webhook": "웹훅",
+    "webhookDesc": "잠금 해제 이벤트를 URL로 전송합니다 (텔레그램 봇, 디스코드 등).",
+    "enable": "활성화",
+    "enabled": "활성화됨",
+    "save": "저장"
+  },
   "lockCard": {
     "lockedAmount": "잠금 수량",
     "unlocksIn": "잠금 해제까지",
     "lock": "잠금 #{{id}}",
     "view": "보기"
+  },
+  "wallet": {
+    "disconnected": "지갑 연결 해제됨",
+    "disconnectedDesc": "Freighter 지갑이 연결 해제되었거나 확장 프로그램을 사용할 수 없게 되었습니다. 계속하려면 다시 연결하세요.",
+    "networkChanged": "네트워크 변경됨",
+    "networkChangedDesc": "지갑의 네트워크가 변경되었습니다. StellarLock 사용을 계속하려면 다시 연결하세요."
+  },
+  "breadcrumbs": {
+    "home": "Home",
+    "myLocks": "My Locks",
+    "lockId": "Lock #{{id}}",
+    "discover": "Discover",
+    "createLock": "잠금 생성",
+    "history": "거래 내역"
+  },
+  "costEstimate": {
+    "title": "예상 비용",
+    "networkFee": "거래 수수료",
+    "storageFee": "스토리지 보증금",
+    "total": "합계",
+    "tooltip": "Soroban은 온체인 상태를 임대하기 위해 환불 가능한 스토리지 보증금이 필요합니다. 이 보증금은 거래 수수료와 별개입니다.",
+    "highCostWarning": "스토리지 비용이 비정상적으로 높습니다",
+    "estimating": "비용 추산 중…",
+    "error": "비용을 추산할 수 없습니다",
+    "unit": "XLM"
+  },
+  "history": {
+    "title": "거래 내역",
+    "subtitle": "이 브라우저에서 제출한 모든 StellarLock 거래입니다.",
+    "empty": "거래 없음",
+    "emptyDesc": "잠금 생성, 인출, 연장 또는 전송 후 거래가 여기에 표시됩니다.",
+    "filterAll": "전체",
+    "filterType": "유형",
+    "filterStatus": "상태",
+    "colHash": "거래",
+    "colType": "유형",
+    "colStatus": "상태",
+    "colDate": "날짜",
+    "colLock": "잠금",
+    "viewOnExplorer": "Stellar Expert에서 보기",
+    "copyHash": "해시 복사",
+    "typeCreateLock": "잠금 생성",
+    "typeWithdraw": "인출",
+    "typeExtend": "연장",
+    "typeTransfer": "수혜자 이전",
+    "typeSplitLock": "분할 잠금",
+    "statusPending": "대기 중",
+    "statusSuccess": "성공",
+    "statusFailed": "실패",
+    "cleanupNote": "90일이 지난 거래는 자동으로 삭제됩니다."
+  },
+  "splitLock": {
+    "toggle": "다중 수혜자",
+    "toggleDesc": "이 잠금을 비례 지분으로 여러 주소에 분할합니다.",
+    "addBeneficiary": "수혜자 추가",
+    "removeBeneficiary": "제거",
+    "addressLabel": "주소",
+    "shareLabel": "지분 (%)",
+    "totalShare": "합계",
+    "totalShareError": "지분의 합은 100%여야 합니다",
+    "minBeneficiaries": "수혜자를 2명 이상 추가하거나 단일 수혜자 모드를 사용하세요.",
+    "maxBeneficiaries": "최대 10명의 수혜자가 허용됩니다.",
+    "submit": "분할 잠금 생성"
   }
 }

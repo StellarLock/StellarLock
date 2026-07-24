@@ -12,10 +12,11 @@ export function LockBadge({ summary }: { summary: TokenLockSummary }) {
   const [copied, setCopied] = useState<"none" | "url" | "md">("none")
 
   const url = `${typeof window !== "undefined" ? window.location.origin : "https://stellarlock.app"}/explore/${summary.token.address}`
-  const markdown = `[![Locked on StellarLock](https://stellarlock.app/badge/${summary.token.symbol}.svg)](${url})`
+  const badgeSvgUrl = `https://img.shields.io/badge/${encodeURIComponent(summary.token.symbol)}_locked-StellarLock-2ea043?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHJlY3QgeD0iMyIgeT0iMTEiIHdpZHRoPSIxOCIgaGVpZ2h0PSIxMSIgcng9IjIiIHJ5PSIyIi8+PHBhdGggZD0iTTcgMTFWN2E1IDUgMCAwIDEgMTAgMHY0Ii8+PC9zdmc+`
+  const markdown = `[![Locked on StellarLock](${badgeSvgUrl})](${url})`
 
   function copy(kind: "url" | "md", text: string) {
-    navigator.clipboard?.writeText(text)
+    void navigator.clipboard?.writeText(text)
     setCopied(kind)
     setTimeout(() => setCopied("none"), 1800)
   }
@@ -30,8 +31,8 @@ export function LockBadge({ summary }: { summary: TokenLockSummary }) {
         <div className="leading-tight">
           <p className="text-sm font-semibold text-success">Locked on StellarLock</p>
           <p className="text-xs text-muted-foreground">
-            {summary.activeLocks} active lock{summary.activeLocks === 1 ? "" : "s"} ·{" "}
-            {formatUsd(summary.totalUsdValue)} secured
+            {summary.activeLocks} active lock{summary.activeLocks === 1 ? "" : "s"} · {formatUsd(summary.totalUsdValue)}{" "}
+            secured
           </p>
         </div>
       </div>

@@ -20,10 +20,7 @@ export function Tabs({
   return (
     <div
       role="tablist"
-      className={cn(
-        "inline-flex items-center gap-1 rounded-lg border border-border bg-card p-1",
-        className,
-      )}
+      className={cn("inline-flex items-center gap-1 rounded-lg border border-border bg-card p-1", className)}
     >
       {items.map((item) => {
         const active = item.value === value
@@ -35,9 +32,7 @@ export function Tabs({
             onClick={() => onChange(item.value)}
             className={cn(
               "inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors cursor-pointer",
-              active
-                ? "bg-secondary text-foreground"
-                : "text-muted-foreground hover:text-foreground",
+              active ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground",
             )}
           >
             {item.label}

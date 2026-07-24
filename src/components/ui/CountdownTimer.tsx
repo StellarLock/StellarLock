@@ -56,12 +56,8 @@ export function CountdownTimer({
           key={c.label}
           className="flex min-w-14 flex-col items-center rounded-lg border border-border bg-background/50 px-3 py-2"
         >
-          <span className="font-mono text-xl font-semibold tabular-nums text-foreground">
-            {pad(c.value)}
-          </span>
-          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-            {c.label}
-          </span>
+          <span className="font-mono text-xl font-semibold tabular-nums text-foreground">{pad(c.value)}</span>
+          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{c.label}</span>
         </div>
       ))}
     </div>

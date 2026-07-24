@@ -140,7 +140,5 @@ export const MOCK_LOCKS: Lock[] = [
 /** Resolve a token by address or symbol; used by the explorer search. */
 export function findToken(query: string): TokenMeta | undefined {
   const q = query.trim().toLowerCase()
-  return Object.values(TOKENS).find(
-    (t) => t.address.toLowerCase() === q || t.symbol.toLowerCase() === q,
-  )
+  return Object.values(TOKENS).find((t) => t.address.toLowerCase() === q || t.symbol.toLowerCase() === q)
 }

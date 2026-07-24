@@ -1,24 +1,12 @@
+import type { TransactionRecord, TxType, TxStatus } from "@/types/transaction"
 import { NETWORK } from "@/lib/stellar"
-import type { TransactionRecord } from "@/types/transaction"
 
-const STORAGE_KEY = "stellarlock:tx-history"
-const MAX_RECORDS = 200
-const POLL_INTERVAL_MS = 3000
-const MAX_POLL_ATTEMPTS = 40 // ~2 minutes
+const STORAGE_KEY = "stellarlock:tx_history"
+const MAX_AGE_MS = 90 * 24 * 60 * 60 * 1000 // 90 days
 
-type Listener = () => void
-const listeners = new Set<Listener>()
+// ── Persistence ───────────────────────────────────────────────────────────────
 
-export function subscribe(listener: Listener): () => void {
-  listeners.add(listener)
-  return () => listeners.delete(listener)
-}
-
-function notify(): void {
-  listeners.forEach((listener) => listener())
-}
-
-function readAll(): TransactionRecord[] {
+function load(): TransactionRecord[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     return raw ? (JSON.parse(raw) as TransactionRecord[]) : []
@@ -27,64 +15,87 @@ function readAll(): TransactionRecord[] {
   }
 }
 
-function writeAll(records: TransactionRecord[]): void {
+function save(records: TransactionRecord[]): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(records.slice(0, MAX_RECORDS)))
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(records))
   } catch {
-    // localStorage unavailable/full — history just won't persist this update
+    // localStorage may be unavailable (private browsing quota exceeded etc.)
   }
 }
 
-/** Record a submitted transaction and start polling Horizon for its final status. */
-export function addTransaction(
-  record: Omit<TransactionRecord, "status" | "createdAt" | "updatedAt">,
-): TransactionRecord {
-  const now = Date.now()
-  const full: TransactionRecord = { ...record, status: "pending", createdAt: now, updatedAt: now }
-  writeAll([full, ...readAll()])
-  notify()
-  pollStatus(full.hash)
-  return full
+function pruneOld(records: TransactionRecord[]): TransactionRecord[] {
+  const cutoff = Date.now() - MAX_AGE_MS
+  return records.filter((r) => r.timestamp > cutoff)
 }
 
-/** All recorded transactions for a wallet address, newest first. */
-export function getTransactions(address: string): TransactionRecord[] {
-  return readAll()
-    .filter((r) => r.address === address)
-    .sort((a, b) => b.createdAt - a.createdAt)
+// ── Public API ────────────────────────────────────────────────────────────────
+
+export function addTransaction(hash: string, type: TxType, extra?: Pick<TransactionRecord, "lockId" | "amount">): void {
+  const records = pruneOld(load())
+  const record: TransactionRecord = {
+    hash,
+    type,
+    status: "pending",
+    timestamp: Date.now(),
+    network: NETWORK.id as "testnet" | "mainnet",
+    ...extra,
+  }
+  save([record, ...records])
 }
 
-function updateTransaction(hash: string, patch: Partial<TransactionRecord>): void {
-  const all = readAll()
-  const idx = all.findIndex((r) => r.hash === hash)
-  if (idx === -1) return
-  all[idx] = { ...all[idx], ...patch, updatedAt: Date.now() }
-  writeAll(all)
-  notify()
+export function getTransactions(): TransactionRecord[] {
+  return pruneOld(load())
 }
 
-async function pollStatus(hash: string, attempt = 0): Promise<void> {
-  if (attempt >= MAX_POLL_ATTEMPTS) return
+export function clearTransactions(): void {
+  save([])
+}
 
-  try {
-    const res = await fetch(`${NETWORK.horizonUrl}/transactions/${hash}`)
+// ── Status polling ────────────────────────────────────────────────────────────
 
-    if (res.status === 404) {
-      setTimeout(() => pollStatus(hash, attempt + 1), POLL_INTERVAL_MS)
-      return
+interface HorizonTxResponse {
+  successful: boolean
+}
+
+async function fetchTxStatus(hash: string): Promise<TxStatus> {
+  const url = `${NETWORK.horizonUrl}/transactions/${hash}`
+  const res = await fetch(url)
+  if (res.status === 404) return "pending"
+  if (!res.ok) return "pending"
+  const data = (await res.json()) as HorizonTxResponse
+  return data.successful ? "success" : "failed"
+}
+
+export async function refreshPendingStatuses(): Promise<TransactionRecord[]> {
+  const records = pruneOld(load())
+  const pending = records.filter((r) => r.status === "pending")
+
+  if (pending.length === 0) return records
+
+  const settled = await Promise.allSettled(
+    pending.map(async (r) => {
+      const status = await fetchTxStatus(r.hash)
+      return { hash: r.hash, status }
+    }),
+  )
+
+  const updates = new Map<string, TxStatus>()
+  for (const result of settled) {
+    if (result.status === "fulfilled") {
+      updates.set(result.value.hash, result.value.status)
     }
-    if (!res.ok) throw new Error(`Horizon error ${res.status}`)
-
-    const data = (await res.json()) as { successful: boolean }
-    updateTransaction(hash, { status: data.successful ? "success" : "failed" })
-  } catch {
-    setTimeout(() => pollStatus(hash, attempt + 1), POLL_INTERVAL_MS)
   }
+
+  const updated = records.map((r) => {
+    const newStatus = updates.get(r.hash)
+    return newStatus && newStatus !== "pending" ? { ...r, status: newStatus } : r
+  })
+
+  save(updated)
+  return updated
 }
 
-/** Resume polling for any transactions still pending from a previous session. */
-export function resumePendingPolls(address: string): void {
-  getTransactions(address)
-    .filter((r) => r.status === "pending")
-    .forEach((r) => pollStatus(r.hash))
+export function stellarExpertLink(hash: string, network: string): string {
+  const net = network === "mainnet" ? "public" : "testnet"
+  return `https://stellar.expert/explorer/${net}/tx/${hash}`
 }

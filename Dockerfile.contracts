@@ -1,0 +1,40 @@
+# ── StellarLock — contracts build/test Dockerfile ────────────────────────────
+#
+# Provides a reproducible Rust + Soroban CLI environment for building and
+# testing the on-chain contracts without requiring a local Rust toolchain.
+#
+# Usage (via docker-compose):
+#   docker-compose run contracts build
+#   docker-compose run contracts test
+#
+# Usage standalone:
+#   docker build -f Dockerfile.contracts -t stellarlock-contracts .
+#   docker run -v $(pwd)/contracts:/app/contracts stellarlock-contracts build
+
+FROM rust:1.82-slim AS base
+
+# Install build essentials and Stellar CLI
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      curl \
+      pkg-config \
+      libssl-dev \
+      ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Add the wasm32 target required by Soroban
+RUN rustup target add wasm32v1-none
+
+# Install the Stellar CLI (pinned version for reproducibility)
+RUN cargo install --locked stellar-cli@22.7.1 --features opt 2>/dev/null || \
+    cargo install --locked stellar-cli --features opt
+
+WORKDIR /app
+
+# ── Runtime ───────────────────────────────────────────────────────────────────
+# The contracts directory is mounted as a volume at runtime.
+VOLUME ["/app/contracts"]
+
+# Default command: build contracts
+# Override with: docker-compose run contracts test
+ENTRYPOINT ["sh", "-c"]
+CMD ["cd contracts && stellar contract build"]
