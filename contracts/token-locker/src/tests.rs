@@ -840,3 +840,85 @@ fn create_lock_without_metadata_leaves_it_empty() {
     let lock = client.get_lock(&lock_id).expect("lock exists");
     assert!(lock.metadata.is_empty());
 }
+
+// ── Multi-account: unauthorized rejection ─────────────────────────────────────
+//
+// Build the lock with `mock_all_auths` (as setup_env does), then clear the
+// mocked authorizations with `mock_auths(&[])` before invoking the
+// state-mutating call under test. With no authorization present for the
+// address the contract actually requires (`lock.beneficiary` or
+// `lock.creator`), an address that is neither the creator nor the beneficiary
+// can never satisfy `require_auth()`, so the call must panic.
+
+#[test]
+fn unauthorized_address_cannot_withdraw() {
+    let (env, contract_id, token_id) = setup_env();
+    let client = TokenLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    let unauthorized = Address::generate(&env);
+    mint(&env, &token_id, &creator, 1_000);
+
+    let unlock_at = env.ledger().timestamp() + 100;
+    let lock_id = client
+        .create_lock(&creator, &token_id, &500_i128, &beneficiary, &unlock_at, &None, &empty_metadata(&env))
+        .expect("create_lock should succeed");
+
+    advance_time(&env, 200);
+
+    env.mock_auths(&[]);
+    let _ = &unauthorized;
+
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        client.withdraw(&lock_id)
+    }));
+    assert!(result.is_err(), "withdraw by an unauthorized address must be rejected");
+}
+
+#[test]
+fn unauthorized_address_cannot_extend() {
+    let (env, contract_id, token_id) = setup_env();
+    let client = TokenLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    let unauthorized = Address::generate(&env);
+    mint(&env, &token_id, &creator, 1_000);
+
+    let unlock_at = env.ledger().timestamp() + 100;
+    let lock_id = client
+        .create_lock(&creator, &token_id, &500_i128, &beneficiary, &unlock_at, &None, &empty_metadata(&env))
+        .expect("create_lock should succeed");
+
+    env.mock_auths(&[]);
+    let _ = &unauthorized;
+
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        client.extend(&lock_id, &(unlock_at + 1000))
+    }));
+    assert!(result.is_err(), "extend by an unauthorized address must be rejected");
+}
+
+#[test]
+fn unauthorized_address_cannot_transfer_beneficiary() {
+    let (env, contract_id, token_id) = setup_env();
+    let client = TokenLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    let unauthorized = Address::generate(&env);
+    mint(&env, &token_id, &creator, 1_000);
+
+    let unlock_at = env.ledger().timestamp() + 100;
+    let lock_id = client
+        .create_lock(&creator, &token_id, &500_i128, &beneficiary, &unlock_at, &None, &empty_metadata(&env))
+        .expect("create_lock should succeed");
+
+    env.mock_auths(&[]);
+
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        client.transfer_beneficiary(&lock_id, &unauthorized)
+    }));
+    assert!(result.is_err(), "transfer_beneficiary by an unauthorized address must be rejected");
+}
