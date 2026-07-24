@@ -71,6 +71,11 @@ export function Explorer() {
                   </a>
                   <CopyButton text={data.token.address} />
                 </div>
+                {data.locks.find((l) => l.metadata)?.metadata?.description && (
+                  <p className="mt-2 max-w-lg text-sm text-muted-foreground">
+                    {data.locks.find((l) => l.metadata)!.metadata!.description}
+                  </p>
+                )}
               </div>
             </div>
             <div className="flex items-center gap-2 rounded-xl border border-success/40 bg-success/10 px-4 py-3">

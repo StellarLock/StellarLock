@@ -5,7 +5,7 @@ mod tests;
 
 use soroban_sdk::{
     contract, contracterror, contractimpl, contracttype, token, vec,
-    Address, BytesN, Env, Symbol, Vec,
+    Address, BytesN, Env, String, Symbol, Vec,
 };
 
 // ── TTL constants ─────────────────────────────────────────────────────────────
@@ -61,6 +61,36 @@ pub enum ContractError {
 
 // ── On-chain types ────────────────────────────────────────────────────────────
 
+/// Optional public-facing info about the locked project.
+/// Stored on-chain as plain strings (not a hash) so the explorer can render
+/// it directly — keep values short, this isn't meant for arbitrary blobs.
+///
+/// Not wrapped in `Option`: the #[contracttype] macro doesn't generate the
+/// `Option<CustomStruct> -> ScVal` XDR bridge needed for std/testutils builds
+/// (only the bare struct gets one), so "no metadata" is represented by all
+/// fields being empty strings instead.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LockMetadata {
+    pub description: String,
+    pub project_url: String,
+    pub logo_url: String,
+}
+
+impl LockMetadata {
+    pub fn is_empty(&self) -> bool {
+        self.description.is_empty() && self.project_url.is_empty() && self.logo_url.is_empty()
+    }
+
+    pub fn empty(env: &Env) -> Self {
+        LockMetadata {
+            description: String::from_str(env, ""),
+            project_url: String::from_str(env, ""),
+            logo_url: String::from_str(env, ""),
+        }
+    }
+}
+
 #[contracttype]
 #[derive(Clone)]
 pub struct GlobalStats {
@@ -91,6 +121,7 @@ pub struct LpLock {
     pub created_at: u64,
     pub extended_count: u32,
     pub withdrawn: bool,
+    pub metadata: LockMetadata,
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -182,6 +213,7 @@ impl LpLocker {
         amount: i128,
         beneficiary: Address,
         unlock_at: u64,
+        metadata: LockMetadata,
     ) -> Result<u64, ContractError> {
         creator.require_auth();
 
@@ -213,6 +245,7 @@ impl LpLocker {
             created_at: now,
             extended_count: 0,
             withdrawn: false,
+            metadata,
         };
 
         save_lock(&env, &lock);

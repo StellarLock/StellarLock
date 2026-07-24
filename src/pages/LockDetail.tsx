@@ -17,6 +17,7 @@ import { useWallet } from "@/hooks/useWallet"
 import { withdrawLock, extendLock, transferBeneficiary } from "@/lib/token-locker"
 import { withdrawLpLock, extendLpLock, transferLpBeneficiary } from "@/lib/lp-locker"
 import { trackEvent } from "@/lib/analytics"
+import { addTransaction } from "@/lib/transaction-history"
 import { sanitizeError } from "@/lib/error-sanitizer"
 import type { StructuredError } from "@/lib/errors"
 import { useAnnouncer } from "@/hooks/useAnnouncer"
@@ -162,9 +163,10 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
     setTxPhase("simulating")
     setTxError(null)
     try {
-      await (isLp
+      const { txHash } = await (isLp
         ? withdrawLpLock(lock.id, address!, signTransaction, setTxPhase)
         : withdrawLock(lock.id, address!, signTransaction, setTxPhase))
+      addTransaction(txHash, "withdraw", { lockId: lock.id, amount: String(lock.amount) })
       trackEvent("lock_withdraw", { kind: lock.kind })
       announce(t("lockDetail.withdrawSuccess"))
       onChange()
@@ -184,9 +186,10 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
     setTxPhase("simulating")
     setTxError(null)
     try {
-      await (isLp
+      const { txHash } = await (isLp
         ? extendLpLock(lock.id, ts, address!, signTransaction, setTxPhase)
         : extendLock(lock.id, ts, address!, signTransaction, setTxPhase))
+      addTransaction(txHash, "extend", { lockId: lock.id, amount: String(lock.amount) })
       trackEvent("lock_extend", { kind: lock.kind })
       announce(t("lockDetail.extendSuccess"))
       setExtendOpen(false)

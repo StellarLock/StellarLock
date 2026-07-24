@@ -22,6 +22,7 @@ coverage/
 
 # Rust / Soroban build artifacts
 contracts/target/
+contracts/*/test_snapshots/
 
 # cargo-fuzz artifacts
 fuzz/target/
@@ -31,6 +32,15 @@ fuzz/artifacts/
 # Editor
 .vscode/
 .idea/
+
+*storybook.log
+storybook-static
+
+# Playwright — baseline snapshots (e2e/**/*-snapshots/) are intentionally NOT ignored
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
 
 # OS
 Thumbs.db

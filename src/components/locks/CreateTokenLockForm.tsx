@@ -11,6 +11,7 @@ import { useTokenBalance, useTokenAllowance } from "@/hooks/useLocks"
 import { createTokenLock } from "@/lib/token-locker"
 import { createSplitLock, type SplitBeneficiary } from "@/lib/split-lock"
 import { trackEvent } from "@/lib/analytics"
+import { addTransaction } from "@/lib/transaction-history"
 import { cn, formatDate, isValidStellarAddress } from "@/lib/utils"
 import { sanitizeError } from "@/lib/error-sanitizer"
 import type { StructuredError } from "@/lib/errors"
@@ -242,11 +243,17 @@ export function CreateTokenLockForm() {
             beneficiary: beneficiary.trim() || address!,
             unlockAt: Math.floor(unlockTs / 1000),
             vesting: vesting ? { start: Math.floor(Date.now() / 1000), end: Math.floor(unlockTs / 1000) } : undefined,
+            metadata: {
+              description: description.trim(),
+              projectUrl: projectUrl.trim(),
+              logoUrl: logoUrl.trim(),
+            },
           },
           address!,
           signTransaction,
           setTxPhase,
         )
+        addTransaction(txHash, "create_lock", { lockId: id, amount: String(amount) })
         trackEvent("lock_create_token", { vesting })
         localStorage.setItem(COOLDOWN_KEY, String(Date.now()))
         setCooldownRemaining(COOLDOWN_SECONDS)

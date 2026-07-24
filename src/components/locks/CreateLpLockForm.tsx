@@ -17,6 +17,7 @@ import { useTokenBalance, useTokenAllowance } from "@/hooks/useLocks"
 import { createLpLock, submitTokenApproval } from "@/lib/lp-locker"
 import { CONTRACTS, type TxPhase } from "@/lib/stellar"
 import { trackEvent } from "@/lib/analytics"
+import { addTransaction } from "@/lib/transaction-history"
 import { ConfirmLockModal } from "@/components/locks/ConfirmLockModal"
 import { isValidStellarContractAddress, isValidStellarPublicKey } from "@/lib/stellar"
 import { CostEstimate } from "@/components/locks/CostEstimate"
@@ -147,7 +148,7 @@ export function CreateLpLockForm() {
     setSubmitting(true)
     setTxPhase("simulating")
     try {
-      const { id } = await createLpLock(
+      const { id, txHash } = await createLpLock(
         {
           poolShareAddress: poolShareAddress.trim(),
           dex,
@@ -156,11 +157,17 @@ export function CreateLpLockForm() {
           amount: Number(amount),
           beneficiary: address!,
           unlockAt: Math.floor(unlockTs / 1000),
+          metadata: {
+            description: description.trim(),
+            projectUrl: projectUrl.trim(),
+            logoUrl: logoUrl.trim(),
+          },
         },
         address!,
         signTransaction,
         setTxPhase,
       )
+      addTransaction(txHash, "create_lock", { lockId: id, amount: String(amount) })
       trackEvent("lock_create_lp", { dex })
       void navigate(`/app/lock/${id}`)
     } catch (err: unknown) {

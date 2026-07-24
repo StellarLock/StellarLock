@@ -457,3 +457,7 @@ export async function submitTokenApproval(
 export function explorerLink(address: string): string {
   return `https://stellar.expert/explorer/${NETWORK.networkName}/contract/${address}`
 }
+
+export function txExplorerLink(hash: string): string {
+  return `https://stellar.expert/explorer/${NETWORK.networkName}/tx/${hash}`
+}

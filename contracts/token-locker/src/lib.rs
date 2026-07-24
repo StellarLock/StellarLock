@@ -2,7 +2,7 @@
 
 use soroban_sdk::{
     contract, contracterror, contractimpl, contracttype, token, vec,
-    Address, BytesN, Env, Vec, Symbol,
+    Address, BytesN, Env, String, Vec, Symbol,
 };
 
 #[cfg(test)]
@@ -71,7 +71,7 @@ pub enum ContractError {
     SharesMustSum10000 = 10,
     RateLimitExceeded = 11,
     AmountOverflow = 12,
-    NotAdmin = 12,
+    NotAdmin = 15,
     NoPendingAdmin = 13,
     NotPendingAdmin = 14,
 }
@@ -108,6 +108,37 @@ pub struct Vesting {
     pub released: i128,
 }
 
+/// Optional public-facing info about the locked project.
+/// Stored on-chain as plain strings (not a hash) so the explorer can render
+/// it directly — keep values short, this isn't meant for arbitrary blobs.
+///
+/// Not wrapped in `Option`: the #[contracttype] macro doesn't generate the
+/// `Option<CustomStruct> -> ScVal` XDR bridge needed for std/testutils builds
+/// (only the bare struct gets one), so "no metadata" is represented by all
+/// fields being empty strings instead.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LockMetadata {
+    pub description: String,
+    pub project_url: String,
+    pub logo_url: String,
+}
+
+impl LockMetadata {
+    pub fn is_empty(&self) -> bool {
+        self.description.is_empty() && self.project_url.is_empty() && self.logo_url.is_empty()
+    }
+
+    /// Sentinel for lock-creation paths that don't (yet) accept metadata, e.g. split locks.
+    pub fn empty(env: &Env) -> Self {
+        LockMetadata {
+            description: String::from_str(env, ""),
+            project_url: String::from_str(env, ""),
+            logo_url: String::from_str(env, ""),
+        }
+    }
+}
+
 #[contracttype]
 #[derive(Clone)]
 pub struct Lock {
@@ -121,6 +152,7 @@ pub struct Lock {
     pub extended_count: u32,
     pub withdrawn: bool,
     pub vesting: Option<Vesting>,
+    pub metadata: LockMetadata,
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -221,6 +253,7 @@ impl TokenLocker {
         beneficiary: Address,
         unlock_at: u64,
         vesting: Option<Vesting>,
+        metadata: LockMetadata,
     ) -> Result<u64, ContractError> {
         creator.require_auth();
 
@@ -252,6 +285,7 @@ impl TokenLocker {
             extended_count: 0,
             withdrawn: false,
             vesting,
+            metadata,
         };
 
         save_lock(&env, &lock);
@@ -423,6 +457,7 @@ impl TokenLocker {
                 extended_count: 0,
                 withdrawn: false,
                 vesting: vesting.clone(),
+                metadata: LockMetadata::empty(&env),
             };
 
             save_lock(&env, &lock);
