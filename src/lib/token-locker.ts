@@ -3,7 +3,7 @@ import {
   nativeToScVal,
   xdr,
 } from "@stellar/stellar-sdk"
-import type { Lock, TokenLockSummary } from "@/types/lock"
+import type { Lock, LockMetadata, TokenLockSummary } from "@/types/lock"
 import { CONTRACTS, simulateCall, submitCall } from "@/lib/stellar"
 
 export interface CreateTokenLockArgs {
@@ -12,6 +12,7 @@ export interface CreateTokenLockArgs {
   beneficiary: string
   unlockAt: number // unix seconds
   vesting?: { start: number; end: number }
+  metadata?: { description?: string; projectUrl?: string; logoUrl?: string }
 }
 
 // ── Converters ────────────────────────────────────────────────────────────────
@@ -21,6 +22,7 @@ function toLock(raw: Record<string, unknown>): Lock {
   const token = raw.token as string
 
   const vestingRaw = raw.vesting as { start: bigint; end: bigint; released: bigint } | null | undefined
+  const metadata = parseMetadata(raw.metadata)
 
   return {
     id: String(raw.id),
@@ -50,7 +52,15 @@ function toLock(raw: Record<string, unknown>): Lock {
           released: Number(vestingRaw.released) / 1e7,
         }
       : undefined,
+    metadata,
   }
+}
+
+/** LockMetadata is stored non-optionally on-chain; empty strings mean "not set". */
+function parseMetadata(raw: unknown): LockMetadata | undefined {
+  const m = raw as { description: string; project_url: string; logo_url: string } | null | undefined
+  if (!m || (!m.description && !m.project_url && !m.logo_url)) return undefined
+  return { description: m.description, projectUrl: m.project_url, logoUrl: m.logo_url }
 }
 
 function idArg(id: string): xdr.ScVal {
@@ -59,6 +69,24 @@ function idArg(id: string): xdr.ScVal {
 
 function addressArg(addr: string): xdr.ScVal {
   return new Address(addr).toScVal()
+}
+
+/** LockMetadata is a plain (non-Option) struct on-chain — always send a full map. */
+function metadataArg(metadata: CreateTokenLockArgs["metadata"]): xdr.ScVal {
+  return xdr.ScVal.scvMap([
+    new xdr.ScMapEntry({
+      key: xdr.ScVal.scvSymbol("description"),
+      val: nativeToScVal(metadata?.description ?? "", { type: "string" }),
+    }),
+    new xdr.ScMapEntry({
+      key: xdr.ScVal.scvSymbol("logo_url"),
+      val: nativeToScVal(metadata?.logoUrl ?? "", { type: "string" }),
+    }),
+    new xdr.ScMapEntry({
+      key: xdr.ScVal.scvSymbol("project_url"),
+      val: nativeToScVal(metadata?.projectUrl ?? "", { type: "string" }),
+    }),
+  ])
 }
 
 // ── Read methods ──────────────────────────────────────────────────────────────
@@ -122,7 +150,7 @@ export async function createTokenLock(
   args: CreateTokenLockArgs,
   sourceAddress: string,
   signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>,
-): Promise<{ id: string }> {
+): Promise<{ id: string; hash: string }> {
   const unlockAtSecs = Math.floor(args.unlockAt)
   const amountStroops = BigInt(Math.round(args.amount * 1e7))
 
@@ -157,19 +185,21 @@ export async function createTokenLock(
     scArgs.push(xdr.ScVal.scvVoid())
   }
 
-  await submitCall(CONTRACTS.tokenLocker, "create_lock", scArgs, sourceAddress, signTransaction)
+  scArgs.push(metadataArg(args.metadata))
+
+  const { hash } = await submitCall(CONTRACTS.tokenLocker, "create_lock", scArgs, sourceAddress, signTransaction)
 
   // The contract returns a u64 id, but submitCall doesn't surface return values.
   // We return a temporary client-side id; the caller can re-fetch to get the real one.
-  return { id: "pending" }
+  return { id: "pending", hash }
 }
 
 export async function withdrawLock(
   id: string,
   sourceAddress: string,
   signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>,
-): Promise<void> {
-  await submitCall(
+): Promise<{ hash: string }> {
+  return submitCall(
     CONTRACTS.tokenLocker,
     "withdraw",
     [idArg(id)],
@@ -183,8 +213,8 @@ export async function extendLock(
   newUnlockAt: number,
   sourceAddress: string,
   signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>,
-): Promise<void> {
-  await submitCall(
+): Promise<{ hash: string }> {
+  return submitCall(
     CONTRACTS.tokenLocker,
     "extend",
     [idArg(id), nativeToScVal(BigInt(Math.floor(newUnlockAt)), { type: "u64" })],

@@ -86,7 +86,7 @@ export async function submitCall(
   args: xdr.ScVal[],
   sourceAddress: string,
   signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>,
-): Promise<void> {
+): Promise<{ hash: string }> {
   const rpc = getRpc()
   const account = await rpc.getAccount(sourceAddress)
   const contract = new Contract(contractId)
@@ -129,10 +129,16 @@ export async function submitCall(
   if (getResult.status === SorobanRpc.Api.GetTransactionStatus.FAILED) {
     throw new Error(`Transaction failed: ${JSON.stringify(getResult)}`)
   }
+
+  return { hash: sendResult.hash }
 }
 
 // ── Utils ─────────────────────────────────────────────────────────────────────
 
 export function explorerLink(address: string): string {
   return `https://stellar.expert/explorer/${NETWORK.networkName}/contract/${address}`
+}
+
+export function txExplorerLink(hash: string): string {
+  return `https://stellar.expert/explorer/${NETWORK.networkName}/tx/${hash}`
 }

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button"
 import { useWallet } from "@/hooks/useWallet"
 import { createTokenLock } from "@/lib/token-locker"
 import { trackEvent } from "@/lib/analytics"
+import { addTransaction } from "@/lib/transaction-history"
 import { formatDate } from "@/lib/utils"
 
 const DAY = 86_400_000
@@ -21,6 +22,9 @@ export function CreateTokenLockForm() {
   const [beneficiary, setBeneficiary] = useState("")
   const [unlockDate, setUnlockDate] = useState("")
   const [vesting, setVesting] = useState(false)
+  const [description, setDescription] = useState("")
+  const [projectUrl, setProjectUrl] = useState("")
+  const [logoUrl, setLogoUrl] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -45,7 +49,7 @@ export function CreateTokenLockForm() {
     setError(null)
     setSubmitting(true)
     try {
-      const { id } = await createTokenLock(
+      const { id, hash } = await createTokenLock(
         {
           tokenAddress: tokenAddress.trim(),
           amount: Number(amount),
@@ -54,10 +58,24 @@ export function CreateTokenLockForm() {
           vesting: vesting
             ? { start: Math.floor(Date.now() / 1000), end: Math.floor(unlockTs / 1000) }
             : undefined,
+          metadata: {
+            description: description.trim(),
+            projectUrl: projectUrl.trim(),
+            logoUrl: logoUrl.trim(),
+          },
         },
         address!,
         signTransaction,
       )
+      addTransaction({
+        hash,
+        action: "create_token_lock",
+        kind: "token",
+        address: address!,
+        lockId: id,
+        token: tokenAddress.trim(),
+        amount: Number(amount),
+      })
       trackEvent("lock_create_token", { vesting })
       navigate(`/app/lock/${id}`)
     } catch (err: unknown) {
@@ -154,6 +172,42 @@ export function CreateTokenLockForm() {
           </span>
         </span>
       </label>
+
+      <div className="flex flex-col gap-3 rounded-lg border border-border bg-background/40 p-3">
+        <div>
+          <p className="text-sm font-medium">{t("tokenForm.metadataTitle")}</p>
+          <p className="text-xs text-muted-foreground">{t("tokenForm.metadataDesc")}</p>
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="description">{t("tokenForm.description")}</Label>
+          <Input
+            id="description"
+            placeholder={t("tokenForm.descriptionPlaceholder")}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+          />
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="project-url">{t("tokenForm.projectUrl")}</Label>
+          <Input
+            id="project-url"
+            type="url"
+            placeholder="https://…"
+            value={projectUrl}
+            onChange={(e) => setProjectUrl(e.target.value)}
+          />
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="logo-url">{t("tokenForm.logoUrl")}</Label>
+          <Input
+            id="logo-url"
+            type="url"
+            placeholder="https://…"
+            value={logoUrl}
+            onChange={(e) => setLogoUrl(e.target.value)}
+          />
+        </div>
+      </div>
 
       <div className="flex items-start gap-2 rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm text-muted-foreground">
         <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" />

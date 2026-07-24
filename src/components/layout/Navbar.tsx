@@ -13,6 +13,7 @@ export function Navbar() {
   const navLinks = [
     { to: "/app/create", label: t("nav.createLock") },
     { to: "/app/locks", label: t("nav.myLocks") },
+    { to: "/app/history", label: t("nav.history") },
   ]
 
   return (

@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from "react"
 import { Link, useNavigate, useParams } from "react-router-dom"
-import { ArrowLeft, Lock as LockIcon, Repeat, ExternalLink, ShieldCheck } from "lucide-react"
+import { ArrowLeft, Lock as LockIcon, Repeat, ExternalLink, ShieldCheck, Globe } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useLock } from "@/hooks/useLocks"
 import { useWallet } from "@/hooks/useWallet"
 import { withdrawLock, extendLock } from "@/lib/token-locker"
 import { withdrawLpLock, extendLpLock } from "@/lib/lp-locker"
 import { trackEvent } from "@/lib/analytics"
+import { addTransaction } from "@/lib/transaction-history"
 import { Card } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
@@ -85,9 +86,19 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
   async function handleWithdraw() {
     setBusy("withdraw")
     try {
-      await (isLp
+      const { hash } = await (isLp
         ? withdrawLpLock(lock.id, address!, signTransaction)
         : withdrawLock(lock.id, address!, signTransaction))
+      addTransaction({
+        hash,
+        action: "withdraw",
+        kind: lock.kind,
+        address: address!,
+        lockId: lock.id,
+        token: lock.token.address,
+        tokenSymbol: lock.token.symbol,
+        amount: lock.amount,
+      })
       trackEvent("lock_withdraw", { kind: lock.kind })
       onChange()
     } finally {
@@ -101,9 +112,19 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
     if (ts <= Math.floor(lock.unlockAt / 1000)) return
     setBusy("extend")
     try {
-      await (isLp
+      const { hash } = await (isLp
         ? extendLpLock(lock.id, ts, address!, signTransaction)
         : extendLock(lock.id, ts, address!, signTransaction))
+      addTransaction({
+        hash,
+        action: "extend",
+        kind: lock.kind,
+        address: address!,
+        lockId: lock.id,
+        token: lock.token.address,
+        tokenSymbol: lock.token.symbol,
+        amount: lock.amount,
+      })
       trackEvent("lock_extend", { kind: lock.kind })
       setExtendOpen(false)
       onChange()
@@ -222,6 +243,30 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
             </div>
           </div>
         )}
+
+        {/* Project metadata */}
+        {lock.metadata && (
+          <div className="border-t border-border p-6">
+            <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+              {t("lockDetail.aboutProject")}
+            </h3>
+            {lock.metadata.description && (
+              <p className="text-sm text-foreground">{lock.metadata.description}</p>
+            )}
+            {lock.metadata.projectUrl && (
+              <a
+                href={lock.metadata.projectUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-2 inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
+              >
+                <Globe className="h-3.5 w-3.5" />
+                {t("lockDetail.visitWebsite")}
+              </a>
+            )}
+          </div>
+        )}
+
         {(canWithdraw || canExtend) && (
           <div className="flex flex-col gap-3 border-t border-border p-6 sm:flex-row">
             {canWithdraw && (

@@ -6,6 +6,7 @@ import { CreateLock } from "@/pages/CreateLock"
 import { MyLocks } from "@/pages/MyLocks"
 import { LockDetail } from "@/pages/LockDetail"
 import { Explorer } from "@/pages/Explorer"
+import { History } from "@/pages/History"
 import { trackPageView } from "@/lib/analytics"
 
 export function App() {
@@ -22,6 +23,7 @@ export function App() {
         <Route path="/app/create" element={<CreateLock />} />
         <Route path="/app/locks" element={<MyLocks />} />
         <Route path="/app/lock/:id" element={<LockDetail />} />
+        <Route path="/app/history" element={<History />} />
         <Route path="/explore/:token" element={<Explorer />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

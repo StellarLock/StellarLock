@@ -43,6 +43,9 @@ function Footer() {
           <Link to="/app/locks" className="hover:text-foreground">
             {t("nav.myLocks")}
           </Link>
+          <Link to="/app/history" className="hover:text-foreground">
+            {t("nav.history")}
+          </Link>
           <span className="rounded-md border border-border px-2 py-0.5 text-xs">{t("common.testnet")}</span>
         </div>
       </div>

@@ -14,6 +14,12 @@ export interface TokenMeta {
   logo?: string
 }
 
+export interface LockMetadata {
+  description: string
+  projectUrl: string
+  logoUrl: string
+}
+
 export interface VestingSchedule {
   /** Unix ms when linear vesting begins. */
   start: number
@@ -55,6 +61,9 @@ export interface Lock {
 
   /** Optional linear vesting schedule. */
   vesting?: VestingSchedule
+
+  /** Optional public-facing project info, set at lock creation. */
+  metadata?: LockMetadata
 }
 
 /** Aggregate stats for a single token's explorer page. */

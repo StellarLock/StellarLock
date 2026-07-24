@@ -16,6 +16,28 @@ pub enum DataKey {
 
 // ── On-chain types ────────────────────────────────────────────────────────────
 
+/// Optional public-facing info about the locked project.
+/// Stored on-chain as plain strings (not a hash) so the explorer can render
+/// it directly — keep values short, this isn't meant for arbitrary blobs.
+///
+/// Not wrapped in `Option`: the #[contracttype] macro doesn't generate the
+/// `Option<CustomStruct> -> ScVal` XDR bridge needed for std/testutils builds
+/// (only the bare struct gets one), so "no metadata" is represented by all
+/// fields being empty strings instead.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LockMetadata {
+    pub description: String,
+    pub project_url: String,
+    pub logo_url: String,
+}
+
+impl LockMetadata {
+    pub fn is_empty(&self) -> bool {
+        self.description.is_empty() && self.project_url.is_empty() && self.logo_url.is_empty()
+    }
+}
+
 #[contracttype]
 #[derive(Clone)]
 pub struct LpLock {
@@ -31,6 +53,7 @@ pub struct LpLock {
     pub created_at: u64,
     pub extended_count: u32,
     pub withdrawn: bool,
+    pub metadata: LockMetadata,
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -91,6 +114,7 @@ impl LpLocker {
         amount: i128,
         beneficiary: Address,
         unlock_at: u64,
+        metadata: LockMetadata,
     ) -> u64 {
         creator.require_auth();
 
@@ -118,6 +142,7 @@ impl LpLocker {
             created_at: now,
             extended_count: 0,
             withdrawn: false,
+            metadata,
         };
 
         save_lock(&env, &lock);
@@ -176,5 +201,97 @@ impl LpLocker {
     pub fn get_locks_by_beneficiary(env: Env, beneficiary: Address) -> Vec<LpLock> {
         let ids = get_index(&env, DataKey::ByBeneficiary(beneficiary));
         collect_locks(&env, ids)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use soroban_sdk::testutils::Address as _;
+    use soroban_sdk::token::{StellarAssetClient, TokenClient};
+
+    fn create_token<'a>(env: &Env, admin: &Address) -> (TokenClient<'a>, StellarAssetClient<'a>) {
+        let sac = env.register_stellar_asset_contract_v2(admin.clone());
+        (
+            TokenClient::new(env, &sac.address()),
+            StellarAssetClient::new(env, &sac.address()),
+        )
+    }
+
+    fn setup(env: &Env) -> (Address, Address, TokenClient<'static>, Address, Address, LpLockerClient<'static>) {
+        let admin = Address::generate(env);
+        let creator = Address::generate(env);
+        let beneficiary = Address::generate(env);
+        let (pool_share, pool_admin) = create_token(env, &admin);
+        pool_admin.mint(&creator, &1_000_000);
+
+        let token_a = Address::generate(env);
+        let token_b = Address::generate(env);
+
+        let contract_id = env.register(LpLocker, ());
+        let client = LpLockerClient::new(env, &contract_id);
+
+        (creator, beneficiary, pool_share, token_a, token_b, client)
+    }
+
+    #[test]
+    fn create_lock_stores_metadata() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let (creator, beneficiary, pool_share, token_a, token_b, client) = setup(&env);
+
+        let metadata = LockMetadata {
+            description: String::from_str(&env, "Aquarius liquidity, locked"),
+            project_url: String::from_str(&env, "https://example.com"),
+            logo_url: String::from_str(&env, "https://example.com/logo.png"),
+        };
+
+        let now = env.ledger().timestamp();
+        let id = client.create_lock(
+            &creator,
+            &pool_share.address,
+            &String::from_str(&env, "aquarius"),
+            &token_a,
+            &token_b,
+            &500,
+            &beneficiary,
+            &(now + 1_000),
+            &metadata,
+        );
+
+        let lock = client.get_lock(&id).expect("lock should exist");
+        assert!(!lock.metadata.is_empty());
+        assert_eq!(lock.metadata.description, metadata.description);
+        assert_eq!(lock.metadata.project_url, metadata.project_url);
+        assert_eq!(lock.metadata.logo_url, metadata.logo_url);
+    }
+
+    #[test]
+    fn create_lock_without_metadata_leaves_it_empty() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let (creator, beneficiary, pool_share, token_a, token_b, client) = setup(&env);
+
+        let empty = LockMetadata {
+            description: String::from_str(&env, ""),
+            project_url: String::from_str(&env, ""),
+            logo_url: String::from_str(&env, ""),
+        };
+
+        let now = env.ledger().timestamp();
+        let id = client.create_lock(
+            &creator,
+            &pool_share.address,
+            &String::from_str(&env, "aquarius"),
+            &token_a,
+            &token_b,
+            &500,
+            &beneficiary,
+            &(now + 1_000),
+            &empty,
+        );
+
+        let lock = client.get_lock(&id).expect("lock should exist");
+        assert!(lock.metadata.is_empty());
     }
 }

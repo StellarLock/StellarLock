@@ -9,6 +9,7 @@ import { cn, formatDate } from "@/lib/utils"
 import { useWallet } from "@/hooks/useWallet"
 import { createLpLock } from "@/lib/lp-locker"
 import { trackEvent } from "@/lib/analytics"
+import { addTransaction } from "@/lib/transaction-history"
 
 const DAY = 86_400_000
 
@@ -23,6 +24,9 @@ export function CreateLpLockForm() {
   const [tokenB, setTokenB] = useState("")
   const [amount, setAmount] = useState("")
   const [unlockDate, setUnlockDate] = useState("")
+  const [description, setDescription] = useState("")
+  const [projectUrl, setProjectUrl] = useState("")
+  const [logoUrl, setLogoUrl] = useState("")
   const [submitting, setSubmitting] = useState(false)
 
   const dexes: { value: Dex; label: string; desc: string }[] = [
@@ -55,7 +59,7 @@ export function CreateLpLockForm() {
     if (!valid) return
     setSubmitting(true)
     try {
-      const { id } = await createLpLock(
+      const { id, hash } = await createLpLock(
         {
           poolShareAddress: poolShareAddress.trim(),
           dex,
@@ -64,10 +68,24 @@ export function CreateLpLockForm() {
           amount: Number(amount),
           beneficiary: address!,
           unlockAt: Math.floor(unlockTs / 1000),
+          metadata: {
+            description: description.trim(),
+            projectUrl: projectUrl.trim(),
+            logoUrl: logoUrl.trim(),
+          },
         },
         address!,
         signTransaction,
       )
+      addTransaction({
+        hash,
+        action: "create_lp_lock",
+        kind: "lp",
+        address: address!,
+        lockId: id,
+        token: poolShareAddress.trim(),
+        amount: Number(amount),
+      })
       trackEvent("lock_create_lp", { dex })
       navigate(`/app/lock/${id}`)
     } finally {
@@ -181,6 +199,42 @@ export function CreateLpLockForm() {
               {p.label}
             </button>
           ))}
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-3 rounded-lg border border-border bg-background/40 p-3">
+        <div>
+          <p className="text-sm font-medium">{t("tokenForm.metadataTitle")}</p>
+          <p className="text-xs text-muted-foreground">{t("tokenForm.metadataDesc")}</p>
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="lp-description">{t("tokenForm.description")}</Label>
+          <Input
+            id="lp-description"
+            placeholder={t("tokenForm.descriptionPlaceholder")}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+          />
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="lp-project-url">{t("tokenForm.projectUrl")}</Label>
+          <Input
+            id="lp-project-url"
+            type="url"
+            placeholder="https://…"
+            value={projectUrl}
+            onChange={(e) => setProjectUrl(e.target.value)}
+          />
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="lp-logo-url">{t("tokenForm.logoUrl")}</Label>
+          <Input
+            id="lp-logo-url"
+            type="url"
+            placeholder="https://…"
+            value={logoUrl}
+            onChange={(e) => setLogoUrl(e.target.value)}
+          />
         </div>
       </div>
 
