@@ -14,10 +14,12 @@ interface LockResult {
   error?: string
 }
 
+type ItemOutcome = Omit<LockResult, "id">
+
 interface Props {
   action: Action
   locks: Lock[]
-  onConfirm: (value: string) => Promise<void>
+  onConfirm: (value: string, onItemSettled: (id: string, outcome: ItemOutcome) => void) => Promise<void>
   onClose: () => void
 }
 
@@ -44,7 +46,9 @@ export function BulkConfirmModal({ action, locks, onConfirm, onClose }: Props) {
   async function handleConfirm() {
     setRunning(true)
     setResults(locks.map((l) => ({ id: l.id, status: "pending" })))
-    await onConfirm(value)
+    await onConfirm(value, (id, outcome) => {
+      setResults((prev) => prev.map((r) => (r.id === id ? { id, ...outcome } : r)))
+    })
     setRunning(false)
   }
 

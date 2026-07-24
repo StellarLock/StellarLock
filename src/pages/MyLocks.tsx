@@ -110,18 +110,22 @@ export function MyLocks() {
   }
 
   const handleBulkExtend = useCallback(
-    async (newDate: string) => {
+    async (newDate: string, onItemSettled: (id: string, outcome: { status: "success" | "error"; error?: string }) => void) => {
       const newUnlockSecs = Math.floor(new Date(newDate).getTime() / 1000)
       for (const lock of selectedLocks) {
-        if (Math.floor(lock.unlockAt / 1000) >= newUnlockSecs) continue
+        if (Math.floor(lock.unlockAt / 1000) >= newUnlockSecs) {
+          onItemSettled(lock.id, { status: "success" })
+          continue
+        }
         try {
           if (lock.kind === "lp") {
             await extendLpLock(lock.id, newUnlockSecs, address!, signTransaction)
           } else {
             await extendLock(lock.id, newUnlockSecs, address!, signTransaction)
           }
-        } catch {
-          // per-lock errors shown in modal
+          onItemSettled(lock.id, { status: "success" })
+        } catch (err) {
+          onItemSettled(lock.id, { status: "error", error: err instanceof Error ? err.message : "Extend failed" })
         }
       }
       reload()
@@ -131,7 +135,7 @@ export function MyLocks() {
   )
 
   const handleBulkTransfer = useCallback(
-    async (newBeneficiary: string) => {
+    async (newBeneficiary: string, onItemSettled: (id: string, outcome: { status: "success" | "error"; error?: string }) => void) => {
       for (const lock of selectedLocks) {
         try {
           if (lock.kind === "lp") {
@@ -139,8 +143,9 @@ export function MyLocks() {
           } else {
             await transferBeneficiary(lock.id, newBeneficiary.trim(), address!, signTransaction)
           }
-        } catch {
-          // per-lock errors shown in modal
+          onItemSettled(lock.id, { status: "success" })
+        } catch (err) {
+          onItemSettled(lock.id, { status: "error", error: err instanceof Error ? err.message : "Transfer failed" })
         }
       }
       reload()
