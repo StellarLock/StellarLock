@@ -14,6 +14,27 @@ export interface CreateLpLockArgs {
   metadata?: { description?: string; projectUrl?: string; logoUrl?: string }
 }
 
+/**
+ * Approve the LP-locker contract to pull `amount` of `tokenAddress` (typically an
+ * LP/pool-share token) from `owner`'s balance, via the token's standard SEP-41
+ * `approve` entrypoint. Must be called (and confirmed) before {@link createLpLock},
+ * since `create_lock` performs a `transfer` that requires sufficient allowance.
+ *
+ * Note: this targets `tokenAddress` directly (not the lp-locker contract), so any
+ * errors surfaced come from that token contract's own implementation, not the
+ * lp-locker's `ContractError` enum.
+ *
+ * @param tokenAddress - Contract address of the pool-share/LP token to approve.
+ * @param owner - Address granting the allowance (the wallet that will create the lock).
+ * @param spender - Address allowed to spend the allowance — normally the lp-locker contract id.
+ * @param amount - Human-readable amount to approve (converted to stroops using 7 decimals).
+ * @param sourceAddress - Address submitting the transaction; must equal `owner` for `require_auth` to pass.
+ * @param signTransaction - Callback that signs the built transaction XDR and returns signed XDR.
+ * @returns Resolves with no value once the approval transaction is confirmed.
+ * @throws {Error} `Simulation error: ...` / `Send error: ...` / `Transaction failed: ...` if
+ *   `sourceAddress` fails auth as `owner`, or for RPC/network failures. The expiration ledger is
+ *   hard-coded to `0`, so a `0` allowance is effectively immediately expired if not spent promptly.
+ */
 export async function submitTokenApproval(
   tokenAddress: string,
   owner: string,
@@ -159,11 +180,31 @@ function paginationArgs(offset: number, limit: number): xdr.ScVal[] {
   return [nativeToScVal(offset, { type: "u32" }), nativeToScVal(limit, { type: "u32" })]
 }
 
+/**
+ * Fetch a single LP lock by id via a read-only contract simulation (`get_lock`),
+ * enriched with on-chain token metadata for the underlying pool pair (symbols/decimals).
+ *
+ * @param id - Numeric lock id (as a decimal string), assigned by the contract at creation time.
+ * @returns The parsed {@link Lock} (`kind: "lp"`), or `null` if no lock with that id exists on-chain.
+ * @throws {Error} `Simulation error: ...` if the RPC simulation itself fails. Does not throw a
+ *   {@link ContractError} — a missing lock simply resolves to `null` since `get_lock` returns
+ *   `Option<LpLock>` on-chain.
+ */
 export async function getLpLock(id: string): Promise<Lock | null> {
   const raw = await simulateCall<Record<string, unknown> | null>(CONTRACTS.lpLocker, "get_lock", [idArg(id)])
   return raw ? toLpLock(raw) : null
 }
 
+/**
+ * List LP locks created by a given address, paginated server-side by the
+ * contract's `ByCreator` index.
+ *
+ * @param address - Stellar `G...`/`C...` address of the lock creator.
+ * @param offset - Zero-based index into the creator's lock list to start from (default `0`).
+ * @param limit - Maximum number of locks to return in this page (default {@link DEFAULT_PAGE_SIZE}).
+ * @returns Enriched {@link Lock} objects (empty array if the creator has no LP locks).
+ * @throws {Error} `Simulation error: ...` if the read-only simulation fails.
+ */
 export async function getLpLocksByCreator(address: string, offset = 0, limit = DEFAULT_PAGE_SIZE): Promise<Lock[]> {
   const raw = await simulateCall<Record<string, unknown>[]>(CONTRACTS.lpLocker, "get_locks_by_creator", [
     addressArg(address),
@@ -172,6 +213,16 @@ export async function getLpLocksByCreator(address: string, offset = 0, limit = D
   return enrichLpLocks(raw ?? [])
 }
 
+/**
+ * List LP locks where a given address is the beneficiary, paginated
+ * server-side by the contract's `ByBeneficiary` index.
+ *
+ * @param address - Stellar `G...`/`C...` address of the beneficiary.
+ * @param offset - Zero-based index into the beneficiary's lock list to start from (default `0`).
+ * @param limit - Maximum number of locks to return in this page (default {@link DEFAULT_PAGE_SIZE}).
+ * @returns Enriched {@link Lock} objects (empty array if the address is not a beneficiary of any LP lock).
+ * @throws {Error} `Simulation error: ...` if the read-only simulation fails.
+ */
 export async function getLpLocksByBeneficiary(address: string, offset = 0, limit = DEFAULT_PAGE_SIZE): Promise<Lock[]> {
   const raw = await simulateCall<Record<string, unknown>[]>(CONTRACTS.lpLocker, "get_locks_by_beneficiary", [
     addressArg(address),
@@ -180,11 +231,27 @@ export async function getLpLocksByBeneficiary(address: string, offset = 0, limit
   return enrichLpLocks(raw ?? [])
 }
 
+/**
+ * Count how many LP locks a given address has created (length of the on-chain
+ * `ByCreator` index).
+ *
+ * @param address - Stellar `G...`/`C...` address of the lock creator.
+ * @returns Total number of LP locks created by `address` (`0` if none).
+ * @throws {Error} `Simulation error: ...` if the read-only simulation fails.
+ */
 export async function getLpLockCountByCreator(address: string): Promise<number> {
   const raw = await simulateCall<number>(CONTRACTS.lpLocker, "get_lock_count_by_creator", [addressArg(address)])
   return Number(raw ?? 0)
 }
 
+/**
+ * Count how many LP locks a given address is the beneficiary of (length of the
+ * on-chain `ByBeneficiary` index).
+ *
+ * @param address - Stellar `G...`/`C...` address of the beneficiary.
+ * @returns Total number of LP locks where `address` is the beneficiary (`0` if none).
+ * @throws {Error} `Simulation error: ...` if the read-only simulation fails.
+ */
 export async function getLpLockCountByBeneficiary(address: string): Promise<number> {
   const raw = await simulateCall<number>(CONTRACTS.lpLocker, "get_lock_count_by_beneficiary", [addressArg(address)])
   return Number(raw ?? 0)
@@ -192,6 +259,34 @@ export async function getLpLockCountByBeneficiary(address: string): Promise<numb
 
 // ── Write methods ─────────────────────────────────────────────────────────────
 
+/**
+ * Create a new LP (pool-share) lock on-chain: transfers `args.amount` of
+ * `args.poolShareAddress` from `sourceAddress` into the contract, escrowed until
+ * `args.unlockAt`. Requires `sourceAddress`'s signature (`creator.require_auth()`
+ * on-chain) and a prior token allowance covering the transfer — call
+ * {@link submitTokenApproval} first. Unlike token locks, LP locks have no vesting option.
+ *
+ * @param args - Lock parameters:
+ *   - `poolShareAddress` — contract address of the DEX pool-share/LP token to lock.
+ *   - `dex` — which DEX the pool belongs to (`"aquarius"` or `"soroswap"`), stored on-chain
+ *     for display purposes only.
+ *   - `tokenA` / `tokenB` — the pool's underlying asset pair addresses (informational, stored on-chain).
+ *   - `amount` — human-readable amount (converted to stroops using 7 decimals).
+ *   - `beneficiary` — address allowed to withdraw once unlocked.
+ *   - `unlockAt` — unix seconds after which withdrawal becomes possible; must be in the future.
+ *   - `metadata` — optional description/project/logo strings stored on-chain as plain text.
+ * @param sourceAddress - Address of the wallet creating (and paying for) the lock; becomes `creator`.
+ * @param signTransaction - Callback that signs the built transaction XDR with the user's wallet
+ *   and returns the signed XDR.
+ * @param onProgress - Optional callback invoked with each {@link TxPhase} as the transaction
+ *   is built, signed, submitted, and confirmed.
+ * @returns The newly created lock's `id` and the submission `txHash`.
+ * @throws {Error} Wrapping one of the contract's `ContractError` variants, notably:
+ *   - `AmountMustBePositive` (1) — `amount` is zero or negative.
+ *   - `UnlockMustBeFuture` (2) — `unlockAt` is not after the current ledger time.
+ * @throws {Error} `Simulation error: ...` / `Send error: ...` / `Transaction failed: ...` for
+ *   RPC/network failures or an insufficient token allowance/balance on the transfer.
+ */
 export async function createLpLock(
   args: CreateLpLockArgs,
   sourceAddress: string,
@@ -222,6 +317,23 @@ export async function createLpLock(
   return { id: String(id), txHash }
 }
 
+/**
+ * Withdraw the full locked amount of an LP lock. Callable only by the lock's
+ * current `beneficiary` (`beneficiary.require_auth()` on-chain) once `unlockAt`
+ * has passed. Unlike token locks there is no vesting/partial-release path — the
+ * entire `amount` is transferred and the lock is marked withdrawn in one call.
+ *
+ * @param id - Numeric lock id (as a decimal string).
+ * @param sourceAddress - Address submitting the transaction; must equal the lock's `beneficiary`.
+ * @param signTransaction - Callback that signs the built transaction XDR and returns signed XDR.
+ * @param onProgress - Optional callback invoked with each {@link TxPhase} during submission.
+ * @returns The submission `txHash`.
+ * @throws {Error} Wrapping one of the contract's `ContractError` variants, notably:
+ *   - `AlreadyWithdrawn` (3) — the lock has already been withdrawn.
+ *   - `StillLocked` (4) — called before `unlockAt`.
+ * @throws {Error} `Simulation error: ...` / `Send error: ...` / `Transaction failed: ...` if
+ *   `sourceAddress` fails `require_auth` as beneficiary, or for RPC/network failures.
+ */
 export async function withdrawLpLock(
   id: string,
   sourceAddress: string,
@@ -239,6 +351,23 @@ export async function withdrawLpLock(
   return { txHash }
 }
 
+/**
+ * Push an LP lock's unlock date further into the future. Callable only by the
+ * lock's `creator` (`creator.require_auth()` on-chain); the new date must be
+ * strictly later than the current `unlockAt`. Increments the lock's `extendedCount`.
+ *
+ * @param id - Numeric lock id (as a decimal string).
+ * @param newUnlockAt - New unlock unix-second timestamp; must be greater than the lock's current `unlockAt`.
+ * @param sourceAddress - Address submitting the transaction; must equal the lock's `creator`.
+ * @param signTransaction - Callback that signs the built transaction XDR and returns signed XDR.
+ * @param onProgress - Optional callback invoked with each {@link TxPhase} during submission.
+ * @returns The submission `txHash`.
+ * @throws {Error} Wrapping one of the contract's `ContractError` variants, notably:
+ *   - `AlreadyWithdrawn` (3) — the lock has already been withdrawn.
+ *   - `CanOnlyExtend` (5) — `newUnlockAt` is not strictly later than the current `unlockAt`.
+ * @throws {Error} `Simulation error: ...` / `Send error: ...` / `Transaction failed: ...` if
+ *   `sourceAddress` fails `require_auth` as creator, or for RPC/network failures.
+ */
 export async function extendLpLock(
   id: string,
   newUnlockAt: number,
@@ -257,6 +386,24 @@ export async function extendLpLock(
   return { txHash }
 }
 
+/**
+ * Transfer the beneficiary role of an LP lock to a new address. Callable only
+ * by the lock's current `beneficiary` (`beneficiary.require_auth()` on-chain);
+ * the creator cannot reassign the beneficiary. Updates the on-chain
+ * `ByBeneficiary` index so the new beneficiary's lock listings include this
+ * lock and the old beneficiary's do not.
+ *
+ * @param id - Numeric lock id (as a decimal string).
+ * @param newBeneficiary - Stellar address to become the new beneficiary.
+ * @param sourceAddress - Address submitting the transaction; must equal the lock's current `beneficiary`.
+ * @param signTransaction - Callback that signs the built transaction XDR and returns signed XDR.
+ * @param onProgress - Optional callback invoked with each {@link TxPhase} during submission.
+ * @returns Resolves with no value on success.
+ * @throws {Error} Wrapping one of the contract's `ContractError` variants, notably:
+ *   - `AlreadyWithdrawn` (3) — the lock has already been withdrawn and can no longer be reassigned.
+ * @throws {Error} `Simulation error: ...` / `Send error: ...` / `Transaction failed: ...` if
+ *   `sourceAddress` fails `require_auth` as beneficiary, or for RPC/network failures.
+ */
 export async function transferLpBeneficiary(
   id: string,
   newBeneficiary: string,

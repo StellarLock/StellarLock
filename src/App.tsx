@@ -7,6 +7,7 @@ import { trackPageView } from "@/lib/analytics"
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts"
 import { KeyboardShortcutsModal } from "@/components/ui/KeyboardShortcutsModal"
 import { PwaUpdatePrompt } from "@/components/ui/PwaUpdatePrompt"
+import { OnboardingTour } from "@/components/onboarding/OnboardingTour"
 export { prefetch } from "@/lib/prefetch"
 
 const Landing = lazy(() => import("./pages/Landing").then((m) => ({ default: m.Landing })))
@@ -39,6 +40,7 @@ export function App() {
           style: { background: "#363636", color: "#fff" },
         }}
       />
+      <OnboardingTour />
       <Routes>
         <Route element={<Layout />}>
           <Route path="/" element={<Landing />} />

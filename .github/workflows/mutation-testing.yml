@@ -1,0 +1,82 @@
+name: Mutation Testing
+
+# Runs `cargo mutants` against the token-locker contract using the config in
+# contracts/token-locker/.cargo-mutants.toml (see contracts/MUTATION_TESTING.md
+# for background/rationale). Mutation runs are slow, so this is scheduled
+# weekly rather than on every push, plus an on-demand trigger and a
+# pull-request trigger scoped to contract changes.
+on:
+  schedule:
+    - cron: "0 5 * * 1" # Every Monday at 05:00 UTC
+  workflow_dispatch: {}
+  pull_request:
+    branches: [main]
+    paths:
+      - "contracts/token-locker/**"
+      - "contracts/Cargo.lock"
+      - ".github/workflows/mutation-testing.yml"
+
+jobs:
+  mutation-testing:
+    name: cargo mutants (token-locker)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: contracts/token-locker
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ./contracts
+
+      - name: Install cargo-mutants
+        run: cargo install cargo-mutants --locked
+
+      # `.cargo-mutants.toml` in this directory configures excludes/timeout
+      # multiplier; `--error-on-survivors` fails the job if too many mutants
+      # survive, per the threshold documented in contracts/MUTATION_TESTING.md.
+      - name: Run cargo mutants
+        run: cargo mutants --timeout 120 --error-on-survivors 20
+
+      - name: Publish mutation testing summary
+        if: always()
+        run: |
+          {
+            echo "## Mutation Testing Results — token-locker"
+            echo
+            if [ -d mutants.out ]; then
+              for f in caught.txt missed.txt timeout.txt unviable.txt; do
+                if [ -f "mutants.out/$f" ]; then
+                  count=$(grep -c . "mutants.out/$f" || true)
+                  echo "- **${f%.txt}**: $count"
+                fi
+              done
+              echo
+              if [ -s mutants.out/missed.txt ]; then
+                echo "### Missed mutants (not caught by any test)"
+                echo
+                echo '```'
+                cat mutants.out/missed.txt
+                echo '```'
+              else
+                echo "No missed mutants."
+              fi
+            else
+              echo "No \`mutants.out/\` directory was produced — see the \"Run cargo mutants\" step log."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload mutation testing report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutants-report-token-locker
+          path: contracts/token-locker/mutants.out
+          retention-days: 30
+          if-no-files-found: ignore
