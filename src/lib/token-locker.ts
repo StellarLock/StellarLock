@@ -100,6 +100,16 @@ function paginationArgs(offset: number, limit: number): xdr.ScVal[] {
 
 // ── Read methods ──────────────────────────────────────────────────────────────
 
+/**
+ * Fetch a single token lock by id via a read-only contract simulation
+ * (`get_lock`), enriched with on-chain token metadata (symbol/name/decimals).
+ *
+ * @param id - Numeric lock id (as a decimal string), assigned by the contract at creation time.
+ * @returns The parsed {@link Lock}, or `null` if no lock with that id exists on-chain.
+ * @throws {Error} `Simulation error: ...` if the RPC simulation itself fails (network issue,
+ *   malformed contract id, etc). Does not throw a {@link ContractError} — a missing lock
+ *   simply resolves to `null` since `get_lock` returns `Option<Lock>` on-chain.
+ */
 export async function getLock(id: string): Promise<Lock | null> {
   const raw = await simulateCall<Record<string, unknown> | null>(CONTRACTS.tokenLocker, "get_lock", [idArg(id)])
   if (!raw) return null
@@ -107,6 +117,16 @@ export async function getLock(id: string): Promise<Lock | null> {
   return toLock(raw, meta)
 }
 
+/**
+ * List locks created by a given address, newest index first, paginated
+ * server-side by the contract's `ByCreator` index.
+ *
+ * @param address - Stellar `G...`/`C...` address of the lock creator.
+ * @param offset - Zero-based index into the creator's lock list to start from (default `0`).
+ * @param limit - Maximum number of locks to return in this page (default {@link DEFAULT_PAGE_SIZE}).
+ * @returns Enriched {@link Lock} objects (empty array if the creator has no locks).
+ * @throws {Error} `Simulation error: ...` if the read-only simulation fails.
+ */
 export async function getLocksByCreator(address: string, offset = 0, limit = DEFAULT_PAGE_SIZE): Promise<Lock[]> {
   const raw = await simulateCall<Record<string, unknown>[]>(CONTRACTS.tokenLocker, "get_locks_by_creator", [
     addressArg(address),
@@ -115,6 +135,16 @@ export async function getLocksByCreator(address: string, offset = 0, limit = DEF
   return enrichLocks(raw ?? [])
 }
 
+/**
+ * List locks where a given address is the beneficiary, paginated server-side
+ * by the contract's `ByBeneficiary` index.
+ *
+ * @param address - Stellar `G...`/`C...` address of the beneficiary.
+ * @param offset - Zero-based index into the beneficiary's lock list to start from (default `0`).
+ * @param limit - Maximum number of locks to return in this page (default {@link DEFAULT_PAGE_SIZE}).
+ * @returns Enriched {@link Lock} objects (empty array if the address is not a beneficiary of any lock).
+ * @throws {Error} `Simulation error: ...` if the read-only simulation fails.
+ */
 export async function getLocksByBeneficiary(address: string, offset = 0, limit = DEFAULT_PAGE_SIZE): Promise<Lock[]> {
   const raw = await simulateCall<Record<string, unknown>[]>(CONTRACTS.tokenLocker, "get_locks_by_beneficiary", [
     addressArg(address),
@@ -123,21 +153,58 @@ export async function getLocksByBeneficiary(address: string, offset = 0, limit =
   return enrichLocks(raw ?? [])
 }
 
+/**
+ * Count how many locks a given address has created (length of the on-chain
+ * `ByCreator` index), useful for pagination without fetching a full page.
+ *
+ * @param address - Stellar `G...`/`C...` address of the lock creator.
+ * @returns Total number of locks created by `address` (`0` if none).
+ * @throws {Error} `Simulation error: ...` if the read-only simulation fails.
+ */
 export async function getLockCountByCreator(address: string): Promise<number> {
   const raw = await simulateCall<number>(CONTRACTS.tokenLocker, "get_lock_count_by_creator", [addressArg(address)])
   return Number(raw ?? 0)
 }
 
+/**
+ * Count how many locks a given address is the beneficiary of (length of the
+ * on-chain `ByBeneficiary` index).
+ *
+ * @param address - Stellar `G...`/`C...` address of the beneficiary.
+ * @returns Total number of locks where `address` is the beneficiary (`0` if none).
+ * @throws {Error} `Simulation error: ...` if the read-only simulation fails.
+ */
 export async function getLockCountByBeneficiary(address: string): Promise<number> {
   const raw = await simulateCall<number>(CONTRACTS.tokenLocker, "get_lock_count_by_beneficiary", [addressArg(address)])
   return Number(raw ?? 0)
 }
 
+/**
+ * Count how many locks exist for a given token (length of the on-chain
+ * `ByToken` index), regardless of creator/beneficiary.
+ *
+ * @param address - Contract address of the locked token (SEP-41 asset contract).
+ * @returns Total number of locks for `address` (`0` if the token has never been locked).
+ * @throws {Error} `Simulation error: ...` if the read-only simulation fails.
+ */
 export async function getLockCountByToken(address: string): Promise<number> {
   const raw = await simulateCall<number>(CONTRACTS.tokenLocker, "get_lock_count_by_token", [addressArg(address)])
   return Number(raw ?? 0)
 }
 
+/**
+ * Fetch aggregate lock stats plus a page of locks for a given token —
+ * total locked amount, active lock count, and the soonest upcoming unlock
+ * date across still-locked positions.
+ *
+ * @param tokenAddress - Contract address of the locked token (SEP-41 asset contract).
+ * @param offset - Zero-based index into the token's lock list to start from (default `0`).
+ * @param limit - Maximum number of locks to include in this page (default {@link DEFAULT_PAGE_SIZE}).
+ * @returns A {@link TokenLockSummary} with the requested page of locks, or `null` if the
+ *   token has no locks at all (note: with pagination, a non-first page can also come back
+ *   empty even though earlier pages have locks — check `offset` against the token's total count).
+ * @throws {Error} `Simulation error: ...` if the read-only simulation fails.
+ */
 export async function getLocksByToken(
   tokenAddress: string,
   offset = 0,
@@ -169,6 +236,36 @@ export async function getLocksByToken(
 
 // ── Write methods ─────────────────────────────────────────────────────────────
 
+/**
+ * Create a new token lock on-chain: transfers `args.amount` of `args.tokenAddress`
+ * from `sourceAddress` into the contract, escrowed until `args.unlockAt`, optionally
+ * released gradually per `args.vesting`. Requires `sourceAddress`'s signature
+ * (`creator.require_auth()` on-chain) and prior token allowance/balance sufficient
+ * to cover the transfer.
+ *
+ * @param args - Lock parameters:
+ *   - `tokenAddress` — contract address of the SEP-41 token to lock.
+ *   - `amount` — human-readable amount (converted to stroops using 7 decimals).
+ *   - `beneficiary` — address allowed to withdraw once unlocked.
+ *   - `unlockAt` — unix seconds after which withdrawal becomes possible; must be in the future.
+ *   - `vesting` — optional `{ start, end }` unix-second window for linear vesting; if provided,
+ *     `withdraw` releases tokens proportionally to elapsed time instead of all at once.
+ *   - `metadata` — optional description/project/logo strings stored on-chain as plain text.
+ * @param sourceAddress - Address of the wallet creating (and paying for) the lock; becomes `creator`.
+ * @param signTransaction - Callback that signs the built transaction XDR with the user's wallet
+ *   (e.g. Freighter) and returns the signed XDR.
+ * @param onProgress - Optional callback invoked with each {@link TxPhase} as the transaction
+ *   is built, signed, submitted, and confirmed.
+ * @returns The newly created lock's `id` and the submission `txHash`.
+ * @throws {Error} Wrapping one of the contract's `ContractError` variants surfaced via simulation
+ *   or transaction failure, notably:
+ *   - `AmountMustBePositive` (1) — `amount` is zero or negative.
+ *   - `UnlockMustBeFuture` (2) — `unlockAt` is not after the current ledger time.
+ *   - `VestingEndBeforeStart` (7) — `vesting.end <= vesting.start`.
+ *   - `RateLimitExceeded` (11) — `sourceAddress` created a lock too recently (cooldown).
+ * @throws {Error} `Simulation error: ...` / `Send error: ...` / `Transaction failed: ...` for
+ *   RPC, network, or unrelated on-chain execution failures (e.g. insufficient token balance).
+ */
 export async function createTokenLock(
   args: CreateTokenLockArgs,
   sourceAddress: string,
@@ -223,6 +320,25 @@ export async function createTokenLock(
   return { id: String(id), txHash }
 }
 
+/**
+ * Withdraw the releasable amount of a lock. Callable only by the lock's current
+ * `beneficiary` (`beneficiary.require_auth()` on-chain) once `unlockAt` has passed.
+ * For vesting locks this releases only the currently-vested-but-unreleased portion
+ * and may be called repeatedly as more of the schedule vests; for non-vesting locks
+ * it releases the full amount and marks the lock withdrawn.
+ *
+ * @param id - Numeric lock id (as a decimal string).
+ * @param sourceAddress - Address submitting the transaction; must equal the lock's `beneficiary`.
+ * @param signTransaction - Callback that signs the built transaction XDR and returns signed XDR.
+ * @param onProgress - Optional callback invoked with each {@link TxPhase} during submission.
+ * @returns The submission `txHash`.
+ * @throws {Error} Wrapping one of the contract's `ContractError` variants, notably:
+ *   - `AlreadyWithdrawn` (3) — the lock has already been fully withdrawn.
+ *   - `StillLocked` (4) — called before `unlockAt`.
+ *   - `NothingToRelease` (5) — nothing has vested since the last withdrawal (vesting locks only).
+ * @throws {Error} `Simulation error: ...` / `Send error: ...` / `Transaction failed: ...` if
+ *   `sourceAddress` fails `require_auth` as beneficiary, or for RPC/network failures.
+ */
 export async function withdrawLock(
   id: string,
   sourceAddress: string,
@@ -240,6 +356,23 @@ export async function withdrawLock(
   return { txHash }
 }
 
+/**
+ * Transfer the beneficiary role of a lock to a new address. Callable only by the
+ * lock's current `beneficiary` (`beneficiary.require_auth()` on-chain); the creator
+ * cannot reassign the beneficiary. Updates the on-chain `ByBeneficiary` index so the
+ * new beneficiary's lock listings include this lock and the old beneficiary's do not.
+ *
+ * @param id - Numeric lock id (as a decimal string).
+ * @param newBeneficiary - Stellar address to become the new beneficiary.
+ * @param sourceAddress - Address submitting the transaction; must equal the lock's current `beneficiary`.
+ * @param signTransaction - Callback that signs the built transaction XDR and returns signed XDR.
+ * @param onProgress - Optional callback invoked with each {@link TxPhase} during submission.
+ * @returns Resolves with no value on success.
+ * @throws {Error} Wrapping one of the contract's `ContractError` variants, notably:
+ *   - `AlreadyWithdrawn` (3) — the lock has already been withdrawn and can no longer be reassigned.
+ * @throws {Error} `Simulation error: ...` / `Send error: ...` / `Transaction failed: ...` if
+ *   `sourceAddress` fails `require_auth` as beneficiary, or for RPC/network failures.
+ */
 export async function transferBeneficiary(
   id: string,
   newBeneficiary: string,
@@ -257,6 +390,23 @@ export async function transferBeneficiary(
   )
 }
 
+/**
+ * Push a lock's unlock date further into the future. Callable only by the lock's
+ * `creator` (`creator.require_auth()` on-chain); the new date must be strictly later
+ * than the current `unlockAt`. Increments the lock's `extendedCount`.
+ *
+ * @param id - Numeric lock id (as a decimal string).
+ * @param newUnlockAt - New unlock unix-second timestamp; must be greater than the lock's current `unlockAt`.
+ * @param sourceAddress - Address submitting the transaction; must equal the lock's `creator`.
+ * @param signTransaction - Callback that signs the built transaction XDR and returns signed XDR.
+ * @param onProgress - Optional callback invoked with each {@link TxPhase} during submission.
+ * @returns The submission `txHash`.
+ * @throws {Error} Wrapping one of the contract's `ContractError` variants, notably:
+ *   - `AlreadyWithdrawn` (3) — the lock has already been withdrawn.
+ *   - `CanOnlyExtend` (6) — `newUnlockAt` is not strictly later than the current `unlockAt`.
+ * @throws {Error} `Simulation error: ...` / `Send error: ...` / `Transaction failed: ...` if
+ *   `sourceAddress` fails `require_auth` as creator, or for RPC/network failures.
+ */
 export async function extendLock(
   id: string,
   newUnlockAt: number,
