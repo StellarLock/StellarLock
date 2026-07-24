@@ -111,13 +111,11 @@ export function useNotificationPrefs(lockId?: string) {
     (patch: Partial<NotificationPrefs>) => {
       setPrefs((prev) => {
         const next = { ...prev, ...patch }
-        if (lockId) {
-          const all = loadPrefs()
-          all[lockId] = next
-          savePrefs(all)
-        } else {
-          savePrefs({ global: next })
-        }
+        // Always merge into the full prefs map — keyed either by lockId or
+        // the "global" key — so writing one entry never clobbers the others.
+        const all = loadPrefs()
+        all[lockId ?? "global"] = next
+        savePrefs(all)
         return next
       })
     },
@@ -125,6 +123,16 @@ export function useNotificationPrefs(lockId?: string) {
   )
 
   return { prefs, update }
+}
+
+/**
+ * Read the global notification preferences (set from the Settings page)
+ * synchronously from storage. Used by notification-sending logic that runs
+ * outside of a React component (e.g. `scheduleUnlockReminder`) to decide
+ * whether/how a notification should actually be delivered.
+ */
+function getGlobalPrefs(): NotificationPrefs {
+  return loadPrefs().global ?? { browser: false, types: getDefaultPrefs() }
 }
 
 function getDefaultPrefs(): Partial<Record<NotificationType, boolean>> {
@@ -155,17 +163,25 @@ export function useBrowserNotifications() {
 export function scheduleUnlockReminder(lockId: string, unlockAt: number) {
   if (typeof Notification === "undefined" || Notification.permission !== "granted") return
 
+  // Respect the global notification preferences configured on the Settings
+  // page: a disabled master "browser" switch silences all reminders, and
+  // each reminder category can be individually opted out of via `types`.
+  const globalPrefs = getGlobalPrefs()
+  if (globalPrefs.browser === false) return
+  const types = globalPrefs.types ?? getDefaultPrefs()
+
   const now = Date.now()
   const oneDay = 24 * 60 * 60 * 1000
   const sevenDays = 7 * oneDay
 
-  const reminders = [
-    { delay: unlockAt - sevenDays - now, label: "7 days" },
-    { delay: unlockAt - oneDay - now, label: "1 day" },
-    { delay: unlockAt - now, label: "now" },
+  const reminders: { delay: number; label: string; type: NotificationType }[] = [
+    { delay: unlockAt - sevenDays - now, label: "7 days", type: "unlock_reminder" },
+    { delay: unlockAt - oneDay - now, label: "1 day", type: "unlock_reminder" },
+    { delay: unlockAt - now, label: "now", type: "unlock_approaching" },
   ]
 
-  for (const { delay, label } of reminders) {
+  for (const { delay, label, type } of reminders) {
+    if (types[type] === false) continue
     if (delay > 0 && delay < 2_147_483_647) {
       setTimeout(() => {
         new Notification("StellarLock", {

@@ -1,11 +1,13 @@
 import { useState, useRef } from "react"
 import { Helmet } from "react-helmet-async"
-import { BookUser, Plus, Pencil, Trash2, Check, Download, Upload, Search } from "lucide-react"
+import { BookUser, Plus, Pencil, Trash2, Check, Download, Upload, Search, Bell, Compass } from "lucide-react"
 import { Button } from "@/components/ui/Button"
 import { Input, Label } from "@/components/ui/Input"
 import { Card } from "@/components/ui/Card"
 import { isValidStellarAddress, shortAddress } from "@/lib/utils"
 import { useAddressBook, type AddressBookEntry } from "@/hooks/useAddressBook"
+import { NotificationPreferences } from "@/components/ui/NotificationPreferences"
+import { startOnboardingTour } from "@/components/onboarding/OnboardingTour"
 
 export function Settings() {
   const book = useAddressBook()
@@ -306,6 +308,36 @@ export function Settings() {
                 </table>
               </div>
             )}
+          </div>
+        </Card>
+
+        {/* Notification Preferences */}
+        <Card className="mt-8 overflow-hidden">
+          <div className="flex items-center gap-2 border-b border-border px-6 py-4">
+            <Bell className="h-5 w-5 text-primary" />
+            <h2 className="text-lg font-semibold">Notification Preferences</h2>
+          </div>
+          <div className="p-6">
+            <NotificationPreferences />
+          </div>
+        </Card>
+
+        {/* Onboarding Tour */}
+        <Card className="mt-8 overflow-hidden">
+          <div className="flex items-center gap-2 border-b border-border px-6 py-4">
+            <Compass className="h-5 w-5 text-primary" />
+            <h2 className="text-lg font-semibold">Onboarding</h2>
+          </div>
+          <div className="flex items-center justify-between p-6">
+            <div>
+              <p className="text-sm font-medium">First-time tour</p>
+              <p className="text-xs text-muted-foreground">
+                Replay the guided tour covering wallets, lock types, vesting, and the explorer.
+              </p>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => startOnboardingTour()}>
+              Replay tour
+            </Button>
           </div>
         </Card>
       </div>
