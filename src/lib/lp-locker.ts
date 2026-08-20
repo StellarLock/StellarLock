@@ -410,8 +410,8 @@ export async function transferLpBeneficiary(
   sourceAddress: string,
   signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>,
   onProgress?: (phase: TxPhase) => void,
-): Promise<void> {
-  await submitCall(
+): Promise<{ txHash: string }> {
+  const { txHash } = await submitCallWithHash<void>(
     CONTRACTS.lpLocker,
     "transfer_beneficiary",
     [idArg(id), addressArg(newBeneficiary)],
@@ -419,4 +419,5 @@ export async function transferLpBeneficiary(
     signTransaction,
     onProgress,
   )
+  return { txHash }
 }

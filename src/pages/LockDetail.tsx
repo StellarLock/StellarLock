@@ -238,9 +238,10 @@ function LockDetailView({ lock: sourceLock, onChange }: { lock: Lock; onChange: 
     setTxPhase("simulating")
     setTxError(null)
     try {
-      await (isLp
+      const { txHash } = await (isLp
         ? transferLpBeneficiary(lock.id, newBeneficiary.trim(), address!, signTransaction, setTxPhase)
         : transferBeneficiary(lock.id, newBeneficiary.trim(), address!, signTransaction, setTxPhase))
+      addTransaction(txHash, "transfer", { lockId: lock.id, amount: String(lock.amount) })
       trackEvent("lock_transfer_beneficiary", { kind: lock.kind })
       notify.transferConfirmed()
       announce(t("lockDetail.transferSuccess"))

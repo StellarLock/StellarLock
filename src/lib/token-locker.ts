@@ -1,6 +1,6 @@
 import { Address, nativeToScVal, xdr } from "@stellar/stellar-sdk"
 import type { Lock, LockMetadata, TokenLockSummary } from "@/types/lock"
-import { CONTRACTS, simulateCall, submitCall, submitCallWithHash, type TxPhase } from "@/lib/stellar"
+import { CONTRACTS, simulateCall, submitCallWithHash, type TxPhase } from "@/lib/stellar"
 import { getOnChainTokenMeta, type OnChainTokenMeta } from "@/lib/token-metadata"
 
 export interface CreateTokenLockArgs {
@@ -382,8 +382,8 @@ export async function transferBeneficiary(
   sourceAddress: string,
   signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>,
   onProgress?: (phase: TxPhase) => void,
-): Promise<void> {
-  await submitCall(
+): Promise<{ txHash: string }> {
+  const { txHash } = await submitCallWithHash<void>(
     CONTRACTS.tokenLocker,
     "transfer_beneficiary",
     [idArg(id), addressArg(newBeneficiary)],
@@ -391,6 +391,7 @@ export async function transferBeneficiary(
     signTransaction,
     onProgress,
   )
+  return { txHash }
 }
 
 /**

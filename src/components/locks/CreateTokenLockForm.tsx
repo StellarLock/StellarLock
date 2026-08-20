@@ -236,7 +236,7 @@ export function CreateTokenLockForm() {
     setTxPhase("simulating")
     try {
       if (multiMode) {
-        await createSplitLock(
+        const { txHash } = await createSplitLock(
           {
             tokenAddress: tokenAddress.trim(),
             totalAmount: Number(amount),
@@ -247,6 +247,7 @@ export function CreateTokenLockForm() {
           address!,
           signTransaction,
         )
+        addTransaction(txHash, "split_lock", { amount: String(amount) })
         trackEvent("lock_create_split", { count: splitBeneficiaries.length, vesting })
         notify.lockCreated()
         localStorage.setItem(COOLDOWN_KEY, String(Date.now()))
