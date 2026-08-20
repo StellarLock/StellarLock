@@ -26,6 +26,11 @@ export function LockProgressBar({
         <div
           className={cn("h-full rounded-full transition-all", done ? "bg-success" : "bg-primary")}
           style={{ width: `${pct}%` }}
+          role="progressbar"
+          aria-valuenow={Math.round(pct)}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label="Lock progress"
         />
       </div>
       {showLabel && (
