@@ -29,6 +29,9 @@ vi.mock("@/hooks/useLocks", () => ({
 
 vi.mock("@/lib/stellar", () => ({
   CONTRACTS: { lpLocker: "LP_LOCKER_ADDR" },
+  // utils.isValidStellarAddress now delegates to stellar.isValidStellarAddress,
+  // so this stub must include the same shape the production validator returns.
+  isValidStellarAddress: (addr: string) => (addr.startsWith("G") || addr.startsWith("C") ? addr.length === 56 : false),
   isValidStellarContractAddress: (addr: string) => addr.startsWith("C") && addr.length === 56,
   isValidStellarPublicKey: (addr: string) => addr.startsWith("G") && addr.length === 56,
 }))

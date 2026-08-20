@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { shortAddress, formatAmount, formatUsd } from "@/lib/utils"
+import { shortAddress, formatAmount, formatUsd, isValidStellarAddress } from "@/lib/utils"
 
 describe("shortAddress", () => {
   it("should return an empty string if no address is provided", () => {
@@ -81,5 +81,20 @@ describe("formatUsd", () => {
     ])('should compactly format %f to equal "%s"', (value, expected) => {
       expect(formatUsd(value)).toBe(expected)
     })
+  })
+})
+
+describe("isValidStellarAddress", () => {
+  it("should reject a 56-char G-prefixed string with invalid StrKey checksum", () => {
+    // 56-char G-prefixed string where the last character was changed from 'F' to 'X'
+    // to create an invalid checksum while keeping the length and prefix.
+    const badChecksum = "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHX"
+    expect(isValidStellarAddress(badChecksum)).toBe(false)
+  })
+
+  it("should accept a valid 56-char G-prefixed address with correct checksum", () => {
+    // Valid mock public key: last character 'F' produces a valid StrKey checksum.
+    const validPublicKey = "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF"
+    expect(isValidStellarAddress(validPublicKey)).toBe(true)
   })
 })

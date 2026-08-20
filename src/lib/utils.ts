@@ -1,6 +1,7 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { toast } from "react-hot-toast"
+import { isValidStellarAddress as isValidStellarAddressWithChecksum } from "./stellar"
 
 interface Notify {
   message?: string
@@ -69,9 +70,7 @@ export function formatDateTime(timestamp: number): string {
 }
 
 /** Returns true for valid 56-character Stellar contract (C…) or account (G…) addresses. */
-export function isValidStellarAddress(addr: string): boolean {
-  return addr.length === 56 && (addr.startsWith("C") || addr.startsWith("G"))
-}
+export const isValidStellarAddress = (addr: string): boolean => isValidStellarAddressWithChecksum(addr)
 
 /** Extracts a readable message from any thrown value. */
 export function formatError(err: unknown): string {
