@@ -414,21 +414,34 @@ export async function estimateLockCost(
 
 // ── Token helpers ────────────────────────────────────────────────────────────
 
-export async function getTokenBalance(tokenAddress: string, owner: string): Promise<number> {
+/** Fetch SEP-41 token decimals on-chain, falling back to 7 on RPC failure. */
+export async function getTokenDecimals(tokenAddress: string): Promise<number> {
+  try {
+    const decimals = await simulateCall<number>(tokenAddress, "decimals", [])
+    return decimals != null ? Number(decimals) : 7
+  } catch {
+    return 7
+  }
+}
+
+export async function getTokenBalance(tokenAddress: string, owner: string, decimals?: number): Promise<number> {
   const raw = await simulateCall<bigint>(tokenAddress, "balance", [new Address(owner).toScVal()])
-  return Number(raw ?? 0n) / STELLAR_DECIMALS
+  const resolvedDecimals = decimals ?? (await getTokenDecimals(tokenAddress))
+  return Number(raw ?? 0n) / 10 ** resolvedDecimals
 }
 
 export async function getTokenAllowance(
   tokenAddress: string,
   owner: string,
   spender: string,
+  decimals?: number,
 ): Promise<number> {
   const raw = await simulateCall<bigint>(tokenAddress, "allowance", [
     new Address(owner).toScVal(),
     new Address(spender).toScVal(),
   ])
-  return Number(raw ?? 0n) / 1e7
+  const resolvedDecimals = decimals ?? (await getTokenDecimals(tokenAddress))
+  return Number(raw ?? 0n) / 10 ** resolvedDecimals
 }
 
 export async function submitTokenApproval(
