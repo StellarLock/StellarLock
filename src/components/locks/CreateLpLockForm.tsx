@@ -83,11 +83,13 @@ export function CreateLpLockForm() {
   const tokenAValid = isValidStellarContractAddress(trimmedTokenA)
   const tokenBValid = isValidStellarContractAddress(trimmedTokenB)
   const beneficiaryValid = isValidStellarPublicKey(address || "")
+  const beneficiaryOverrideValid = beneficiaryOverride.trim() === "" || isValidStellarPublicKey(beneficiaryOverride.trim())
   const valid =
     poolAddressValid &&
     tokenAValid &&
     tokenBValid &&
     beneficiaryValid &&
+    beneficiaryOverrideValid &&
     isValidStellarAddress(poolShareAddress.trim()) &&
     isValidStellarAddress(tokenA.trim()) &&
     isValidStellarAddress(tokenB.trim()) &&
@@ -126,13 +128,13 @@ export function CreateLpLockForm() {
         new Address(tokenA.trim()).toScVal(),
         new Address(tokenB.trim()).toScVal(),
         nativeToScVal(amountStroops, { type: "i128" }),
-        new Address(address).toScVal(),
+        new Address(beneficiaryOverride.trim() || address).toScVal(),
         nativeToScVal(BigInt(Math.floor(unlockTs / 1000)), { type: "u64" }),
       ]
     } catch {
       return null
     }
-  }, [address, dex, poolShareAddress, tokenA, tokenB, amount, unlockTs])
+  }, [address, beneficiaryOverride, dex, poolShareAddress, tokenA, tokenB, amount, unlockTs])
 
   function applyPreset(days: number) {
     setUnlockDate(new Date(Date.now() + days * DAY).toISOString().slice(0, 10))
@@ -164,7 +166,7 @@ export function CreateLpLockForm() {
           tokenA: tokenA.trim(),
           tokenB: tokenB.trim(),
           amount: Number(amount),
-          beneficiary: address!,
+          beneficiary: beneficiaryOverride.trim() || address!,
           unlockAt: Math.floor(unlockTs / 1000),
           metadata: {
             description: description.trim(),
@@ -464,7 +466,7 @@ export function CreateLpLockForm() {
             data={{
               tokenAddress: poolShareAddress.trim(),
               amount: amount,
-              beneficiary: address!,
+              beneficiary: beneficiaryOverride.trim() || address!,
               unlockDate: unlockDate,
               isLp: true,
               dex: dex,
