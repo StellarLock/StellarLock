@@ -136,7 +136,7 @@ export function LockCreationWizard() {
             tokenA: state.tokenA.trim(),
             tokenB: state.tokenB.trim(),
             amount: Number(state.amount),
-            beneficiary: address!,
+            beneficiary: state.beneficiary.trim() || address!,
             unlockAt: Math.floor(new Date(state.unlockDate).getTime() / 1000),
             metadata: {},
           },
@@ -445,6 +445,14 @@ function Step4({ state }: { state: WizardState }) {
         <div className="flex justify-between">
           <span className="text-sm text-muted-foreground">Vesting:</span>
           <span className="font-medium">{state.vesting ? "Enabled" : "Disabled"}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-sm text-muted-foreground">Beneficiary:</span>
+          <span className="font-mono text-sm">
+            {state.beneficiary.trim()
+              ? `${state.beneficiary.substring(0, 8)}…`
+              : "Your wallet (default)"}
+          </span>
         </div>
       </div>
     </div>
