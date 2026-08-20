@@ -87,13 +87,34 @@ const CONTRACT_ERRORS: Record<string, Omit<StructuredError, 'code'>> = {
     i18nKey: 'errors.sharesMustSum10000',
   },
   RateLimitExceeded: {
-    title: 'errors.rateLimitExceeded.title',
-    message: 'errors.rateLimitExceeded.message',
-    recovery: 'errors.rateLimitExceeded.recovery',
-    link: null,
-    i18nKey: 'errors.rateLimitExceeded',
-  },
-};
+      title: 'errors.rateLimitExceeded.title',
+      message: 'errors.rateLimitExceeded.message',
+      recovery: 'errors.rateLimitExceeded.recovery',
+      link: null,
+      i18nKey: 'errors.rateLimitExceeded',
+    },
+    UnlockTooSoon: {
+      title: 'errors.unlockTooSoon.title',
+      message: 'errors.unlockTooSoon.message',
+      recovery: 'errors.unlockTooSoon.recovery',
+      link: null,
+      i18nKey: 'errors.unlockTooSoon',
+    },
+    ExtensionLimitReached: {
+      title: 'errors.extensionLimitReached.title',
+      message: 'errors.extensionLimitReached.message',
+      recovery: 'errors.extensionLimitReached.recovery',
+      link: null,
+      i18nKey: 'errors.extensionLimitReached',
+    },
+    UnlockExceedsMax: {
+      title: 'errors.unlockExceedsMax.title',
+      message: 'errors.unlockExceedsMax.message',
+      recovery: 'errors.unlockExceedsMax.recovery',
+      link: null,
+      i18nKey: 'errors.unlockExceedsMax',
+    },
+  };
 
 // Map wallet/network errors
 function parseWalletError(err: unknown): StructuredError | null {
@@ -136,10 +157,12 @@ export function parseError(err: unknown): StructuredError {
   const walletErr = parseWalletError(err);
   if (walletErr) return walletErr;
 
-  // Try to extract Soroban contract error code
-  const raw = String((err as { message?: string })?.message ?? '');
-  const match = raw.match(/Error\(Contract,\s*#(\d+)\)|([A-Z][a-zA-Z]+Error|[A-Z][a-zA-Z]+)/);
-  const code = match?.[2] ?? match?.[1] ?? 'UNKNOWN';
+  // Try to extract Soroban contract error symbol from the trailing name
+    // e.g. "Error(Contract, #7): UnlockTooSoon" → "UnlockTooSoon"
+    const raw = String((err as { message?: string })?.message ?? '');
+    const contractMatch = raw.match(/Error\(Contract,\s*#\d+\):\s*([A-Z][a-zA-Z]+Error|[A-Z][a-zA-Z]+)/);
+    const nameMatch = raw.match(/([A-Z][a-zA-Z]+Error|[A-Z][a-zA-Z]+)/);
+    const code = contractMatch?.[1] ?? nameMatch?.[1] ?? 'UNKNOWN';
 
   if (code in CONTRACT_ERRORS) {
     return { code, ...CONTRACT_ERRORS[code] };
