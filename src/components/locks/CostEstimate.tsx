@@ -22,6 +22,7 @@ export function CostEstimate({ contractId, method, args }: CostEstimateProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const generationRef = useRef(0)
 
   useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current)
@@ -33,21 +34,25 @@ export function CostEstimate({ contractId, method, args }: CostEstimateProps) {
       return
     }
 
+    const gen = ++generationRef.current
     setLoading(true)
     setError(null)
 
     timerRef.current = setTimeout(() => {
       estimateLockCost(contractId, method, args)
         .then((result) => {
+          if (gen !== generationRef.current) return
           setEstimate(result)
           setError(null)
         })
         .catch((err: unknown) => {
+          if (gen !== generationRef.current) return
           setEstimate(null)
           setError(t("costEstimate.error"))
           log.error("[CostEstimate]", err)
         })
         .finally(() => {
+          if (gen !== generationRef.current) return
           setLoading(false)
         })
     }, DEBOUNCE_MS)
