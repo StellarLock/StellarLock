@@ -36,6 +36,7 @@ export function useContractEvents(options: EventPollingOptions = {}) {
   const [events, setEvents] = useState<ContractEvent[]>([])
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const lastSequenceRef = useRef<number>(0)
+  const seenEventIdsRef = useRef<Set<string>>(new Set())
 
   const fetchEvents = useCallback(async () => {
     try {
@@ -49,7 +50,7 @@ export function useContractEvents(options: EventPollingOptions = {}) {
           id: 1,
           method: "getEvents",
           params: {
-            startLedger: Math.max(1, lastSequenceRef.current - 1000),
+            startLedger: Math.max(1, lastSequenceRef.current + 1),
             filters: [
               {
                 type: "contract",
@@ -81,6 +82,10 @@ export function useContractEvents(options: EventPollingOptions = {}) {
       for (const event of responseEvents) {
         if (!event.topic || event.topic.length < 1) continue
 
+        // Skip already-processed events (defensive, in case startLedger boundary
+        // overlaps with a previously processed event)
+        if (event.id && seenEventIdsRef.current.has(event.id)) continue
+
         const eventType = event.topic[0]
         if (
           !eventType?.includes("lock_created") &&
@@ -105,6 +110,7 @@ export function useContractEvents(options: EventPollingOptions = {}) {
           onEvent(contractEvent)
         }
 
+        if (event.id) seenEventIdsRef.current.add(event.id)
         lastSequenceRef.current = Math.max(lastSequenceRef.current, event.ledger || 0)
       }
     } catch (err) {
