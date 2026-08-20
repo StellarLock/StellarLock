@@ -19,8 +19,10 @@ import { CONTRACTS, type TxPhase } from "@/lib/stellar"
 import { trackEvent } from "@/lib/analytics"
 import { addTransaction } from "@/lib/transaction-history"
 import { ConfirmLockModal } from "@/components/locks/ConfirmLockModal"
-import { isValidStellarContractAddress, isValidStellarPublicKey } from "@/lib/stellar"
+import { isValidStellarContractAddress } from "@/lib/stellar"
 import { CostEstimate } from "@/components/locks/CostEstimate"
+import { FormValidationErrors } from "@/components/locks/FormValidationErrors"
+import { validateLpLockForm } from "@/lib/validation/lockFormValidation"
 import { AddressBookModal } from "@/components/ui/AddressBookModal"
 import { BookUser } from "lucide-react"
 import { createLogger } from "@/lib/logger"
@@ -82,17 +84,20 @@ export function CreateLpLockForm() {
   const poolAddressValid = isValidStellarContractAddress(trimmedPoolShareAddress)
   const tokenAValid = isValidStellarContractAddress(trimmedTokenA)
   const tokenBValid = isValidStellarContractAddress(trimmedTokenB)
-  const beneficiaryValid = isValidStellarPublicKey(address || "")
-  const valid =
-    poolAddressValid &&
-    tokenAValid &&
-    tokenBValid &&
-    beneficiaryValid &&
-    isValidStellarAddress(poolShareAddress.trim()) &&
-    isValidStellarAddress(tokenA.trim()) &&
-    isValidStellarAddress(tokenB.trim()) &&
-    Number(amount) > 0 &&
-    unlockTs > Date.now()
+  const validation = useMemo(
+    () =>
+      validateLpLockForm({
+        poolShareAddress: poolShareAddress.trim(),
+        tokenA: tokenA.trim(),
+        tokenB: tokenB.trim(),
+        amount,
+        unlockDate,
+        walletAddress: address ?? null,
+        allowance: allowance ?? null,
+      }),
+    [poolShareAddress, tokenA, tokenB, amount, unlockDate, address, allowance],
+  )
+  const valid = validation.isValid
 
   const validPoolShareAddress =
     poolShareAddress.trim().length === 56 && poolShareAddress.trim().startsWith("C")
@@ -449,6 +454,8 @@ export function CreateLpLockForm() {
         </div>
 
         <TxErrorAlert error={error} />
+
+        <FormValidationErrors issues={validation.issues} />
 
         <CostEstimate contractId={CONTRACTS.lpLocker} method="create_lock" args={costArgs} />
 

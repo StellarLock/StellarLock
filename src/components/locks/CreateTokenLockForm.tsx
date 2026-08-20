@@ -22,6 +22,8 @@ import { CONTRACTS, type TxPhase, submitTokenApproval, isValidStellarContractAdd
 import { ConfirmLockModal } from "@/components/locks/ConfirmLockModal"
 import { CostEstimate } from "@/components/locks/CostEstimate"
 import { MultiBeneficiaryFields } from "@/components/locks/MultiBeneficiaryFields"
+import { FormValidationErrors } from "@/components/locks/FormValidationErrors"
+import { validateTokenLockForm } from "@/lib/validation/lockFormValidation"
 import { AddressBookModal } from "@/components/ui/AddressBookModal"
 import { createLogger } from "@/lib/logger"
 import { useDraftAutoSave } from "@/hooks/useDraftStorage"
@@ -145,13 +147,36 @@ export function CreateTokenLockForm() {
   const vestingStartTs = vestingStartDate ? new Date(vestingStartDate).getTime() : 0
   const tokenAddressValid = isValidStellarContractAddress(trimmedTokenAddress)
   const beneficiaryValid = isValidStellarAddress(effectiveBeneficiary)
-  const splitSharesOk =
-    splitBeneficiaries.length >= 2 &&
-    splitBeneficiaries.every((b) => isValidStellarAddress(b.address)) &&
-    splitBeneficiaries.reduce((s, b) => s + b.shareBps, 0) === 10_000
 
-  const valid =
-    tokenAddressValid && Number(amount) > 0 && unlockTs > Date.now() && (multiMode ? splitSharesOk : beneficiaryValid)
+  const valid = useMemo(
+    () =>
+      validateTokenLockForm({
+        tokenAddress: tokenAddress.trim(),
+        amount,
+        beneficiary,
+        walletAddress: address ?? null,
+        unlockDate,
+        multiMode,
+        splitBeneficiaries,
+        allowance: allowance ?? null,
+      }).isValid,
+    [tokenAddress, amount, beneficiary, address, unlockDate, multiMode, splitBeneficiaries, allowance],
+  )
+
+  const validationIssues = useMemo(
+    () =>
+      validateTokenLockForm({
+        tokenAddress: tokenAddress.trim(),
+        amount,
+        beneficiary,
+        walletAddress: address ?? null,
+        unlockDate,
+        multiMode,
+        splitBeneficiaries,
+        allowance: allowance ?? null,
+      }).issues,
+    [tokenAddress, amount, beneficiary, address, unlockDate, multiMode, splitBeneficiaries, allowance],
+  )
 
   // Build the contract args for cost estimation when form is sufficiently filled in
   const costArgs = useMemo((): xdr.ScVal[] | null => {
@@ -600,6 +625,8 @@ export function CreateTokenLockForm() {
         </div>
 
         <TxErrorAlert error={error} />
+
+        <FormValidationErrors issues={validationIssues} />
 
         <CostEstimate contractId={CONTRACTS.tokenLocker} method="create_lock" args={costArgs} />
 
