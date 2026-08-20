@@ -85,9 +85,17 @@ export function NotificationCenter() {
               notifications.map((notif) => (
                 <div
                   key={notif.id}
+                  role="button"
+                  tabIndex={0}
                   onClick={() => handleNotificationClick(notif)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault()
+                      handleNotificationClick(notif)
+                    }
+                  }}
                   className={cn(
-                    "flex cursor-pointer items-start gap-3 px-4 py-3 transition-colors hover:bg-secondary/30",
+                    "flex cursor-pointer items-start gap-3 px-4 py-3 transition-colors hover:bg-secondary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
                     notif.read ? "opacity-60" : "bg-primary/5",
                   )}
                 >
