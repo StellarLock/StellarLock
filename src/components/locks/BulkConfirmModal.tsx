@@ -3,7 +3,7 @@ import { useModalFocusTrap } from "@/lib/modalFocusTrap"
 import { X, CheckCircle2, XCircle, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
-import { formatAmount } from "@/lib/utils"
+import { formatAmount, isValidStellarAddress } from "@/lib/utils"
 import type { Lock } from "@/types/lock"
 
 type Action = "extend" | "transfer"
@@ -41,7 +41,7 @@ export function BulkConfirmModal({ action, locks, onConfirm, onClose }: Props) {
 
   const minDate = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10)
 
-  const isValid = action === "extend" ? value.length > 0 : value.trim().length === 56
+  const isValid = action === "extend" ? value.length > 0 : isValidStellarAddress(value.trim())
 
   async function handleConfirm() {
     setRunning(true)
