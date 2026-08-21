@@ -25,7 +25,7 @@ export function getTvlOverTime(locks: Lock[]): TvlPoint[] {
   const byDay = new Map<string, number>()
   let running = 0
   for (const lock of sorted) {
-    running += lock.usdValue
+    running += lock.usdValue ?? 0
     byDay.set(dayKey(lock.createdAt), running)
   }
   return Array.from(byDay, ([date, tvl]) => ({ date, tvl }))
@@ -45,7 +45,7 @@ export function getLockVolumeByDay(locks: Lock[]): VolumePoint[] {
 export function getTokenDistribution(locks: Lock[]): DistributionSlice[] {
   const bySymbol = new Map<string, number>()
   for (const lock of locks) {
-    bySymbol.set(lock.token.symbol, (bySymbol.get(lock.token.symbol) ?? 0) + lock.usdValue)
+    bySymbol.set(lock.token.symbol, (bySymbol.get(lock.token.symbol) ?? 0) + (lock.usdValue ?? 0))
   }
   return Array.from(bySymbol, ([symbol, value]) => ({ symbol, value })).sort((a, b) => b.value - a.value)
 }

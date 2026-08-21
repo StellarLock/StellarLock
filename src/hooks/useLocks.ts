@@ -31,7 +31,10 @@ async function withUsdValues(locks: Lock[]): Promise<Lock[]> {
   if (locks.length === 0) return locks
   const addresses = locks.map((l) => l.token.address)
   const prices = await fetchPricesBatch(addresses)
-  return locks.map((l) => ({ ...l, usdValue: (prices.get(l.token.address) ?? 0) * l.amount }))
+  return locks.map((l) => {
+    const price = prices.get(l.token.address)
+    return { ...l, usdValue: price === null || price === undefined ? null : price * l.amount }
+  })
 }
 
 /**
@@ -58,7 +61,7 @@ export function useLocksByToken(tokenAddress: string | undefined, offset = 0, li
       : await getLocksByToken(tokenAddress, offset, limit)
     if (!summary) return null
     const enriched = await withUsdValues(summary.locks)
-    const totalUsdValue = enriched.reduce((s, l) => s + l.usdValue, 0)
+    const totalUsdValue = enriched.reduce((s, l) => s + (l.usdValue ?? 0), 0)
     return { ...summary, locks: enriched, totalUsdValue }
   }, [tokenAddress, offset, limit])
 }
@@ -205,7 +208,7 @@ export function useDiscoverStats() {
 
     // Fallback: derive the same shape from the bundled demo dataset.
     const activeLocks = MOCK_LOCKS.filter((l) => l.status !== "withdrawn")
-    const totalValueLocked = activeLocks.reduce((s, l) => s + l.usdValue, 0)
+    const totalValueLocked = activeLocks.reduce((s, l) => s + (l.usdValue ?? 0), 0)
     const uniqueTokens = new Set(activeLocks.map((l) => l.token.address)).size
     const recentLocks = [...MOCK_LOCKS].sort((a, b) => b.createdAt - a.createdAt).slice(0, 5)
     const upcomingUnlocks = activeLocks
@@ -218,7 +221,7 @@ export function useDiscoverStats() {
         const key = lock.token.address
         acc[key] ??= { token: lock.token, count: 0, totalValue: 0 }
         acc[key].count++
-        acc[key].totalValue += lock.usdValue
+        acc[key].totalValue += lock.usdValue ?? 0
         return acc
       }, {}),
     ).sort((a, b) => b.totalValue - a.totalValue)

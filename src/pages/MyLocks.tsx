@@ -73,7 +73,7 @@ export function MyLocks() {
 
   const stats = useMemo(() => {
     const now = Date.now()
-    const totalValue = created.reduce((sum, l) => sum + l.usdValue, 0)
+    const totalValue = created.reduce((sum, l) => sum + (l.usdValue ?? 0), 0)
     const unlockable = created.filter((l) => l.unlockAt <= now && l.status !== "withdrawn").length
     return { count: totalCreated, totalValue, unlockable }
   }, [created, totalCreated])

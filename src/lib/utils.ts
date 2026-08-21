@@ -34,7 +34,8 @@ export function formatAmount(amount: number, opts: { compact?: boolean; decimals
   }).format(amount)
 }
 
-export function formatUsd(value: number): string {
+export function formatUsd(value: number | null | undefined): string {
+  if (value === null || value === undefined) return "Price unavailable"
   const compact = value >= 1_000_000
   return new Intl.NumberFormat("en-US", {
     style: "currency",

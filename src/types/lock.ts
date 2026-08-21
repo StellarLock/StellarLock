@@ -54,8 +54,8 @@ export interface Lock {
 
   /** Total locked amount (token units, not stroops). */
   amount: number
-  /** Approx USD value at lock time, for display. */
-  usdValue: number
+  /** Approx USD value at lock time, for display. null when no price feed exists. */
+  usdValue: number | null
 
   /** Unix ms timestamps. */
   createdAt: number

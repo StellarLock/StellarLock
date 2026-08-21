@@ -43,7 +43,7 @@ export function Analytics() {
   const tvlSeries = getTvlOverTime(activeLocks)
   const volumeSeries = getLockVolumeByDay(activeLocks)
   const distribution = getTokenDistribution(activeLocks)
-  const totalValueLocked = activeLocks.reduce((s, l) => s + l.usdValue, 0)
+  const totalValueLocked = activeLocks.reduce((s, l) => s + (l.usdValue ?? 0), 0)
   const isEmpty = !loading && activeLocks.length === 0
 
   return (

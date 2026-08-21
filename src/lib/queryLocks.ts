@@ -47,7 +47,10 @@ async function withUsdValues(locks: Lock[]): Promise<Lock[]> {
   if (locks.length === 0) return locks
   const addresses = [...new Set(locks.map((l) => l.token.address))]
   const prices = await fetchPricesBatch(addresses)
-  return locks.map((l) => ({ ...l, usdValue: (prices.get(l.token.address) ?? 0) * l.amount }))
+  return locks.map((l) => {
+    const price = prices.get(l.token.address)
+    return { ...l, usdValue: price === null || price === undefined ? null : price * l.amount }
+  })
 }
 
 // ── Single-lock queries ────────────────────────────────────────────────────────
@@ -93,7 +96,7 @@ export async function queryLocksByToken(
 
   if (!summary) return null
   const enriched = await withUsdValues(summary.locks)
-  const totalUsdValue = enriched.reduce((s, l) => s + l.usdValue, 0)
+  const totalUsdValue = enriched.reduce((s, l) => s + (l.usdValue ?? 0), 0)
   return { ...summary, locks: enriched, totalUsdValue }
 }
 

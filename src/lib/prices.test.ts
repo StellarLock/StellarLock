@@ -7,7 +7,7 @@
  *  - estimateUsdValue: multiplies price × amount, returns 0 for non-positive amounts
  *  - fetchPricesBatch: deduplicates addresses and returns a Map per address
  *  - invalidatePriceCache: clears all cached prices
- *  - Contract token (C... address) always returns 0 — known gap documented in issue
+ *  - Contract token (C... address) returns null (price unavailable) instead of a fake 0 — issue #212
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 import {
@@ -108,15 +108,16 @@ describe("prices", () => {
   })
 
   describe("getTokenPriceUsd — contract tokens (C... address)", () => {
-    it("always returns 0 for Soroban contract token addresses (known limitation)", async () => {
+    it("returns null for Soroban contract token addresses (no price available)", async () => {
       const fetchMock = vi.fn()
       vi.stubGlobal("fetch", fetchMock)
 
       const price = await getTokenPriceUsd(CONTRACT_TOKEN)
 
       // Contract tokens can't be queried via Horizon orderbook — the implementation
-      // short-circuits and returns 0 without making any fetch calls for the token.
-      expect(price).toBe(0)
+      // short-circuits and returns null (price unavailable) without making any fetch
+      // calls for the token. Null is distinct from 0: it means "unknown", not "worthless".
+      expect(price).toBe(null)
     })
   })
 

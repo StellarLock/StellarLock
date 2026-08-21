@@ -11,7 +11,7 @@ function usdcIssuer(): string {
 }
 
 interface CacheEntry {
-  price: number
+  price: number | null
   expiry: number
 }
 
@@ -20,14 +20,14 @@ const priceCache = new Map<string, CacheEntry>()
 const CACHE_TTL_MS = 60_000 // 1 minute
 
 // In-flight deduplication
-const inflight = new Map<string, Promise<number>>()
+const inflight = new Map<string, Promise<number | null>>()
 
 /**
  * Fetch the mid-market price of `tokenAddress` in USD via the Horizon orderbook.
  * Strategy: token/USDC orderbook. Falls back to token/XLM * XLM/USD.
- * Returns 0 if no price is available.
+ * Returns null if no price is available (e.g. Soroban contract tokens).
  */
-export async function getTokenPriceUsd(tokenAddress: string): Promise<number> {
+export async function getTokenPriceUsd(tokenAddress: string): Promise<number | null> {
   // XLM native
   if (tokenAddress === NATIVE || tokenAddress === "") return await xlmPriceUsd()
 
@@ -45,14 +45,14 @@ export async function getTokenPriceUsd(tokenAddress: string): Promise<number> {
     })
     .catch(() => {
       inflight.delete(tokenAddress)
-      return 0
+      return null
     })
 
   inflight.set(tokenAddress, promise)
   return promise
 }
 
-async function fetchPrice(tokenAddress: string): Promise<number> {
+async function fetchPrice(tokenAddress: string): Promise<number | null> {
   const issuer = usdcIssuer()
   // Try direct token/USDC orderbook
   const directUrl = `${NETWORK.horizonUrl}/order_book?selling_asset_type=credit_alphanum4&selling_asset_code=USDC&selling_asset_issuer=${issuer}&buying_asset_type=credit_alphanum56&buying_asset_code=LP&buying_asset_issuer=${tokenAddress}&limit=1`
@@ -60,10 +60,10 @@ async function fetchPrice(tokenAddress: string): Promise<number> {
 
   // Route: token → XLM via orderbook, then XLM → USD
   const xlmUsd = await xlmPriceUsd()
-  if (xlmUsd === 0) return 0
+  if (xlmUsd === 0) return null
 
   const tokenXlm = await tokenToXlmPrice(tokenAddress)
-  if (tokenXlm === 0) return 0
+  if (tokenXlm === null) return null
 
   return tokenXlm * xlmUsd
 }
@@ -71,7 +71,7 @@ async function fetchPrice(tokenAddress: string): Promise<number> {
 /** Fetch XLM/USD price via USDC/XLM orderbook on Horizon. */
 async function xlmPriceUsd(): Promise<number> {
   const cached = priceCache.get(NATIVE)
-  if (cached && cached.expiry > Date.now()) return cached.price
+  if (cached && cached.expiry > Date.now()) return cached.price ?? 0
 
   try {
     const issuer = usdcIssuer()
@@ -103,35 +103,35 @@ async function xlmPriceUsd(): Promise<number> {
 }
 
 /** Fetch token/XLM price via Horizon orderbook (classic SEP-41 tokens only). */
-function tokenToXlmPrice(tokenAddress: string): Promise<number> {
+function tokenToXlmPrice(tokenAddress: string): Promise<number | null> {
   // We can only query classic Stellar assets (G... issuer) via Horizon orderbook.
   // Soroban contract tokens (C...) are not queryable via Horizon orderbook.
-  // For contract tokens we return 0 (no price available).
-  if (tokenAddress.startsWith("C")) return Promise.resolve(0)
+  // For contract tokens we return null (no price available).
+  if (tokenAddress.startsWith("C")) return Promise.resolve(null)
 
   // tokenAddress here is "CODE:ISSUER" format for classic assets, which we don't
-  // support in this codebase (all tokens are contract addresses). Return 0.
-  return Promise.resolve(0)
+  // support in this codebase (all tokens are contract addresses). Return null.
+  return Promise.resolve(null)
 }
 
 /**
  * Estimate the USD value of `amount` units of `tokenAddress`.
- * Returns 0 if no price feed is available.
+ * Returns null if no price feed is available.
  */
-export async function estimateUsdValue(tokenAddress: string, amount: number): Promise<number> {
+export async function estimateUsdValue(tokenAddress: string, amount: number): Promise<number | null> {
   if (amount <= 0) return 0
   const price = await getTokenPriceUsd(tokenAddress)
-  return price * amount
+  return price === null ? null : price * amount
 }
 
 /** Batch-fetch USD prices for multiple token addresses. */
-export async function fetchPricesBatch(tokenAddresses: string[]): Promise<Map<string, number>> {
+export async function fetchPricesBatch(tokenAddresses: string[]): Promise<Map<string, number | null>> {
   const unique = [...new Set(tokenAddresses)]
   const results = await Promise.allSettled(unique.map((addr) => getTokenPriceUsd(addr)))
-  const map = new Map<string, number>()
+  const map = new Map<string, number | null>()
   unique.forEach((addr, i) => {
     const r = results[i]
-    map.set(addr, r.status === "fulfilled" ? r.value : 0)
+    map.set(addr, r.status === "fulfilled" ? r.value : null)
   })
   return map
 }
