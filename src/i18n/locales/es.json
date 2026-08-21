@@ -19,7 +19,8 @@
     "disconnectWallet": "Desconectar billetera",
     "openMenu": "Abrir menú",
     "closeMenu": "Cerrar menú",
-    "history": "Historial"
+    "history": "Historial",
+    "analytics": "Analíticas"
   },
   "landing": {
     "badge": "Construido en Stellar · Contratos inteligentes Soroban",
@@ -166,7 +167,10 @@
     "transferHint": "Transfiere los derechos de retiro a una nueva dirección Stellar. Esta acción es irreversible.",
     "confirmTransfer": "Confirmar transferencia",
     "securityNotice": "Estos tokens están asegurados por el contrato StellarLock hasta la fecha de desbloqueo. Ni el creador ni StellarLock pueden moverlos anticipadamente.",
-    "viewExplorer": "Ver explorador de tokens"
+    "viewExplorer": "Ver explorador de tokens",
+    "extendSuccess": "Bloqueo extendido.",
+    "transferSuccess": "Beneficiario transferido.",
+    "withdrawSuccess": "Retiro confirmado."
   },
   "explorer": {
     "backToSearch": "Volver a la búsqueda",
@@ -296,5 +300,103 @@
     "minBeneficiaries": "Agrega al menos 2 beneficiarios o usa el modo de un solo beneficiario.",
     "maxBeneficiaries": "Máximo 10 beneficiarios permitidos.",
     "submit": "Crear bloqueo dividido"
+  },
+  "errors": {
+    "alreadyWithdrawn": {
+      "title": "Ya Retirado",
+      "message": "Los tokens ya han sido retirados de este bloqueo.",
+      "recovery": null
+    },
+    "amountMustBePositive": {
+      "title": "Cantidad Inválida",
+      "message": "La cantidad a bloquear debe ser mayor que cero.",
+      "recovery": "Introduce una cantidad positiva para continuar."
+    },
+    "canOnlyExtend": {
+      "title": "Fecha de Extensión Inválida",
+      "message": "La nueva fecha debe ser posterior a la fecha de desbloqueo actual.",
+      "recovery": "Elige una fecha posterior."
+    },
+    "nothingToRelease": {
+      "title": "Nada que Liberar",
+      "message": "No hay tokens disponibles para liberar del calendario de vesting en este momento.",
+      "recovery": "Espera al próximo período de vesting o revisa el calendario."
+    },
+    "vestingEndBeforeStart": {
+      "title": "Calendario de Vesting Inválido",
+      "message": "La fecha de fin del vesting debe ser posterior a la fecha de inicio.",
+      "recovery": "Elige una fecha de fin posterior a la fecha de inicio."
+    },
+    "tooFewBeneficiaries": {
+      "title": "Beneficiarios Insuficientes",
+      "message": "Un bloqueo dividido debe tener al menos 2 beneficiarios.",
+      "recovery": "Añade más beneficiarios para crear un bloqueo dividido."
+    },
+    "tooManyBeneficiaries": {
+      "title": "Demasiados Beneficiarios",
+      "message": "Un bloqueo dividido no puede tener más de 10 beneficiarios.",
+      "recovery": "Reduce el número de beneficiarios a 10 o menos."
+    },
+    "sharesMustSum10000": {
+      "title": "Distribución de Participaciones Inválida",
+      "message": "Las participaciones de los beneficiarios deben sumar exactamente 10,000 puntos base (100%).",
+      "recovery": "Ajusta las participaciones para que sumen exactamente 10,000 BPS."
+    },
+    "rateLimitExceeded": {
+      "title": "Demasiadas Solicitudes",
+      "message": "Has superado el límite de velocidad para crear bloqueos. Espera antes de crear otro.",
+      "recovery": "Espera un momento e inténtalo de nuevo."
+    },
+    "insufficientBalance": {
+      "title": "Saldo Insuficiente",
+      "message": "No tienes suficientes tokens para bloquear esta cantidad.",
+      "recovery": "Reduce la cantidad o añade fondos a tu cartera."
+    },
+    "lockDurationTooLong": {
+      "title": "Duración de Bloqueo Demasiado Larga",
+      "message": "La duración del bloqueo no puede exceder los 10 años.",
+      "recovery": "Elige una fecha de desbloqueo dentro de los próximos 10 años."
+    },
+    "stillLocked": {
+      "title": "Bloqueo No Vencido",
+      "message": "Este bloqueo aún no ha alcanzado su fecha de desbloqueo.",
+      "recovery": "Vuelve a consultar en la fecha de desbloqueo indicada."
+    },
+    "timeout": {
+      "title": "Transacción Expirada",
+      "message": "La transacción tardó demasiado en confirmarse.",
+      "recovery": "Consulta el estado de la transacción en Stellar Expert."
+    },
+    "unknown": {
+      "title": "Algo Salió Mal",
+      "message": "Ocurrió un error inesperado.",
+      "recovery": "Inténtalo de nuevo. Si persiste, contacta al soporte."
+    },
+    "unlockMustBeFuture": {
+      "title": "Fecha de Desbloqueo Inválida",
+      "message": "La fecha de desbloqueo debe ser futura.",
+      "recovery": "Elige una fecha posterior a hoy."
+    },
+    "userRejected": {
+      "title": "Transacción Cancelada",
+      "message": "Cancelaste la transacción en tu cartera.",
+      "recovery": "Haz clic en el botón nuevamente cuando estés listo."
+    },
+    "wrongNetwork": {
+      "title": "Red Incorrecta",
+      "message": "Tu cartera está conectada a la red incorrecta.",
+      "recovery": "Cambia a la red correcta en la configuración de Freighter."
+    }
+  },
+  "analytics": {
+    "title": "Analíticas",
+    "subtitle": "Actividad de bloqueos y valor total bloqueado en StellarLock.",
+    "totalValueLocked": "Valor Total Bloqueado",
+    "totalLocks": "Total de Bloqueos",
+    "tokensTracked": "Tokens Rastreados",
+    "tvlOverTime": "TVL a lo Largo del Tiempo",
+    "lockVolume": "Volumen de Creación de Bloqueos",
+    "tokenDistribution": "Distribución de Tokens",
+    "noData": "Aún no hay actividad de bloqueos para mostrar."
   }
 }
