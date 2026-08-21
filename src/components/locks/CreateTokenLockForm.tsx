@@ -71,6 +71,7 @@ export function CreateTokenLockForm() {
 
   const COOLDOWN_SECONDS = 60
   const COOLDOWN_KEY = "stellarlock:last_lock_created_at"
+  const cooldownStorageKey = address ? `${COOLDOWN_KEY}:${address}` : COOLDOWN_KEY
 
   useDraftAutoSave("token", {
     tokenAddress,
@@ -80,7 +81,7 @@ export function CreateTokenLockForm() {
   })
 
   useEffect(() => {
-    const stored = localStorage.getItem(COOLDOWN_KEY)
+    const stored = localStorage.getItem(cooldownStorageKey)
     if (stored) {
       const elapsed = Math.floor((Date.now() - Number(stored)) / 1000)
       const remaining = COOLDOWN_SECONDS - elapsed
@@ -249,7 +250,7 @@ export function CreateTokenLockForm() {
         )
         trackEvent("lock_create_split", { count: splitBeneficiaries.length, vesting })
         notify.lockCreated()
-        localStorage.setItem(COOLDOWN_KEY, String(Date.now()))
+        localStorage.setItem(cooldownStorageKey, String(Date.now()))
         setCooldownRemaining(COOLDOWN_SECONDS)
         void navigate("/app/locks")
       } else {
@@ -273,7 +274,7 @@ export function CreateTokenLockForm() {
         addTransaction(txHash, "create_lock", { lockId: id, amount: String(amount) })
         trackEvent("lock_create_token", { vesting })
         notify.lockCreated()
-        localStorage.setItem(COOLDOWN_KEY, String(Date.now()))
+        localStorage.setItem(cooldownStorageKey, String(Date.now()))
         setCooldownRemaining(COOLDOWN_SECONDS)
         void navigate("/app/lock-created", {
           state: {
