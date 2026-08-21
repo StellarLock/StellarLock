@@ -19,7 +19,8 @@
     "disconnectWallet": "断开钱包",
     "openMenu": "打开菜单",
     "closeMenu": "关闭菜单",
-    "history": "历史"
+    "history": "历史",
+    "analytics": "数据分析"
   },
   "landing": {
     "badge": "基于 Stellar 构建 · Soroban 智能合约",
@@ -166,7 +167,10 @@
     "transferHint": "将提取权转移至新的 Stellar 地址。此操作不可逆。",
     "confirmTransfer": "确认转移",
     "securityNotice": "这些代币由 StellarLock 合约保护直到解锁日期。创建者和 StellarLock 都无法提前移动它们。",
-    "viewExplorer": "查看代币浏览器"
+    "viewExplorer": "查看代币浏览器",
+    "extendSuccess": "锁定已延长。",
+    "transferSuccess": "受益人已转移。",
+    "withdrawSuccess": "提款已确认。"
   },
   "explorer": {
     "backToSearch": "返回搜索",
@@ -221,7 +225,12 @@
     "webhookDesc": "将解锁事件发送到URL（Telegram机器人、Discord等）。",
     "enable": "启用",
     "enabled": "已启用",
-    "save": "保存"
+    "save": "保存",
+    "email": "电子邮件提醒",
+    "emailDesc": "在 7 天、1 天前以及解锁时接收电子邮件提醒。需要连接钱包。",
+    "emailError": "保存电子邮件订阅失败。请重试。",
+    "emailNeedsWallet": "连接钱包以启用电子邮件提醒。",
+    "emailPlaceholder": "you@example.com"
   },
   "lockCard": {
     "lockedAmount": "锁定数量",
@@ -291,5 +300,103 @@
     "minBeneficiaries": "请添加至少 2 位受益人，或使用单受益人模式。",
     "maxBeneficiaries": "最多允许 10 位受益人。",
     "submit": "创建分割锁定"
+  },
+  "errors": {
+    "alreadyWithdrawn": {
+      "title": "已提取",
+      "message": "此锁定的代币已被提取。",
+      "recovery": null
+    },
+    "amountMustBePositive": {
+      "title": "金额无效",
+      "message": "锁定金额必须大于零。",
+      "recovery": "请输入一个正数金额以继续。"
+    },
+    "canOnlyExtend": {
+      "title": "延长日期无效",
+      "message": "新日期必须晚于当前解锁日期。",
+      "recovery": "请选择更晚的日期。"
+    },
+    "nothingToRelease": {
+      "title": "无可释放资产",
+      "message": "当前没有可分配计划中可释放的代币。",
+      "recovery": "请等待下一个分配期或检查分配计划。"
+    },
+    "vestingEndBeforeStart": {
+      "title": "分配计划无效",
+      "message": "分配结束日期必须晚于分配开始日期。",
+      "recovery": "请选择晚于开始日期的分配结束日期。"
+    },
+    "tooFewBeneficiaries": {
+      "title": "受益人不足",
+      "message": "拆分锁定必须至少包含 2 个受益人。",
+      "recovery": "请添加更多受益人以创建拆分锁定。"
+    },
+    "tooManyBeneficiaries": {
+      "title": "受益人过多",
+      "message": "拆分锁定不能超过 10 个受益人。",
+      "recovery": "请将受益人数量减少到 10 个或更少。"
+    },
+    "sharesMustSum10000": {
+      "title": "份额分配无效",
+      "message": "受益人份额必须恰好合计为 10,000 个基点（100%）。",
+      "recovery": "请调整份额，使其合计恰好为 10,000 BPS。"
+    },
+    "rateLimitExceeded": {
+      "title": "请求过于频繁",
+      "message": "您创建锁定的请求次数超出限制。请稍候再创建。",
+      "recovery": "请稍等片刻后重试。"
+    },
+    "insufficientBalance": {
+      "title": "余额不足",
+      "message": "您的代币余额不足以锁定此金额。",
+      "recovery": "请减少金额或向钱包添加资金。"
+    },
+    "lockDurationTooLong": {
+      "title": "锁定时间过长",
+      "message": "锁定持续时间不能超过 10 年。",
+      "recovery": "请选择自今天起 10 年内的解锁日期。"
+    },
+    "stillLocked": {
+      "title": "锁定未到期",
+      "message": "此锁定尚未达到其解锁日期。",
+      "recovery": "请查看锁定卡上显示的解锁日期后再试。"
+    },
+    "timeout": {
+      "title": "交易超时",
+      "message": "交易确认耗时过长。",
+      "recovery": "请在 Stellar Expert 上查看交易状态。"
+    },
+    "unknown": {
+      "title": "出了点问题",
+      "message": "发生了意外错误。",
+      "recovery": "请重试。如果问题持续存在，请联系支持。"
+    },
+    "unlockMustBeFuture": {
+      "title": "解锁日期无效",
+      "message": "解锁日期必须晚于当前时间。",
+      "recovery": "请选择今天之后的日期。"
+    },
+    "userRejected": {
+      "title": "交易已取消",
+      "message": "您在钱包中取消了该交易。",
+      "recovery": "准备好后请再次点击按钮继续。"
+    },
+    "wrongNetwork": {
+      "title": "网络错误",
+      "message": "您的钱包连接到了错误的网络。",
+      "recovery": "请在 Freighter 设置中切换到正确的网络。"
+    }
+  },
+  "analytics": {
+    "title": "数据分析",
+    "subtitle": "查看 StellarLock 上的锁定活动和锁定总价值。",
+    "totalValueLocked": "锁定总价值",
+    "totalLocks": "锁定总数",
+    "tokensTracked": "追踪的代币",
+    "tvlOverTime": "TVL 变化趋势",
+    "lockVolume": "锁定创建量",
+    "tokenDistribution": "代币分布",
+    "noData": "暂无锁定活动可展示。"
   }
 }
