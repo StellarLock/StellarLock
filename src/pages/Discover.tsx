@@ -15,7 +15,7 @@ import { formatAmount, formatDate, formatUsd } from "@/lib/utils"
 
 export function Discover() {
   const { t } = useTranslation()
-  const { data, loading } = useDiscoverStats()
+  const { data, loading, error } = useDiscoverStats()
 
   const activeLocksCount = data?.totalLocks ?? 0
   const totalValueLocked = data?.totalValueLocked ?? 0
@@ -23,6 +23,12 @@ export function Discover() {
   const recentLocks = data?.recentLocks ?? []
   const upcomingUnlocks = data?.upcomingUnlocks ?? []
   const tokenGroups = data?.tokenGroups ?? []
+  const isFallback = data?.source === "fallback"
+
+  // Empty list message rendered inside list sections when no data is available.
+  const renderListEmpty = (message: string) => (
+    <Card className="flex items-center justify-center p-6 text-sm text-muted-foreground">{message}</Card>
+  )
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
@@ -73,6 +79,16 @@ export function Discover() {
         </div>
       )}
 
+      {/* Error banner */}
+      {!loading && error && (
+        <div
+          role="alert"
+          className="mb-8 rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive"
+        >
+          {t("discover.loadError")}
+        </div>
+      )}
+
       <div className="grid gap-8 lg:grid-cols-2">
         {/* Recent Locks */}
         <section>
@@ -83,30 +99,32 @@ export function Discover() {
                 <SkeletonLockCard key={i} />
               ))}
             </div>
+          ) : recentLocks.length === 0 ? (
+            renderListEmpty(isFallback ? t("discover.indexerUnavailable") : t("discover.noRecentLocks"))
           ) : (
-          <Card className="divide-y divide-border">
-            {recentLocks.map((lock) => (
-              <Link
-                key={lock.id}
-                to={`/app/lock/${lock.kind}/${lock.id}`}
-                className="flex items-center gap-4 p-4 transition-colors hover:bg-secondary/30"
-              >
-                <TokenAvatar symbol={lock.token.symbol} contractId={lock.token.address} size="sm" />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">{lock.token.symbol}</span>
-                    <Badge variant="outline" className="text-[10px]">
-                      #{lock.id}
-                    </Badge>
+            <Card className="divide-y divide-border">
+              {recentLocks.map((lock) => (
+                <Link
+                  key={lock.id}
+                  to={`/app/lock/${lock.kind}/${lock.id}`}
+                  className="flex items-center gap-4 p-4 transition-colors hover:bg-secondary/30"
+                >
+                  <TokenAvatar symbol={lock.token.symbol} contractId={lock.token.address} size="sm" />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{lock.token.symbol}</span>
+                      <Badge variant="outline" className="text-[10px]">
+                        #{lock.id}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {formatAmount(lock.amount)} · {formatDate(lock.createdAt)}
+                    </p>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    {formatAmount(lock.amount)} · {formatDate(lock.createdAt)}
-                  </p>
-                </div>
-                <StatusBadge status={lock.status} />
-              </Link>
-            ))}
-          </Card>
+                  <StatusBadge status={lock.status} />
+                </Link>
+              ))}
+            </Card>
           )}
         </section>
 
@@ -119,65 +137,67 @@ export function Discover() {
                 <SkeletonLockCard key={i} />
               ))}
             </div>
+          ) : upcomingUnlocks.length === 0 ? (
+            renderListEmpty(isFallback ? t("discover.indexerUnavailable") : t("discover.noUpcomingUnlocks"))
           ) : (
-          <Card className="divide-y divide-border">
-            {upcomingUnlocks.map((lock) => (
-              <Link
-                key={lock.id}
-                to={`/app/lock/${lock.kind}/${lock.id}`}
-                className="flex items-center gap-4 p-4 transition-colors hover:bg-secondary/30"
-              >
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
-                  <CalendarClock className="h-4 w-4" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">{lock.token.symbol}</span>
-                    <Badge variant="outline" className="text-[10px]">
-                      #{lock.id}
-                    </Badge>
+            <Card className="divide-y divide-border">
+              {upcomingUnlocks.map((lock) => (
+                <Link
+                  key={lock.id}
+                  to={`/app/lock/${lock.kind}/${lock.id}`}
+                  className="flex items-center gap-4 p-4 transition-colors hover:bg-secondary/30"
+                >
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
+                    <CalendarClock className="h-4 w-4" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{lock.token.symbol}</span>
+                      <Badge variant="outline" className="text-[10px]">
+                        #{lock.id}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {formatAmount(lock.amount)} · unlocks {formatDate(lock.unlockAt)}
+                    </p>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    {formatAmount(lock.amount)} · unlocks {formatDate(lock.unlockAt)}
-                  </p>
-                </div>
-                <span className="shrink-0 text-xs text-muted-foreground">{formatDate(lock.unlockAt)}</span>
-              </Link>
-            ))}
-          </Card>
+                  <span className="shrink-0 text-xs text-muted-foreground">{formatDate(lock.unlockAt)}</span>
+                </Link>
+              ))}
+            </Card>
           )}
         </section>
       </div>
 
       {/* Featured Tokens */}
       {tokenGroups.length > 0 && (
-      <section className="mt-8">
-        <h2 className="mb-4 text-lg font-semibold">{t("discover.featuredTokens")}</h2>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {tokenGroups.map((group) => (
-            <Link key={group.token.address} to={`/explore/${group.token.address}`}>
-              <Card className="p-5 transition-colors hover:border-primary/40">
-                <div className="flex items-center gap-3">
-                  <TokenAvatar symbol={group.token.symbol} contractId={group.token.address} size="md" />
-                  <div>
-                    <p className="font-semibold">{group.token.symbol}</p>
-                    <p className="text-xs text-muted-foreground">{group.token.name}</p>
+        <section className="mt-8">
+          <h2 className="mb-4 text-lg font-semibold">{t("discover.featuredTokens")}</h2>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {tokenGroups.map((group) => (
+              <Link key={group.token.address} to={`/explore/${group.token.address}`}>
+                <Card className="p-5 transition-colors hover:border-primary/40">
+                  <div className="flex items-center gap-3">
+                    <TokenAvatar symbol={group.token.symbol} contractId={group.token.address} size="md" />
+                    <div>
+                      <p className="font-semibold">{group.token.symbol}</p>
+                      <p className="text-xs text-muted-foreground">{group.token.name}</p>
+                    </div>
                   </div>
-                </div>
-                <div className="mt-4 flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">
-                    {group.count} lock{group.count === 1 ? "" : "s"}
-                  </span>
-                  <span className="font-medium text-success">{formatUsd(group.totalValue)}</span>
-                </div>
-                <div className="mt-2 flex items-center gap-1 text-xs text-primary">
-                  View locks <ArrowRight className="h-3 w-3" />
-                </div>
-              </Card>
-            </Link>
-          ))}
-        </div>
-      </section>
+                  <div className="mt-4 flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">
+                      {group.count} lock{group.count === 1 ? "" : "s"}
+                    </span>
+                    <span className="font-medium text-success">{formatUsd(group.totalValue)}</span>
+                  </div>
+                  <div className="mt-2 flex items-center gap-1 text-xs text-primary">
+                    View locks <ArrowRight className="h-3 w-3" />
+                  </div>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        </section>
       )}
 
       {/* Recent Activity */}

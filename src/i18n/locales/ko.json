@@ -59,7 +59,7 @@
     "tabToken": "토큰 잠금",
     "tabLp": "LP 잠금"
   },
-"tokenForm": {
+  "tokenForm": {
     "tokenAddress": "토큰 컨트랙트 주소",
     "tokenPlaceholder": "C… (Soroban 토큰 컨트랙트)",
     "tokenHint": "잠그려는 토큰의 Soroban 컨트랙트 주소입니다.",
@@ -92,7 +92,7 @@
     "approveAndContinue": "승인 및 계속",
     "approving": "승인 중…"
   },
-"lpForm": {
+  "lpForm": {
     "dex": "DEX",
     "aquarius": "Aquarius",
     "aquariusDesc": "AMM 및 SDEX 풀",
@@ -194,7 +194,11 @@
     "tokensSecured": "보호된 토큰",
     "viewAll": "모든 잠금 보기",
     "noLocks": "이 토큰에 대한 잠금을 찾을 수 없습니다.",
-    "searchHint": "토큰 심볼이나 컨트랙트 주소로 특정 잠금을 검색하세요."
+    "searchHint": "토큰 심볼이나 컨트랙트 주소로 특정 잠금을 검색하세요.",
+    "indexerUnavailable": "인덱서를 사용할 수 없습니다 — 인덱서가 다시 온라인이 되면 실시간 데이터가 표시됩니다.",
+    "noRecentLocks": "아직 최근 잠금이 없습니다.",
+    "noUpcomingUnlocks": "다가오는 잠금 해제가 없습니다.",
+    "loadError": "탐색 데이터를 불러오지 못했습니다. 나중에 다시 시도하세요."
   },
   "search": {
     "placeholder": "심볼이나 컨트랙트 주소로 토큰 검색…",

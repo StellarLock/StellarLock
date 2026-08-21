@@ -55,8 +55,7 @@ vi.mock("@/lib/stellar", async (importOriginal) => {
     getRpc: vi.fn(),
     invalidateRpcCache: vi.fn(),
     simulateCall: vi.fn().mockResolvedValue(null),
-    explorerLink: (addr: string) =>
-      `https://stellar.expert/explorer/testnet/contract/${addr}`,
+    explorerLink: (addr: string) => `https://stellar.expert/explorer/testnet/contract/${addr}`,
   }
 })
 
@@ -94,7 +93,7 @@ vi.mock("@/hooks/useLocks", () => ({
   useTokenAllowance: () => ({ data: null, loading: false }),
   useDiscoverStats: () => ({
     data: {
-      source: "mock",
+      source: "fallback",
       totalLocks: 0,
       totalValueLocked: 0,
       uniqueTokens: 0,

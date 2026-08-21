@@ -194,7 +194,11 @@
     "tokensSecured": "Güvence Altına Alınan Tokenler",
     "viewAll": "Tüm kilitleri görüntüle",
     "noLocks": "Bu token için kilit bulunamadı.",
-    "searchHint": "Belirli kilitleri bulmak için token sembolü veya sözleşme adresine göre arayın."
+    "searchHint": "Belirli kilitleri bulmak için token sembolü veya sözleşme adresine göre arayın.",
+    "indexerUnavailable": "Dizinleyici kullanılamıyor — dizinleyici tekrar çevrimiçi olduğunda gerçek zamanlı veriler görünecek.",
+    "noRecentLocks": "Henüz son kilit yok.",
+    "noUpcomingUnlocks": "Yaklaşan kilit açılması yok.",
+    "loadError": "Keşif verileri yüklenemedi. Lütfen daha sonra tekrar deneyin."
   },
   "search": {
     "placeholder": "Sembol veya sözleşme adresine göre token arayın…",

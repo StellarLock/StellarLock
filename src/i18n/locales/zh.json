@@ -200,7 +200,11 @@
     "noLocks": "未找到此代币的锁定。",
     "recentActivity": "近期活动",
     "noRecentActivity": "暂无近期活动。",
-    "searchHint": "按代币符号或合约地址搜索特定锁定。"
+    "searchHint": "按代币符号或合约地址搜索特定锁定。",
+    "indexerUnavailable": "索引器不可用 — 索引器恢复后将显示实时数据。",
+    "noRecentLocks": "暂无最近的锁定。",
+    "noUpcomingUnlocks": "暂无即将解锁的锁定。",
+    "loadError": "加载发现页数据失败，请稍后重试。"
   },
   "search": {
     "placeholder": "通过符号或合约地址搜索代币…",

@@ -9,7 +9,6 @@ import {
   useTokenAllowance,
   useDiscoverStats,
 } from "@/hooks/useLocks"
-import { MOCK_LOCKS } from "@/lib/mock-data"
 
 // ---------------------------------------------------------------------------
 // Module mocks
@@ -468,16 +467,19 @@ describe("useDiscoverStats", () => {
     expect(result.current.data?.uniqueTokens).toBe(5)
   })
 
-  it("falls back to mock data when indexer returns null", async () => {
+  it("returns empty fallback when indexer returns null", async () => {
     vi.mocked(fetchIndexerStats).mockResolvedValue(null)
 
     const { result } = renderHook(() => useDiscoverStats())
     await waitFor(() => expect(result.current.loading).toBe(false))
 
-    expect(result.current.data?.source).toBe("mock")
-    // Derived from MOCK_LOCKS (non-withdrawn)
-    const activeMockCount = MOCK_LOCKS.filter((l) => l.status !== "withdrawn").length
-    expect(result.current.data?.totalLocks).toBe(activeMockCount)
+    expect(result.current.data?.source).toBe("fallback")
+    expect(result.current.data?.totalLocks).toBe(0)
+    expect(result.current.data?.totalValueLocked).toBe(0)
+    expect(result.current.data?.uniqueTokens).toBe(0)
+    expect(result.current.data?.recentLocks).toHaveLength(0)
+    expect(result.current.data?.upcomingUnlocks).toHaveLength(0)
+    expect(result.current.data?.tokenGroups).toHaveLength(0)
   })
 
   it("sets error when indexer fetch throws", async () => {
@@ -489,25 +491,14 @@ describe("useDiscoverStats", () => {
     expect(result.current.error).toBe("stats fetch failed")
   })
 
-  it("includes recentLocks and upcomingUnlocks in mock fallback", async () => {
+  it("returns empty arrays in fallback result", async () => {
     vi.mocked(fetchIndexerStats).mockResolvedValue(null)
 
     const { result } = renderHook(() => useDiscoverStats())
     await waitFor(() => expect(result.current.loading).toBe(false))
 
-    expect(Array.isArray(result.current.data?.recentLocks)).toBe(true)
-    expect(Array.isArray(result.current.data?.upcomingUnlocks)).toBe(true)
-  })
-
-  it("includes tokenGroups sorted by totalValue descending in mock fallback", async () => {
-    vi.mocked(fetchIndexerStats).mockResolvedValue(null)
-
-    const { result } = renderHook(() => useDiscoverStats())
-    await waitFor(() => expect(result.current.loading).toBe(false))
-
-    const groups = result.current.data?.tokenGroups ?? []
-    for (let i = 1; i < groups.length; i++) {
-      expect(groups[i - 1].totalValue).toBeGreaterThanOrEqual(groups[i].totalValue)
-    }
+    expect(result.current.data?.recentLocks).toHaveLength(0)
+    expect(result.current.data?.upcomingUnlocks).toHaveLength(0)
+    expect(result.current.data?.tokenGroups).toHaveLength(0)
   })
 })

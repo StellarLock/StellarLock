@@ -204,7 +204,11 @@
     "tokensSecured": "Tokens Secured",
     "viewAll": "View all locks",
     "noLocks": "No locks found for this token.",
-    "searchHint": "Search by token symbol or contract address to find specific locks."
+    "searchHint": "Search by token symbol or contract address to find specific locks.",
+    "indexerUnavailable": "Indexer unavailable — real-time data will appear once the indexer is back online.",
+    "noRecentLocks": "No recent locks yet.",
+    "noUpcomingUnlocks": "No upcoming unlocks.",
+    "loadError": "Failed to load discover data. Please try again later."
   },
   "search": {
     "placeholder": "Search a token by symbol or contract address…",

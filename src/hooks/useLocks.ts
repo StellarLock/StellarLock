@@ -24,7 +24,7 @@ import {
   mapIndexerLocksPageToSummary,
 } from "@/lib/indexer-client"
 import { getOnChainTokenMeta } from "@/lib/token-metadata"
-import { MOCK_LOCKS } from "@/lib/mock-data"
+// MOCK_LOCKS import removed — see #211
 import type { Lock, TokenMeta } from "@/types/lock"
 
 async function withUsdValues(locks: Lock[]): Promise<Lock[]> {
@@ -54,7 +54,7 @@ export function useLocksByToken(tokenAddress: string | undefined, offset = 0, li
     if (!tokenAddress) return null
     const indexerPage = await fetchIndexerLocksForToken(tokenAddress, offset, limit)
     const summary = indexerPage
-      ? (await mapIndexerLocksPageToSummary(indexerPage)) ?? (await getLocksByToken(tokenAddress, offset, limit))
+      ? ((await mapIndexerLocksPageToSummary(indexerPage)) ?? (await getLocksByToken(tokenAddress, offset, limit)))
       : await getLocksByToken(tokenAddress, offset, limit)
     if (!summary) return null
     const enriched = await withUsdValues(summary.locks)
@@ -114,16 +114,9 @@ export function useTokenBalance(tokenAddress: string | undefined, owner: string 
 }
 
 /** Fetch a user's allowance for a specific token contract and spender. */
-export function useTokenAllowance(
-  tokenAddress: string | undefined,
-  owner: string | null,
-  spender: string | undefined,
-) {
+export function useTokenAllowance(tokenAddress: string | undefined, owner: string | null, spender: string | undefined) {
   return useAsync(
-    () =>
-      tokenAddress && owner && spender
-        ? getTokenAllowance(tokenAddress, owner, spender)
-        : Promise.resolve(null),
+    () => (tokenAddress && owner && spender ? getTokenAllowance(tokenAddress, owner, spender) : Promise.resolve(null)),
     [tokenAddress, owner, spender],
   )
 }
@@ -136,7 +129,7 @@ export interface DiscoverTokenGroup {
 
 export interface DiscoverStats {
   /** Which backend actually served this data — surfaced for debugging/telemetry, not shown to users. */
-  source: "indexer" | "mock"
+  source: "indexer" | "fallback"
   totalLocks: number
   totalValueLocked: number
   uniqueTokens: number
@@ -203,34 +196,17 @@ export function useDiscoverStats() {
       }
     }
 
-    // Fallback: derive the same shape from the bundled demo dataset.
-    const activeLocks = MOCK_LOCKS.filter((l) => l.status !== "withdrawn")
-    const totalValueLocked = activeLocks.reduce((s, l) => s + l.usdValue, 0)
-    const uniqueTokens = new Set(activeLocks.map((l) => l.token.address)).size
-    const recentLocks = [...MOCK_LOCKS].sort((a, b) => b.createdAt - a.createdAt).slice(0, 5)
-    const upcomingUnlocks = activeLocks
-      .filter((l) => l.status === "locked")
-      .sort((a, b) => a.unlockAt - b.unlockAt)
-      .slice(0, 5)
-
-    const tokenGroups = Object.values(
-      activeLocks.reduce<Record<string, DiscoverTokenGroup>>((acc, lock) => {
-        const key = lock.token.address
-        acc[key] ??= { token: lock.token, count: 0, totalValue: 0 }
-        acc[key].count++
-        acc[key].totalValue += lock.usdValue
-        return acc
-      }, {}),
-    ).sort((a, b) => b.totalValue - a.totalValue)
-
+    // Fallback: indexer unavailable — return an empty but correctly-shaped result
+    // so the UI degrades gracefully (shows zeros + empty lists) rather than
+    // fabricated mock data. See #211.
     return {
-      source: "mock",
-      totalLocks: activeLocks.length,
-      totalValueLocked,
-      uniqueTokens,
-      recentLocks,
-      upcomingUnlocks,
-      tokenGroups,
+      source: "fallback",
+      totalLocks: 0,
+      totalValueLocked: 0,
+      uniqueTokens: 0,
+      recentLocks: [],
+      upcomingUnlocks: [],
+      tokenGroups: [],
     }
   }, [])
 }

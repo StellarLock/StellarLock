@@ -121,25 +121,17 @@ export interface UserLocks {
  * token-locker and lp-locker, enriched with USD values.
  */
 export async function queryMyLocks(address: string, offset = 0, limit = 50): Promise<UserLocks> {
-  const [
-    tCreated,
-    lpCreated,
-    tReceived,
-    lpReceived,
-    tCreatedCount,
-    lpCreatedCount,
-    tReceivedCount,
-    lpReceivedCount,
-  ] = await Promise.all([
-    getLocksByCreator(address, offset, limit),
-    getLpLocksByCreator(address, offset, limit),
-    getLocksByBeneficiary(address, offset, limit),
-    getLpLocksByBeneficiary(address, offset, limit),
-    getLockCountByCreator(address),
-    getLpLockCountByCreator(address),
-    getLockCountByBeneficiary(address),
-    getLpLockCountByBeneficiary(address),
-  ])
+  const [tCreated, lpCreated, tReceived, lpReceived, tCreatedCount, lpCreatedCount, tReceivedCount, lpReceivedCount] =
+    await Promise.all([
+      getLocksByCreator(address, offset, limit),
+      getLpLocksByCreator(address, offset, limit),
+      getLocksByBeneficiary(address, offset, limit),
+      getLpLocksByBeneficiary(address, offset, limit),
+      getLockCountByCreator(address),
+      getLpLockCountByCreator(address),
+      getLockCountByBeneficiary(address),
+      getLpLockCountByBeneficiary(address),
+    ])
 
   const allLocks = [...tCreated, ...lpCreated, ...tReceived, ...lpReceived]
   const enriched = await withUsdValues(allLocks)
@@ -243,8 +235,8 @@ export async function querySiteStats(): Promise<SiteStats> {
 
   // Indexer unavailable — return an empty but correctly-shaped result so the
   // UI degrades gracefully (shows zeros + empty lists) rather than fabricated
-  // mock numbers. Discover.tsx falls back to MOCK_LOCKS for the demo case via
-  // useDiscoverStats, which is preserved for that page.
+  // mock numbers. Discover.tsx also returns an empty fallback (see useDiscoverStats,
+  // #211) so no page displays fake locks to users.
   return {
     source: "fallback",
     totalLocks: 0,

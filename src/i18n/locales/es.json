@@ -200,7 +200,11 @@
     "noLocks": "No se encontraron bloqueos para este token.",
     "recentActivity": "Actividad reciente",
     "noRecentActivity": "Aún no hay actividad reciente.",
-    "searchHint": "Busca por símbolo de token o dirección de contrato para encontrar bloqueos específicos."
+    "searchHint": "Busca por símbolo de token o dirección de contrato para encontrar bloqueos específicos.",
+    "indexerUnavailable": "Indexador no disponible: los datos en tiempo real aparecerán cuando vuelva a estar en línea.",
+    "noRecentLocks": "Aún no hay bloqueos recientes.",
+    "noUpcomingUnlocks": "No hay próximos desbloqueos.",
+    "loadError": "No se pudieron cargar los datos de descubrimiento. Inténtelo de nuevo más tarde."
   },
   "search": {
     "placeholder": "Buscar un token por símbolo o dirección de contrato…",
