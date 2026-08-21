@@ -179,7 +179,7 @@ export function CreateLpLockForm() {
       addTransaction(txHash, "create_lock", { lockId: id, amount: String(amount) })
       trackEvent("lock_create_lp", { dex })
       notify.lockCreated()
-      void navigate(`/app/lock/${id}`)
+      void navigate(`/app/lock/lp/${id}`)
     } catch (err: unknown) {
       log.error("[createLpLock error]", err)
       setShowConfirm(false)
