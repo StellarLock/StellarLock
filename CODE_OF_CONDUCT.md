@@ -15,3 +15,4 @@ We pledge to make participation harassment-free for everyone.
 Violations may be reported to project maintainers.
 
 Adapted from [Contributor Covenant](https://www.contributor-covenant.org) v2.1.
+# bounty-fix-ref: https://github.com/StellarLock/StellarLock/issues/506
