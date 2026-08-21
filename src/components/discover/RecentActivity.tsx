@@ -306,8 +306,8 @@ export function RecentActivity() {
     prevEventsCountRef.current = newCount
 
     if (newCount > prev) {
-      // content is in newest-first order; we want bottom (latest) -> scrollTop = scrollHeight
-      containerRef.current.scrollTop = containerRef.current.scrollHeight
+      // content is in newest-first order; the newest item is at the top -> scroll to 0
+      containerRef.current.scrollTop = 0
     }
   }, [feedItems, paused])
 
@@ -317,7 +317,7 @@ export function RecentActivity() {
       // If not paused, nudge scroll to keep newest in view.
       if (paused) return
       if (!containerRef.current) return
-      containerRef.current.scrollTop = containerRef.current.scrollHeight
+      containerRef.current.scrollTop = 0
     }, intervalMs)
 
     return () => window.clearInterval(id)
