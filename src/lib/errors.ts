@@ -93,6 +93,27 @@ const CONTRACT_ERRORS: Record<string, Omit<StructuredError, 'code'>> = {
     link: null,
     i18nKey: 'errors.rateLimitExceeded',
   },
+  UnlockTooSoon: {
+    title: 'errors.unlockTooSoon.title',
+    message: 'errors.unlockTooSoon.message',
+    recovery: 'errors.unlockTooSoon.recovery',
+    link: null,
+    i18nKey: 'errors.unlockTooSoon',
+  },
+  ExtensionLimitReached: {
+    title: 'errors.extensionLimitReached.title',
+    message: 'errors.extensionLimitReached.message',
+    recovery: 'errors.extensionLimitReached.recovery',
+    link: null,
+    i18nKey: 'errors.extensionLimitReached',
+  },
+  UnlockExceedsMax: {
+    title: 'errors.unlockExceedsMax.title',
+    message: 'errors.unlockExceedsMax.message',
+    recovery: 'errors.unlockExceedsMax.recovery',
+    link: null,
+    i18nKey: 'errors.unlockExceedsMax',
+  },
 };
 
 // Map wallet/network errors
@@ -138,8 +159,8 @@ export function parseError(err: unknown): StructuredError {
 
   // Try to extract Soroban contract error code
   const raw = String((err as { message?: string })?.message ?? '');
-  const match = raw.match(/Error\(Contract,\s*#(\d+)\)|([A-Z][a-zA-Z]+Error|[A-Z][a-zA-Z]+)/);
-  const code = match?.[2] ?? match?.[1] ?? 'UNKNOWN';
+  const match = raw.match(/Error\(Contract,\s*#\d+\):\s*([A-Z][a-zA-Z]+Error|[A-Z][a-zA-Z]+)/);
+  const code = match?.[1] ?? 'UNKNOWN';
 
   if (code in CONTRACT_ERRORS) {
     return { code, ...CONTRACT_ERRORS[code] };
