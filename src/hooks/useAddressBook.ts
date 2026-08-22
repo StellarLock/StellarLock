@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react"
-import { isValidStellarAddress } from "@/lib/utils"
+import { isValidStellarAddress } from "@/lib/stellar"
 
 const STORAGE_KEY = "stellarlock:address-book"
 

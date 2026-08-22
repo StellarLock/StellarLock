@@ -2,7 +2,7 @@ import { Plus, Trash2 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { Input, Label } from "@/components/ui/Input"
 import { Button } from "@/components/ui/Button"
-import { isValidStellarAddress } from "@/lib/utils"
+import { isValidStellarAddress } from "@/lib/stellar"
 import type { SplitBeneficiary } from "@/lib/split-lock"
 
 const MAX_BENEFICIARIES = 10
