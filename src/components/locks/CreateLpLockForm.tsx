@@ -88,6 +88,7 @@ export function CreateLpLockForm() {
     tokenAValid &&
     tokenBValid &&
     beneficiaryValid &&
+    (!beneficiaryOverride.trim() || isValidStellarAddress(beneficiaryOverride.trim())) &&
     isValidStellarAddress(poolShareAddress.trim()) &&
     isValidStellarAddress(tokenA.trim()) &&
     isValidStellarAddress(tokenB.trim()) &&
@@ -164,7 +165,7 @@ export function CreateLpLockForm() {
           tokenA: tokenA.trim(),
           tokenB: tokenB.trim(),
           amount: Number(amount),
-          beneficiary: address!,
+          beneficiary: beneficiaryOverride.trim() || address!,
           unlockAt: Math.floor(unlockTs / 1000),
           metadata: {
             description: description.trim(),
@@ -464,7 +465,7 @@ export function CreateLpLockForm() {
             data={{
               tokenAddress: poolShareAddress.trim(),
               amount: amount,
-              beneficiary: address!,
+              beneficiary: beneficiaryOverride.trim() || address!,
               unlockDate: unlockDate,
               isLp: true,
               dex: dex,
