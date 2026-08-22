@@ -49,6 +49,14 @@ vi.mock("@/lib/analytics", () => ({
   trackEvent: vi.fn(),
 }))
 
+vi.mock("@/lib/split-lock", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/split-lock")>()
+  return {
+    ...actual,
+    createSplitLock: vi.fn().mockResolvedValue({ txHash: "split-tx-hash" }),
+  }
+})
+
 describe("Token Lock Creation Flow", () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -370,5 +378,41 @@ describe("Token Lock Creation Flow", () => {
 
     const confirmButton = screen.getByRole("button", { name: /insufficient balance/i })
     expect(confirmButton).toBeDisabled()
+  })
+
+  it("records a split_lock transaction with the real hash when creating a multi-beneficiary lock", async () => {
+    localStorage.clear()
+    // Earlier tests in this file override these mocks with mockReturnValue
+    // (not mockReturnValueOnce) and beforeEach only clearAllMocks(), which
+    // doesn't restore implementations — so pin these explicitly rather than
+    // depend on test order.
+    vi.mocked(useTokenBalance).mockReturnValue({ data: 5000, loading: false, error: null, reload: vi.fn() })
+    vi.mocked(useTokenAllowance).mockReturnValue({ data: 10000, loading: false, error: null, reload: vi.fn() })
+    const user = userEvent.setup()
+    render(<CreateTokenLockForm />)
+
+    await user.type(screen.getByLabelText(/token contract address/i), VALID_CONTRACT_ADDRESS)
+    await user.type(screen.getByLabelText(/amount/i), "100")
+
+    await user.click(screen.getByRole("checkbox", { name: /multiple beneficiaries/i }))
+
+    const addressInputs = screen.getAllByPlaceholderText(/^G…$/)
+    await user.type(addressInputs[0], VALID_PUBLIC_KEY)
+    await user.type(addressInputs[1], VALID_PUBLIC_KEY)
+
+    const futureDate = new Date()
+    futureDate.setDate(futureDate.getDate() + 30)
+    await user.type(screen.getByLabelText(/unlock date/i), futureDate.toISOString().split("T")[0])
+
+    await user.click(screen.getByRole("button", { name: /create split lock/i }))
+    await user.click(await screen.findByRole("button", { name: /confirm & lock/i }))
+
+    await waitFor(() => {
+      const stored = JSON.parse(localStorage.getItem("stellarlock:tx_history") ?? "[]") as Array<{
+        hash: string
+        type: string
+      }>
+      expect(stored).toContainEqual(expect.objectContaining({ hash: "split-tx-hash", type: "split_lock" }))
+    })
   })
 })

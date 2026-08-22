@@ -2,32 +2,31 @@ import { AlertTriangle } from "lucide-react"
 import type { FieldValidationIssue } from "@/lib/validation/lockFormValidation"
 import { useAnnouncer } from "@/hooks/useAnnouncer"
 
-import { useEffect, useMemo, useRef } from "react"
+import { useEffect, useMemo } from "react"
 
 export function FormValidationErrors({ issues }: { issues: FieldValidationIssue[] }) {
   const firstIssue = issues[0]
   const { announce } = useAnnouncer()
   const liveId = useMemo(() => `form-validation-${Math.random().toString(16).slice(2)}`, [])
-  const firstFocusRef = useRef<HTMLDivElement | null>(null)
 
-  useEffect(() => {
-    if (!issues.length) return
-    firstFocusRef.current?.focus?.()
-  }, [issues.length])
+  // The forms revalidate on every keystroke, so the summary string doubles as
+  // the effect's dependency: announcing on array identity would interrupt the
+  // screen reader on every character typed.
+  const summary = issues.length
+    ? `${issues.length} problem${issues.length === 1 ? "" : "s"} to fix. ${issues[0].message}`
+    : ""
 
   // Route through the app-wide announcer so validation failures are spoken
   // consistently with the rest of the app's dynamic updates.
   useEffect(() => {
-    if (!issues.length) return
-    const summary = `${issues.length} problem${issues.length === 1 ? "" : "s"} to fix. ${issues[0].message}`
+    if (!summary) return
     announce(summary, "assertive")
-  }, [issues.length, issues, announce])
+  }, [summary, announce])
 
   if (!issues.length) return null
 
   return (
     <div
-      ref={firstFocusRef}
       tabIndex={-1}
       aria-live="polite"
       aria-atomic="true"

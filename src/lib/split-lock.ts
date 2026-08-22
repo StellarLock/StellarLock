@@ -1,5 +1,5 @@
 import { Address, nativeToScVal, xdr } from "@stellar/stellar-sdk"
-import { CONTRACTS, submitCall, STELLAR_DECIMALS } from "@/lib/stellar"
+import { CONTRACTS, submitCallWithHash, STELLAR_DECIMALS } from "@/lib/stellar"
 
 export interface SplitBeneficiary {
   address: string
@@ -23,7 +23,7 @@ export async function createSplitLock(
   args: CreateSplitLockArgs,
   sourceAddress: string,
   signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>,
-): Promise<void> {
+): Promise<{ txHash: string }> {
   const amountStroops = BigInt(Math.round(args.totalAmount * STELLAR_DECIMALS))
   const unlockAtBig = BigInt(Math.floor(args.unlockAt))
 
@@ -63,5 +63,12 @@ export async function createSplitLock(
     scArgs.push(xdr.ScVal.scvVoid())
   }
 
-  await submitCall(CONTRACTS.tokenLocker, "create_split_lock", scArgs, sourceAddress, signTransaction)
+  const { txHash } = await submitCallWithHash<void>(
+    CONTRACTS.tokenLocker,
+    "create_split_lock",
+    scArgs,
+    sourceAddress,
+    signTransaction,
+  )
+  return { txHash }
 }

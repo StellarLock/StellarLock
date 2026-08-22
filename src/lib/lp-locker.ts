@@ -398,7 +398,7 @@ export async function extendLpLock(
  * @param sourceAddress - Address submitting the transaction; must equal the lock's current `beneficiary`.
  * @param signTransaction - Callback that signs the built transaction XDR and returns signed XDR.
  * @param onProgress - Optional callback invoked with each {@link TxPhase} during submission.
- * @returns Resolves with no value on success.
+ * @returns The submission `txHash`.
  * @throws {Error} Wrapping one of the contract's `ContractError` variants, notably:
  *   - `AlreadyWithdrawn` (3) — the lock has already been withdrawn and can no longer be reassigned.
  * @throws {Error} `Simulation error: ...` / `Send error: ...` / `Transaction failed: ...` if
@@ -410,8 +410,8 @@ export async function transferLpBeneficiary(
   sourceAddress: string,
   signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>,
   onProgress?: (phase: TxPhase) => void,
-): Promise<void> {
-  await submitCall(
+): Promise<{ txHash: string }> {
+  const { txHash } = await submitCallWithHash<void>(
     CONTRACTS.lpLocker,
     "transfer_beneficiary",
     [idArg(id), addressArg(newBeneficiary)],
@@ -419,4 +419,5 @@ export async function transferLpBeneficiary(
     signTransaction,
     onProgress,
   )
+  return { txHash }
 }

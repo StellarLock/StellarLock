@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 import { describe, it, expect, vi, beforeEach } from "vitest"
-import { screen } from "@testing-library/react"
+import { screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { render } from "./utils"
 import { CreateLpLockForm } from "../components/locks/CreateLpLockForm"
@@ -29,6 +29,9 @@ vi.mock("@/hooks/useLocks", () => ({
 
 vi.mock("@/lib/stellar", () => ({
   CONTRACTS: { lpLocker: "LP_LOCKER_ADDR" },
+  // The form validates through @/lib/validation/lockFormValidation, which
+  // reaches for isValidStellarAddress as well.
+  isValidStellarAddress: (addr: string) => /^[GC]/.test(addr) && addr.length === 56,
   isValidStellarContractAddress: (addr: string) => addr.startsWith("C") && addr.length === 56,
   isValidStellarPublicKey: (addr: string) => addr.startsWith("G") && addr.length === 56,
 }))
@@ -75,5 +78,27 @@ describe("CreateLpLockForm Validation Requirements", () => {
 
     // Form switches valid flag to true, freeing the button element interaction parameters
     expect(submitBtn).toBeEnabled()
+  })
+
+  it("stays quiet on a pristine form when a wallet is connected", () => {
+    render(<CreateLpLockForm />)
+    expect(screen.queryByText(/problem/i)).not.toBeInTheDocument()
+  })
+
+  it("shows shared-validator guidance for a field the user has filled in badly", async () => {
+    const user = userEvent.setup()
+    render(<CreateLpLockForm />)
+
+    await user.type(screen.getByLabelText(/pool share token address/i), "not-a-contract")
+
+    const message = await screen.findByText("Invalid pool share contract address.")
+    const panel = message.closest("[role='alert']") as HTMLElement
+    expect(
+      within(panel).getByText("Paste the pool share contract id (starts with C) from the DEX."),
+    ).toBeInTheDocument()
+    expect(within(panel).getByText(/1 problem to fix/i)).toBeInTheDocument()
+
+    // Untouched fields stay silent even though they are also invalid.
+    expect(screen.queryByText("Invalid token A contract address.")).not.toBeInTheDocument()
   })
 })

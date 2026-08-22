@@ -110,12 +110,7 @@ function LockDetailView({ lock: sourceLock, onChange }: { lock: Lock; onChange: 
 
   // Withdraw and extend show their intended outcome immediately and roll back
   // if the transaction fails. Everything below reads the overlaid lock.
-  const {
-    lock: optimisticLock,
-    applyOptimistic,
-    confirmOptimistic,
-    revertOptimistic,
-  } = useOptimisticLock(sourceLock)
+  const { lock: optimisticLock, applyOptimistic, confirmOptimistic, revertOptimistic } = useOptimisticLock(sourceLock)
   const lock = optimisticLock ?? sourceLock
 
   const isLp = lock.kind === "lp"
@@ -238,9 +233,10 @@ function LockDetailView({ lock: sourceLock, onChange }: { lock: Lock; onChange: 
     setTxPhase("simulating")
     setTxError(null)
     try {
-      await (isLp
+      const { txHash } = await (isLp
         ? transferLpBeneficiary(lock.id, newBeneficiary.trim(), address!, signTransaction, setTxPhase)
         : transferBeneficiary(lock.id, newBeneficiary.trim(), address!, signTransaction, setTxPhase))
+      addTransaction(txHash, "transfer", { lockId: lock.id, amount: String(lock.amount) })
       trackEvent("lock_transfer_beneficiary", { kind: lock.kind })
       notify.transferConfirmed()
       announce(t("lockDetail.transferSuccess"))
@@ -440,7 +436,9 @@ function LockDetailView({ lock: sourceLock, onChange }: { lock: Lock; onChange: 
           </div>
         )}
 
-        {(isBeneficiary || isCreator) && <NotificationSettings lockId={lock.id} unlockAt={lock.unlockAt} address={address} />}
+        {(isBeneficiary || isCreator) && (
+          <NotificationSettings lockId={lock.id} unlockAt={lock.unlockAt} address={address} />
+        )}
 
         {txPhase !== "idle" && (
           <div className="border-t border-border px-6 pb-4 pt-3">

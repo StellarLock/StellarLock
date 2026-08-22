@@ -8,6 +8,8 @@ import { Input, Label } from "@/components/ui/Input"
 import { Button } from "@/components/ui/Button"
 import { TxProgressSteps } from "@/components/ui/TxProgressSteps"
 import { cn, formatDate, isValidStellarAddress, notify } from "@/lib/utils"
+import { validateLpLockForm, type FieldKey } from "@/lib/validation/lockFormValidation"
+import { FormValidationErrors } from "@/components/locks/FormValidationErrors"
 import { sanitizeError } from "@/lib/error-sanitizer"
 import type { StructuredError } from "@/lib/errors"
 import { TxErrorAlert } from "@/components/ui/TxErrorAlert"
@@ -19,7 +21,6 @@ import { CONTRACTS, type TxPhase } from "@/lib/stellar"
 import { trackEvent } from "@/lib/analytics"
 import { addTransaction } from "@/lib/transaction-history"
 import { ConfirmLockModal } from "@/components/locks/ConfirmLockModal"
-import { isValidStellarContractAddress, isValidStellarPublicKey } from "@/lib/stellar"
 import { CostEstimate } from "@/components/locks/CostEstimate"
 import { AddressBookModal } from "@/components/ui/AddressBookModal"
 import { BookUser } from "lucide-react"
@@ -79,25 +80,42 @@ export function CreateLpLockForm() {
   const trimmedPoolShareAddress = poolShareAddress.trim()
   const trimmedTokenA = tokenA.trim()
   const trimmedTokenB = tokenB.trim()
-  const poolAddressValid = isValidStellarContractAddress(trimmedPoolShareAddress)
-  const tokenAValid = isValidStellarContractAddress(trimmedTokenA)
-  const tokenBValid = isValidStellarContractAddress(trimmedTokenB)
-  const beneficiaryValid = isValidStellarPublicKey(address || "")
-  const valid =
-    poolAddressValid &&
-    tokenAValid &&
-    tokenBValid &&
-    beneficiaryValid &&
-    isValidStellarAddress(poolShareAddress.trim()) &&
-    isValidStellarAddress(tokenA.trim()) &&
-    isValidStellarAddress(tokenB.trim()) &&
-    Number(amount) > 0 &&
-    unlockTs > Date.now()
 
-  const validPoolShareAddress =
-    poolShareAddress.trim().length === 56 && poolShareAddress.trim().startsWith("C")
-      ? poolShareAddress.trim()
-      : undefined
+  // Single source of truth for this form's validity — the same module backs
+  // CreateTokenLockForm, so the two forms can't drift apart. Memoized because
+  // FormValidationErrors keys its screen-reader announcement off the result.
+  //
+  // `allowance` is deliberately not passed: a low allowance is recoverable from
+  // the confirm modal's Approve button, so it must not block reaching it.
+  const validation = useMemo(
+    () =>
+      validateLpLockForm({
+        poolShareAddress,
+        tokenA,
+        tokenB,
+        amount,
+        unlockDate,
+        walletAddress: address ?? null,
+      }),
+    [poolShareAddress, tokenA, tokenB, amount, unlockDate, address],
+  )
+  const valid = validation.isValid
+  const hasIssue = (field: FieldKey) => validation.issues.some((it) => it.field === field)
+
+  // Surface an issue only once the user has entered something for that field,
+  // so a pristine form doesn't greet them with a wall of red. The beneficiary
+  // issue is wallet-derived rather than typed, so it always shows.
+  const visibleIssues = useMemo(() => {
+    const touched = new Set<FieldKey>(["beneficiary"])
+    if (poolShareAddress.trim()) touched.add("poolShareAddress")
+    if (tokenA.trim()) touched.add("tokenA")
+    if (tokenB.trim()) touched.add("tokenB")
+    if (amount.trim()) touched.add("amount")
+    if (unlockDate) touched.add("unlockDate")
+    return validation.issues.filter((it) => touched.has(it.field))
+  }, [validation, poolShareAddress, tokenA, tokenB, amount, unlockDate])
+
+  const validPoolShareAddress = hasIssue("poolShareAddress") ? undefined : trimmedPoolShareAddress
   const { data: balance, loading: balanceLoading } = useTokenBalance(validPoolShareAddress, address ?? null)
   const { data: allowance, loading: allowanceLoading } = useTokenAllowance(
     validPoolShareAddress,
@@ -251,7 +269,7 @@ export function CreateLpLockForm() {
             value={poolShareAddress}
             onChange={(e) => setPoolShareAddress(e.target.value)}
             className="font-mono"
-            aria-invalid={!!trimmedPoolShareAddress && !poolAddressValid}
+            aria-invalid={!!trimmedPoolShareAddress && hasIssue("poolShareAddress")}
           />
           <p className="text-xs text-muted-foreground">
             {t("lpForm.poolHint", { dex: dex === "aquarius" ? t("lpForm.aquarius") : t("lpForm.soroswap") })}
@@ -267,7 +285,7 @@ export function CreateLpLockForm() {
               value={tokenA}
               onChange={(e) => setTokenA(e.target.value)}
               className="font-mono"
-              aria-invalid={!!trimmedTokenA && !tokenAValid}
+              aria-invalid={!!trimmedTokenA && hasIssue("tokenA")}
             />
           </div>
           <div className="flex flex-col gap-2">
@@ -278,7 +296,7 @@ export function CreateLpLockForm() {
               value={tokenB}
               onChange={(e) => setTokenB(e.target.value)}
               className="font-mono"
-              aria-invalid={!!trimmedTokenB && !tokenBValid}
+              aria-invalid={!!trimmedTokenB && hasIssue("tokenB")}
             />
           </div>
         </div>
@@ -451,6 +469,8 @@ export function CreateLpLockForm() {
         <TxErrorAlert error={error} />
 
         <CostEstimate contractId={CONTRACTS.lpLocker} method="create_lock" args={costArgs} />
+
+        <FormValidationErrors issues={visibleIssues} />
 
         <Button type="submit" size="lg" loading={submitting} disabled={!valid}>
           <Droplets className="h-4 w-4" />
