@@ -200,8 +200,6 @@ export function CreateTokenLockForm() {
     setVestingTemplate(template)
     if (template === "none") {
       setVesting(false)
-      setVestingStartDate("")
-      setUnlockDate("")
     } else {
       setVesting(true)
       const config = vestingTemplates[template]
