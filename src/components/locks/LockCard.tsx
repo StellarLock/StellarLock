@@ -111,7 +111,7 @@ export function LockCard({ lock, selectable = false, selected = false, onSelect 
   }
 
   return (
-    <Link to={`/app/lock/${lock.id}`} className="group block">
+    <Link to={`/app/lock/${lock.kind ?? "token"}/${lock.id}`} className="group block">
       {inner}
     </Link>
   )
