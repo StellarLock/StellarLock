@@ -77,6 +77,8 @@ pub enum ContractError {
     VestingEndBeforeStart = 15,
     NothingToRelease = 16,
     RateLimitExceeded = 17,
+    NoPendingUpgrade = 18,
+    TimelockNotElapsed = 19,
 }
 
 // ── On-chain types ────────────────────────────────────────────────────────────
@@ -948,9 +950,9 @@ impl LpLocker {
             .storage()
             .instance()
             .get(&DataKey::UpgradeProposal)
-            .ok_or(ContractError::NoPendingAdmin)?;
+            .ok_or(ContractError::NoPendingUpgrade)?;
         if env.ledger().timestamp() < proposal.execute_after {
-            return Err(ContractError::NoPendingAdmin);
+            return Err(ContractError::TimelockNotElapsed);
         }
         env.storage().instance().remove(&DataKey::UpgradeProposal);
         env.deployer()
@@ -968,7 +970,7 @@ impl LpLocker {
         env.storage()
             .instance()
             .get(&DataKey::UpgradeProposal)
-            .ok_or(ContractError::NoPendingAdmin)?;
+            .ok_or(ContractError::NoPendingUpgrade)?;
         env.storage().instance().remove(&DataKey::UpgradeProposal);
         env.events()
             .publish((Symbol::new(&env, "upgrade_cancelled"),), ());
