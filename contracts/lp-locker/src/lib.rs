@@ -656,6 +656,9 @@ impl LpLocker {
         let mut total_bps: u64 = 0;
         for i in 0..n {
             let (_, bps) = beneficiaries.get(i).unwrap();
+            if bps == 0 {
+                return Err(ContractError::SharesMustSum10000);
+            }
             total_bps += bps;
         }
         if total_bps != 10_000 {
