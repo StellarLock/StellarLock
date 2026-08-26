@@ -436,9 +436,24 @@
     "explore": "Explorar bloqueos",
     "helpTitle": "¿Necesitas ayuda?",
     "helpDesc": "Consulta nuestro <explorer>explorador</explorer> para encontrar bloqueos o <github>visita nuestro GitHub</github>."
-  }
-,
-  "notfound": {
-$translation
+  },
+  "countdown": {
+    "unlocked": "Desbloqueado",
+    "days": "Días",
+    "hours": "Horas",
+    "min": "Min",
+    "sec": "Seg"
+  },
+  "pagination": {
+    "prev": "Anterior",
+    "next": "Siguiente",
+    "prevAria": "Página anterior",
+    "nextAria": "Página siguiente",
+    "pageOf": "Página {{page}} de {{totalPages}}"
+  },
+  "errorBoundary": {
+    "title": "Algo salió mal",
+    "message": "Algo salió mal. Por favor, inténtelo de nuevo.",
+    "tryAgain": "Intentar de nuevo"
   }
 }

@@ -436,5 +436,24 @@
     "explore": "浏览锁定",
     "helpTitle": "需要帮助？",
     "helpDesc": "查看我们的 <explorer>浏览器</explorer> 查找锁定或 <github>访问我们的 GitHub</github>。"
+  },
+  "countdown": {
+    "unlocked": "已解锁",
+    "days": "天",
+    "hours": "时",
+    "min": "分",
+    "sec": "秒"
+  },
+  "pagination": {
+    "prev": "上一页",
+    "next": "下一页",
+    "prevAria": "上一页",
+    "nextAria": "下一页",
+    "pageOf": "第 {{page}} 页，共 {{totalPages}} 页"
+  },
+  "errorBoundary": {
+    "title": "出了点问题",
+    "message": "出了点问题。请重试。",
+    "tryAgain": "重试"
   }
 }

@@ -436,5 +436,24 @@
     "explore": "Explore Locks",
     "helpTitle": "Need Help?",
     "helpDesc": "Check our <explorer>explorer</explorer> to find locks or <github>visit our GitHub</github>."
+  },
+  "countdown": {
+    "unlocked": "Unlocked",
+    "days": "Days",
+    "hours": "Hours",
+    "min": "Min",
+    "sec": "Sec"
+  },
+  "pagination": {
+    "prev": "Prev",
+    "next": "Next",
+    "prevAria": "Previous page",
+    "nextAria": "Next page",
+    "pageOf": "Page {{page}} of {{totalPages}}"
+  },
+  "errorBoundary": {
+    "title": "Something went wrong",
+    "message": "Something went wrong. Please try again.",
+    "tryAgain": "Try again"
   }
 }
