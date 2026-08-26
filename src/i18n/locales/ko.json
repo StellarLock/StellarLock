@@ -466,5 +466,24 @@
     "explore": "잠금 탐색",
     "helpTitle": "도움이 필요하신가요?",
     "helpDesc": "<explorer>탐색기</explorer>를 확인하여 잠금을 찾거나 <github>GitHub을 방문하세요</github>."
+  },
+  "countdown": {
+    "unlocked": "잠금 해제됨",
+    "days": "일",
+    "hours": "시간",
+    "min": "분",
+    "sec": "초"
+  },
+  "pagination": {
+    "prev": "이전",
+    "next": "다음",
+    "prevAria": "이전 페이지",
+    "nextAria": "다음 페이지",
+    "pageOf": "{{page}} / {{totalPages}} 페이지"
+  },
+  "errorBoundary": {
+    "title": "문제가 발생했습니다",
+    "message": "문제가 발생했습니다. 다시 시도해 주세요.",
+    "tryAgain": "다시 시도"
   }
 }

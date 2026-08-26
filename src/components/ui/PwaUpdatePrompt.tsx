@@ -7,26 +7,56 @@ export function PwaUpdatePrompt() {
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return
 
-    void navigator.serviceWorker.ready.then((registration) => {
-      registration.addEventListener("updatefound", () => {
-        const newWorker = registration.installing
-        if (!newWorker) return
-        newWorker.addEventListener("statechange", () => {
-          if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
-            setWaitingWorker(newWorker)
-          }
-        })
-      })
-    })
+    let isMounted = true
+    let currentRegistration: ServiceWorkerRegistration | null = null
+    let installingWorker: ServiceWorker | null = null
 
-    // Detect controller change (after skipWaiting) and reload
+    const handleStateChange = () => {
+      if (installingWorker?.state === "installed" && navigator.serviceWorker.controller) {
+        setWaitingWorker(installingWorker)
+      }
+    }
+
+    const handleUpdateFound = () => {
+      if (installingWorker) {
+        installingWorker.removeEventListener?.("statechange", handleStateChange)
+      }
+      const newWorker = currentRegistration?.installing ?? null
+      if (!newWorker) return
+      installingWorker = newWorker
+      installingWorker.addEventListener("statechange", handleStateChange)
+    }
+
     let refreshing = false
-    navigator.serviceWorker.addEventListener("controllerchange", () => {
+    const handleControllerChange = () => {
       if (!refreshing) {
         refreshing = true
         window.location.reload()
       }
+    }
+
+    void navigator.serviceWorker.ready.then((registration) => {
+      if (!isMounted) return
+      currentRegistration = registration
+      registration.addEventListener("updatefound", handleUpdateFound)
+      if (registration.installing) {
+        installingWorker = registration.installing
+        installingWorker.addEventListener("statechange", handleStateChange)
+      }
     })
+
+    navigator.serviceWorker.addEventListener("controllerchange", handleControllerChange)
+
+    return () => {
+      isMounted = false
+      navigator.serviceWorker.removeEventListener?.("controllerchange", handleControllerChange)
+      if (currentRegistration) {
+        currentRegistration.removeEventListener?.("updatefound", handleUpdateFound)
+      }
+      if (installingWorker) {
+        installingWorker.removeEventListener?.("statechange", handleStateChange)
+      }
+    }
   }, [])
 
   if (!waitingWorker) return null

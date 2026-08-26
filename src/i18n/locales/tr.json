@@ -466,5 +466,24 @@
     "explore": "Kilitleri Keşfet",
     "helpTitle": "Yardıma mı ihtiyacınız var?",
     "helpDesc": "Kilitleri bulmak için <explorer>gezginimizi</explorer> kontrol edin veya <github>GitHub'ı ziyaret edin</github>."
+  },
+  "countdown": {
+    "unlocked": "Kilit Açıldı",
+    "days": "Gün",
+    "hours": "Saat",
+    "min": "Dak",
+    "sec": "San"
+  },
+  "pagination": {
+    "prev": "Önceki",
+    "next": "Sonraki",
+    "prevAria": "Önceki sayfa",
+    "nextAria": "Sonraki sayfa",
+    "pageOf": "Sayfa {{page}} / {{totalPages}}"
+  },
+  "errorBoundary": {
+    "title": "Bir şeyler ters gitti",
+    "message": "Bir şeyler ters gitti. Lütfen tekrar deneyin.",
+    "tryAgain": "Tekrar deneyin"
   }
 }

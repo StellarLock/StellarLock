@@ -36,6 +36,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         className={cn(buttonVariants({ variant, size }), className)}
         disabled={disabled || loading}
+        aria-busy={loading}
         {...props}
       >
         {loading && <Loader2 className="h-4 w-4 animate-spin" />}

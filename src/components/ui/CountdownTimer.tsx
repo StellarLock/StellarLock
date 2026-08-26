@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { cn } from "@/lib/utils"
 
 function diff(target: number) {
@@ -21,32 +22,33 @@ export function CountdownTimer({
   className?: string
   compact?: boolean
 }) {
-  const [t, setT] = useState(() => diff(target))
+  const { t } = useTranslation()
+  const [timeLeft, setTimeLeft] = useState(() => diff(target))
 
   useEffect(() => {
-    setT(diff(target))
-    const id = setInterval(() => setT(diff(target)), 1000)
+    setTimeLeft(diff(target))
+    const id = setInterval(() => setTimeLeft(diff(target)), 1000)
     return () => clearInterval(id)
   }, [target])
 
-  if (t.ms <= 0) {
-    return <span className={cn("font-mono text-success", className)}>Unlocked</span>
+  if (timeLeft.ms <= 0) {
+    return <span className={cn("font-mono text-success", className)}>{t("countdown.unlocked")}</span>
   }
 
   if (compact) {
     return (
       <span className={cn("font-mono tabular-nums", className)}>
-        {t.days > 0 ? `${t.days}d ` : ""}
-        {pad(t.hours)}:{pad(t.minutes)}:{pad(t.seconds)}
+        {timeLeft.days > 0 ? `${timeLeft.days}d ` : ""}
+        {pad(timeLeft.hours)}:{pad(timeLeft.minutes)}:{pad(timeLeft.seconds)}
       </span>
     )
   }
 
   const cells = [
-    { label: "Days", value: t.days },
-    { label: "Hours", value: t.hours },
-    { label: "Min", value: t.minutes },
-    { label: "Sec", value: t.seconds },
+    { label: t("countdown.days"), value: timeLeft.days },
+    { label: t("countdown.hours"), value: timeLeft.hours },
+    { label: t("countdown.min"), value: timeLeft.minutes },
+    { label: t("countdown.sec"), value: timeLeft.seconds },
   ]
 
   return (
