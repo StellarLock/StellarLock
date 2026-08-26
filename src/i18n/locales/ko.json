@@ -425,6 +425,36 @@
       "message": "새 잠금 해제 날짜는 연장으로 인정되려면 현재 날짜보다 충분히 늦어야 합니다.",
       "recovery": "더 나중의 날짜를 선택하세요.",
       "title": "연장 기간이 너무 짧음"
+    },
+    "amountOverflow": {
+      "title": "Amount Overflow",
+      "message": "The lock amount is too large and caused an arithmetic overflow.",
+      "recovery": "Reduce the amount and try again."
+    },
+    "notAdmin": {
+      "title": "Not Authorised",
+      "message": "This action requires admin privileges.",
+      "recovery": "Only the contract admin can perform this action."
+    },
+    "noPendingAdmin": {
+      "title": "No Pending Admin",
+      "message": "There is no pending admin transfer to accept.",
+      "recovery": "Ask the current admin to propose a transfer first."
+    },
+    "notPendingAdmin": {
+      "title": "Not the Pending Admin",
+      "message": "Only the nominated pending admin can accept this transfer.",
+      "recovery": "Ensure you are using the correct address."
+    },
+    "reentrancyDetected": {
+      "title": "Reentrancy Detected",
+      "message": "A reentrant call was detected and blocked by the contract.",
+      "recovery": "Please try again."
+    },
+    "identicalTokens": {
+      "title": "Identical Tokens",
+      "message": "Token A and Token B must be different addresses.",
+      "recovery": "Choose two distinct token addresses for your LP pair."
     }
   }
 }

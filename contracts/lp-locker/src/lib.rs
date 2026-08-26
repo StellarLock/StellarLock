@@ -71,6 +71,7 @@ pub enum ContractError {
     SharesMustSum10000 = 14,
     VestingEndBeforeStart = 15,
     NothingToRelease = 16,
+    IdenticalTokens = 17,
 }
 
 // ── On-chain types ────────────────────────────────────────────────────────────
@@ -325,6 +326,9 @@ impl LpLocker {
         if unlock_at <= now {
             return Err(ContractError::UnlockMustBeFuture);
         }
+        if token_a == token_b {
+            return Err(ContractError::IdenticalTokens);
+        }
 
         if let Some(ref v) = vesting {
             if v.end <= v.start {
@@ -407,7 +411,7 @@ impl LpLocker {
                 beneficiary,
                 unlock_at,
             ),
-            (),
+            (lock.dex.clone(), lock.token_a.clone(), lock.token_b.clone()),
         );
         Ok(id)
     }
@@ -630,6 +634,9 @@ impl LpLocker {
         let now = env.ledger().timestamp();
         if unlock_at <= now {
             return Err(ContractError::UnlockMustBeFuture);
+        }
+        if token_a == token_b {
+            return Err(ContractError::IdenticalTokens);
         }
 
         if let Some(ref v) = vesting {
