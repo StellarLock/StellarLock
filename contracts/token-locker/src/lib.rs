@@ -188,7 +188,8 @@ fn next_id(env: &Env) -> u64 {
         .instance()
         .get(&DataKey::NextId)
         .unwrap_or(1000);
-    env.storage().instance().set(&DataKey::NextId, &(id + 1));
+    let next = id.saturating_add(1);
+    env.storage().instance().set(&DataKey::NextId, &next);
     env.storage()
         .instance()
         .extend_ttl(INSTANCE_THRESHOLD, INSTANCE_BUMP);
@@ -254,7 +255,7 @@ fn collect_locks_paginated(env: &Env, ids: Vec<u64>, offset: u32, limit: u32) ->
     let mut out: Vec<Lock> = vec![env];
     let len = ids.len();
     let start = offset.min(len);
-    let end = (start + limit).min(len);
+    let end = start.saturating_add(limit).min(len);
     let mut i = start;
     while i < end {
         let id = ids.get(i).unwrap();
@@ -378,9 +379,12 @@ impl TokenLocker {
                 .persistent()
                 .get(&DataKey::UniqueTokenCount)
                 .unwrap_or(0);
+            let new_unique_count = unique_count
+                .checked_add(1)
+                .ok_or(ContractError::AmountOverflow)?;
             env.storage()
                 .persistent()
-                .set(&DataKey::UniqueTokenCount, &(unique_count + 1));
+                .set(&DataKey::UniqueTokenCount, &new_unique_count);
         }
         env.storage()
             .persistent()
@@ -390,9 +394,12 @@ impl TokenLocker {
             .persistent()
             .get(&DataKey::GlobalLockCount)
             .unwrap_or(0);
+        let new_lock_count = lock_count
+            .checked_add(1)
+            .ok_or(ContractError::AmountOverflow)?;
         env.storage()
             .persistent()
-            .set(&DataKey::GlobalLockCount, &(lock_count + 1));
+            .set(&DataKey::GlobalLockCount, &new_lock_count);
 
         env.storage().temporary().set(&rate_key, &now);
         env.storage().temporary().extend_ttl(
@@ -664,6 +671,9 @@ impl TokenLocker {
         let mut total_bps: u64 = 0;
         for i in 0..n {
             let (_, bps) = beneficiaries.get(i).unwrap();
+            if bps == 0 {
+                return Err(ContractError::SharesMustSum10000);
+            }
             total_bps += bps;
         }
         if total_bps != 10_000 {
@@ -678,13 +688,23 @@ impl TokenLocker {
 
         let group_id = next_id(&env);
         let mut lock_ids: Vec<u64> = vec![&env];
+        let mut total_allocated: i128 = 0;
 
         for i in 0..n {
             let (beneficiary, bps) = beneficiaries.get(i).unwrap();
-            let share_amount = total_amount
-                .checked_mul(bps as i128)
-                .ok_or(ContractError::AmountOverflow)?
-                / 10_000;
+            let share_amount = if i == n - 1 {
+                // Last beneficiary gets the remainder to avoid dust
+                total_amount - total_allocated
+            } else {
+                let amount = total_amount
+                    .checked_mul(bps as i128)
+                    .ok_or(ContractError::AmountOverflow)?
+                    / 10_000;
+                total_allocated = total_allocated
+                    .checked_add(amount)
+                    .ok_or(ContractError::AmountOverflow)?;
+                amount
+            };
             let lock_id = if i == 0 { group_id } else { next_id(&env) };
             let lock = Lock {
                 id: lock_id,
@@ -786,7 +806,7 @@ impl TokenLocker {
         let mut out: Vec<SplitGroup> = vec![&env];
         let len = ids.len();
         let start = offset.min(len);
-        let end = (start + limit).min(len);
+        let end = start.saturating_add(limit).min(len);
         let mut i = start;
         while i < end {
             let id = ids.get(i).unwrap();
