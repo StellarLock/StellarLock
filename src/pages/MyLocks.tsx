@@ -4,7 +4,7 @@ import { Plus, Wallet, Layers, Search, CheckSquare, LayoutGrid, Table2, Download
 import { Helmet } from "react-helmet-async"
 import { useTranslation } from "react-i18next"
 import { useWallet } from "@/hooks/useWallet"
-import { useMyLocks } from "@/hooks/useLocks"
+import { useMyLocks, useMyLocksStats } from "@/hooks/useLocks"
 import { extendLock, transferBeneficiary } from "@/lib/token-locker"
 import { extendLpLock, transferLpBeneficiary } from "@/lib/lp-locker"
 import { exportToCSV, exportToJSON } from "@/lib/export"
@@ -52,6 +52,7 @@ export function MyLocks() {
   const navigate = useNavigate()
   const [page, setPage] = useState(1)
   const { data, loading, error, reload } = useMyLocks(address, (page - 1) * PAGE_SIZE, PAGE_SIZE)
+  const { data: statsData, loading: statsLoading } = useMyLocksStats(address)
   const [tab, setTab] = useState<Tab>("created")
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState<LockStatus | "all">("all")
@@ -72,11 +73,12 @@ export function MyLocks() {
   const totalReceived = data?.totalReceived ?? 0
 
   const stats = useMemo(() => {
-    const now = Date.now()
-    const totalValue = created.reduce((sum, l) => sum + l.usdValue, 0)
-    const unlockable = created.filter((l) => l.unlockAt <= now && l.status !== "withdrawn").length
-    return { count: totalCreated, totalValue, unlockable }
-  }, [created, totalCreated])
+    return {
+      count: totalCreated,
+      totalValue: statsData?.totalValue ?? 0,
+      unlockable: statsData?.unlockable ?? 0,
+    }
+  }, [totalCreated, statsData])
 
   const rawList = tab === "created" ? created : received
   const totalForTab = tab === "created" ? totalCreated : totalReceived
@@ -269,7 +271,7 @@ export function MyLocks() {
         </header>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-3">
-          {loading ? (
+          {loading || statsLoading ? (
             <>
               <SkeletonStatCard />
               <SkeletonStatCard />

@@ -105,6 +105,41 @@ export function useMyLocks(address: string | null, offset = 0, limit = 50) {
   }, [address, offset, limit])
 }
 
+/**
+ * Aggregate stats for all of a user's created locks, independent of
+ * pagination. Fetches the full set so that "Total Value Locked" and
+ * "Ready to withdraw" are always accurate regardless of which page is shown.
+ *
+ * Fixes: stats computed from the current page only (issue #595).
+ */
+export interface MyLocksStats {
+  totalValue: number
+  unlockable: number
+}
+
+export function useMyLocksStats(address: string | null) {
+  // Large enough to cover any realistic wallet; the on-chain contract
+  // paginates by u32 so 10_000 is safe and well within practical limits.
+  const ALL_LOCKS_LIMIT = 10_000
+
+  return useAsync(async (): Promise<MyLocksStats> => {
+    if (!address) return { totalValue: 0, unlockable: 0 }
+
+    const [tCreated, lpCreated] = await Promise.all([
+      getLocksByCreator(address, 0, ALL_LOCKS_LIMIT),
+      getLpLocksByCreator(address, 0, ALL_LOCKS_LIMIT),
+    ])
+
+    const enriched = await withUsdValues([...tCreated, ...lpCreated])
+
+    const now = Date.now()
+    const totalValue = enriched.reduce((sum, l) => sum + l.usdValue, 0)
+    const unlockable = enriched.filter((l) => l.unlockAt <= now && l.status !== "withdrawn").length
+
+    return { totalValue, unlockable }
+  }, [address])
+}
+
 /** Fetch a user's balance for a specific SEP-41 token contract. */
 export function useTokenBalance(tokenAddress: string | undefined, owner: string | null) {
   return useAsync(
