@@ -674,13 +674,23 @@ impl LpLocker {
 
         let group_id = next_id(&env);
         let mut lock_ids: Vec<u64> = vec![&env];
+        let mut total_allocated: i128 = 0;
 
         for i in 0..n {
             let (beneficiary, bps) = beneficiaries.get(i).unwrap();
-            let share_amount = total_amount
-                .checked_mul(bps as i128)
-                .ok_or(ContractError::AmountOverflow)?
-                / 10_000;
+            let share_amount = if i == n - 1 {
+                // Last beneficiary gets the remainder to avoid dust
+                total_amount - total_allocated
+            } else {
+                let amount = total_amount
+                    .checked_mul(bps as i128)
+                    .ok_or(ContractError::AmountOverflow)?
+                    / 10_000;
+                total_allocated = total_allocated
+                    .checked_add(amount)
+                    .ok_or(ContractError::AmountOverflow)?;
+                amount
+            };
 
             // The first sub-lock reuses group_id so the group_id is also a
             // valid lock id; subsequent sub-locks get their own ids.
