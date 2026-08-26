@@ -32,6 +32,10 @@ export function MultiBeneficiaryFields({ beneficiaries, onChange }: Props) {
   }
 
   function handleShare(index: number, raw: string) {
+    if (!raw.trim()) {
+      update(index, { shareBps: 0 })
+      return
+    }
     const pct = parseFloat(raw)
     if (isNaN(pct)) return
     update(index, { shareBps: Math.round(Math.min(100, Math.max(0, pct)) * 100) })

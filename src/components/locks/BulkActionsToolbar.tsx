@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react"
 import { X, CalendarClock, UserRoundPen } from "lucide-react"
 import { Button } from "@/components/ui/Button"
 
@@ -22,10 +23,19 @@ export function BulkActionsToolbar({
   canExtend,
   canTransfer,
 }: Props) {
+  const checkboxRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (checkboxRef.current) {
+      checkboxRef.current.indeterminate = selectedCount > 0 && !allSelected
+    }
+  }, [selectedCount, allSelected])
+
   return (
     <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3">
       <label className="flex items-center gap-2 cursor-pointer text-sm font-medium">
         <input
+          ref={checkboxRef}
           type="checkbox"
           checked={allSelected}
           onChange={onSelectAll}
