@@ -17,7 +17,11 @@ export function TxProgressSteps({ phase }: { phase: TxDisplayPhase }) {
   const currentIdx = STEPS.findIndex((s) => s.phase === phase)
 
   return (
-    <div className="flex flex-col gap-2 rounded-lg border border-border bg-secondary/40 p-3">
+    <div
+      role="status"
+      aria-live="polite"
+      className="flex flex-col gap-2 rounded-lg border border-border bg-secondary/40 p-3"
+    >
       {STEPS.map((step, i) => {
         const isDone = i < currentIdx
         const isActive = step.phase === phase
