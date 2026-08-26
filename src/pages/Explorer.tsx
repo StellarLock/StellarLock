@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useParams, Link } from "react-router-dom"
 import { Lock, Coins, CalendarClock, PieChart, ShieldCheck, ArrowLeft, ExternalLink, SearchX } from "lucide-react"
 import { Helmet } from "react-helmet-async"
@@ -23,6 +23,11 @@ export function Explorer() {
   const { t } = useTranslation()
   const { token } = useParams<{ token: string }>()
   const [page, setPage] = useState(1)
+
+  useEffect(() => {
+    setPage(1)
+  }, [token])
+
   const { data, loading, error } = useLocksByToken(token, (page - 1) * PAGE_SIZE, PAGE_SIZE)
   const { data: totalCount } = useLockCountByToken(token)
 
