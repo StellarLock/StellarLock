@@ -32,10 +32,11 @@ export function Analytics() {
   // Combine the lock arrays the indexer already returns for time-series charts.
   // These cover recent activity and upcoming unlocks — sufficient for the trend
   // charts without fetching the full lock list over RPC.
+  // Include all locks (including withdrawn) for historical data accuracy.
   const chartLocks = [
     ...(stats?.recentLocks ?? []),
     ...(stats?.upcomingUnlocks ?? []),
-  ].filter((l) => l.status !== "withdrawn")
+  ]
 
   // Deduplicate by id in case a lock appears in both arrays.
   const seen = new Set<string>()
@@ -47,6 +48,9 @@ export function Analytics() {
 
   const tvlSeries = getTvlOverTime(dedupedLocks)
   const volumeSeries = getLockVolumeByDay(dedupedLocks)
+
+  // For current stats, use only active locks (not withdrawn).
+  const activeLocks = dedupedLocks.filter((l) => l.status !== "withdrawn")
 
   // Token distribution comes from the indexer's pre-aggregated topTokens, which
   // covers all locks — not just the recent/upcoming sample.

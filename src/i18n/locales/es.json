@@ -58,6 +58,8 @@
   "createLock": {
     "title": "Crear un bloqueo",
     "subtitle": "Bloquea tokens o posiciones LP en un contrato Soroban inmutable.",
+    "modeSimple": "Simple",
+    "modeWizard": "Asistente",
     "tabToken": "Bloqueo de Token",
     "tabLp": "Bloqueo de LP"
   },
@@ -426,5 +428,17 @@
       "recovery": "Elige una fecha más lejana en el futuro.",
       "title": "Extensión demasiado corta"
     }
+  },
+  "notfound": {
+    "title": "Página no encontrada",
+    "description": "La página que buscas no existe o puede haber sido movida.",
+    "goHome": "Volver al inicio",
+    "explore": "Explorar bloqueos",
+    "helpTitle": "¿Necesitas ayuda?",
+    "helpDesc": "Consulta nuestro <explorer>explorador</explorer> para encontrar bloqueos o <github>visita nuestro GitHub</github>."
+  }
+,
+  "notfound": {
+$translation
   }
 }
