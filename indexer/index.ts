@@ -70,12 +70,15 @@ interface LockRow {
 function buildStatements() {
   return {
     upsertLock: db.prepare(`
-      INSERT INTO locks (id, kind, creator, beneficiary, token, pool_share, amount, unlock_at, status, created_at)
-      VALUES (@id, @kind, @creator, @beneficiary, @token, @pool_share, @amount, @unlock_at, 'locked', @created_at)
+      INSERT INTO locks (id, kind, creator, beneficiary, token, token_a, token_b, dex, pool_share, amount, unlock_at, status, created_at)
+      VALUES (@id, @kind, @creator, @beneficiary, @token, @token_a, @token_b, @dex, @pool_share, @amount, @unlock_at, 'locked', @created_at)
       ON CONFLICT(id) DO UPDATE SET
         creator = excluded.creator,
         beneficiary = excluded.beneficiary,
         token = excluded.token,
+        token_a = excluded.token_a,
+        token_b = excluded.token_b,
+        dex = excluded.dex,
         pool_share = excluded.pool_share,
         amount = excluded.amount,
         unlock_at = excluded.unlock_at
@@ -183,6 +186,9 @@ export function processEvent(event: ContractEvent): void {
           creator: String(creator),
           beneficiary: String(beneficiary),
           token: String(token),
+          token_a: null,
+          token_b: null,
+          dex: null,
           pool_share: null,
           amount: String(amount),
           unlock_at: Number(unlockAt),
@@ -228,12 +234,21 @@ export function processEvent(event: ContractEvent): void {
         const [, id, creator, poolShare, amount, beneficiary, unlockAt] = event.topics
         const lockId = `lp:${String(id)}`
         if (!s.insertEvent.run(event.id, event.ledger, name, lockId).changes) return
+        // The contract emits (dex, token_a, token_b) as the event data tuple.
+        // scValToNative converts a Soroban enum variant like Dex::Aquarius to
+        // { Aquarius: {} }, so extract the first key as the dex name string.
+        const [dex, tokenA, tokenB] = Array.isArray(event.data) ? (event.data as unknown[]) : []
+        const dexStr =
+          dex != null && typeof dex === "object" ? (Object.keys(dex)[0] ?? null) : typeof dex === "string" ? dex : null
         s.upsertLock.run({
           id: lockId,
           kind: "lp",
           creator: String(creator),
           beneficiary: String(beneficiary),
           token: String(poolShare),
+          token_a: typeof tokenA === "string" ? tokenA : null,
+          token_b: typeof tokenB === "string" ? tokenB : null,
+          dex: dexStr,
           pool_share: String(poolShare),
           amount: String(amount),
           unlock_at: Number(unlockAt),
@@ -278,10 +293,9 @@ export function getStats(): AggregateStats {
     .prepare("SELECT COUNT(*) AS totalLocks, COUNT(DISTINCT token) AS uniqueTokens FROM locks")
     .get() as { totalLocks: number; uniqueTokens: number }
 
-  const totalValue = (db.prepare("SELECT amount FROM locks").all() as { amount: string }[]).reduce(
-    (sum, r) => sum + BigInt(r.amount),
-    BigInt(0),
-  )
+  const totalValue = (
+    db.prepare("SELECT amount FROM locks WHERE status = 'locked'").all() as { amount: string }[]
+  ).reduce((sum, r) => sum + BigInt(r.amount), BigInt(0))
 
   const recentLocks = (
     db.prepare("SELECT * FROM locks ORDER BY created_at DESC, id DESC LIMIT 10").all() as LockRow[]

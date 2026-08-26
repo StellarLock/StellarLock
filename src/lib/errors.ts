@@ -7,7 +7,9 @@ export interface StructuredError {
   i18nKey: string
 }
 
-// Map Soroban contract error codes → structured errors
+// Map Soroban contract error codes → structured errors.
+// Every variant in the Rust ContractError enum must have a corresponding entry
+// here so users see a meaningful message instead of the generic fallback.
 const CONTRACT_ERRORS: Record<string, Omit<StructuredError, "code">> = {
   AmountMustBePositive: {
     title: "errors.amountMustBePositive.title",
@@ -51,13 +53,8 @@ const CONTRACT_ERRORS: Record<string, Omit<StructuredError, "code">> = {
     link: null,
     i18nKey: "errors.canOnlyExtend",
   },
-  LockDurationTooLong: {
-    title: "errors.lockDurationTooLong.title",
-    message: "errors.lockDurationTooLong.message",
-    recovery: "errors.lockDurationTooLong.recovery",
-    link: null,
-    i18nKey: "errors.lockDurationTooLong",
-  },
+  // LockDurationTooLong has been removed: it has no corresponding variant in
+  // the deployed Rust ContractError enum and can never be triggered on-chain.
   VestingEndBeforeStart: {
     title: "errors.vestingEndBeforeStart.title",
     message: "errors.vestingEndBeforeStart.message",
@@ -114,6 +111,50 @@ const CONTRACT_ERRORS: Record<string, Omit<StructuredError, "code">> = {
     link: null,
     i18nKey: "errors.unlockExceedsMax",
   },
+  // --- Previously missing contract error variants, now mapped ---
+  AmountOverflow: {
+    title: "errors.amountOverflow.title",
+    message: "errors.amountOverflow.message",
+    recovery: "errors.amountOverflow.recovery",
+    link: null,
+    i18nKey: "errors.amountOverflow",
+  },
+  NotAdmin: {
+    title: "errors.notAdmin.title",
+    message: "errors.notAdmin.message",
+    recovery: "errors.notAdmin.recovery",
+    link: null,
+    i18nKey: "errors.notAdmin",
+  },
+  NoPendingAdmin: {
+    title: "errors.noPendingAdmin.title",
+    message: "errors.noPendingAdmin.message",
+    recovery: "errors.noPendingAdmin.recovery",
+    link: null,
+    i18nKey: "errors.noPendingAdmin",
+  },
+  NotPendingAdmin: {
+    title: "errors.notPendingAdmin.title",
+    message: "errors.notPendingAdmin.message",
+    recovery: "errors.notPendingAdmin.recovery",
+    link: null,
+    i18nKey: "errors.notPendingAdmin",
+  },
+  ReentrancyDetected: {
+    title: "errors.reentrancyDetected.title",
+    message: "errors.reentrancyDetected.message",
+    recovery: "errors.reentrancyDetected.recovery",
+    link: null,
+    i18nKey: "errors.reentrancyDetected",
+  },
+  // --- LP-locker specific ---
+  IdenticalTokens: {
+    title: "errors.identicalTokens.title",
+    message: "errors.identicalTokens.message",
+    recovery: "errors.identicalTokens.recovery",
+    link: null,
+    i18nKey: "errors.identicalTokens",
+  },
 }
 
 // Map wallet/network errors
@@ -168,11 +209,6 @@ export function parseError(err: unknown): StructuredError {
   const walletErr = parseWalletError(err)
   if (walletErr) return walletErr
 
-  // Try to extract Soroban contract error code
-  const raw = String((err as { message?: string })?.message ?? "")
-  const code = Object.keys(CONTRACT_ERRORS).find((key) => new RegExp(`\\b${key}\\b`).test(raw))
-
-  if (code) {
   // Try to extract Soroban contract error code. The numeric code alternative
   // is tried first by the regex engine because it starts earlier in the
   // string (e.g. "Error(Contract, #1): AmountMustBePositive"), so it must

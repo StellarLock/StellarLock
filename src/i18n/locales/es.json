@@ -427,6 +427,36 @@
       "message": "La nueva fecha de desbloqueo debe ser suficientemente posterior a la actual para contar como una extensión.",
       "recovery": "Elige una fecha más lejana en el futuro.",
       "title": "Extensión demasiado corta"
+    },
+    "amountOverflow": {
+      "title": "Amount Overflow",
+      "message": "The lock amount is too large and caused an arithmetic overflow.",
+      "recovery": "Reduce the amount and try again."
+    },
+    "notAdmin": {
+      "title": "Not Authorised",
+      "message": "This action requires admin privileges.",
+      "recovery": "Only the contract admin can perform this action."
+    },
+    "noPendingAdmin": {
+      "title": "No Pending Admin",
+      "message": "There is no pending admin transfer to accept.",
+      "recovery": "Ask the current admin to propose a transfer first."
+    },
+    "notPendingAdmin": {
+      "title": "Not the Pending Admin",
+      "message": "Only the nominated pending admin can accept this transfer.",
+      "recovery": "Ensure you are using the correct address."
+    },
+    "reentrancyDetected": {
+      "title": "Reentrancy Detected",
+      "message": "A reentrant call was detected and blocked by the contract.",
+      "recovery": "Please try again."
+    },
+    "identicalTokens": {
+      "title": "Identical Tokens",
+      "message": "Token A and Token B must be different addresses.",
+      "recovery": "Choose two distinct token addresses for your LP pair."
     }
   },
   "notfound": {

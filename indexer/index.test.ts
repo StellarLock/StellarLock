@@ -15,6 +15,8 @@ const creator = Keypair.random().publicKey()
 const beneficiary = Keypair.random().publicKey()
 const newBeneficiary = Keypair.random().publicKey()
 const tokenAddr = Keypair.random().publicKey()
+const tokenAAddr = Keypair.random().publicKey()
+const tokenBAddr = Keypair.random().publicKey()
 const poolShareAddr = Keypair.random().publicKey()
 
 const now = Math.floor(Date.now() / 1000)
@@ -81,15 +83,21 @@ const lockCreated = makeEvent("evt-1", 101, [
   addr(beneficiary),
   u64(BigInt(unlockAt)),
 ])
-const lpLockCreated = makeEvent("evt-2", 102, [
-  sym("lp_lock_created"),
-  u64(1n),
-  addr(creator),
-  addr(poolShareAddr),
-  i128(250n),
-  addr(beneficiary),
-  u64(BigInt(lpUnlockAt)),
-])
+const lpLockCreated = makeEvent(
+  "evt-2",
+  102,
+  [
+    sym("lp_lock_created"),
+    u64(1n),
+    addr(creator),
+    addr(poolShareAddr),
+    i128(250n),
+    addr(beneficiary),
+    u64(BigInt(lpUnlockAt)),
+  ],
+  // data: (dex, token_a, token_b) — mirrors the updated contract event
+  nativeToScVal([sym("Aquarius"), addr(tokenAAddr), addr(tokenBAddr)]),
+)
 const lockWithdrawn = makeEvent("evt-3", 110, [
   sym("lock_withdrawn"),
   u64(1n),
@@ -155,6 +163,16 @@ describe("lock indexer", () => {
       amount: 500n,
       unlockAt,
       status: "locked",
+    })
+
+    const lpLocks = indexer.getLocksForToken(poolShareAddr)
+    expect(lpLocks).toHaveLength(1)
+    expect(lpLocks[0]).toMatchObject({
+      id: "lp:1",
+      kind: "lp",
+      dex: "Aquarius",
+      token_a: tokenAAddr,
+      token_b: tokenBAddr,
     })
 
     expect(indexer.getLastIndexed()).toBe(102)
