@@ -84,6 +84,10 @@ export function AddressBookModal({ onSelect, onClose }: AddressBookModalProps) {
       const result = book.importJson(text)
       if (result.errors > 0 && result.imported === 0) {
         setImportError("Import failed: no valid entries found.")
+      } else if (result.errors > 0 && result.imported > 0) {
+        setImportError(
+          `Imported ${result.imported} ${result.imported === 1 ? "address" : "addresses"}, skipped ${result.errors} invalid ${result.errors === 1 ? "entry" : "entries"}.`,
+        )
       } else if (result.imported > 0) {
         setImportError(null)
       }
