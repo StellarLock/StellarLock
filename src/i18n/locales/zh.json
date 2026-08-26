@@ -58,6 +58,8 @@
   "createLock": {
     "title": "创建锁定",
     "subtitle": "在不可变的 Soroban 合约中锁定代币或 LP 仓位。",
+    "modeSimple": "简单",
+    "modeWizard": "向导",
     "tabToken": "代币锁定",
     "tabLp": "LP 锁定"
   },
@@ -456,5 +458,13 @@
       "message": "Token A and Token B must be different addresses.",
       "recovery": "Choose two distinct token addresses for your LP pair."
     }
+  },
+  "notfound": {
+    "title": "找不到页面",
+    "description": "你查找的页面不存在或可能已被移除。",
+    "goHome": "返回首页",
+    "explore": "浏览锁定",
+    "helpTitle": "需要帮助？",
+    "helpDesc": "查看我们的 <explorer>浏览器</explorer> 查找锁定或 <github>访问我们的 GitHub</github>。"
   }
 }

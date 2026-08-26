@@ -63,16 +63,16 @@ export function NotFound() {
               <div>
                 <h3 className="font-semibold">{t("notfound.helpTitle", "Need Help?")}</h3>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  <Trans i18nKey="notfound.helpDesc">
-                    Check our{" "}
-                    <a href="/explore" className="text-primary hover:underline">
-                      explorer
-                    </a>{" "}
-                    to find locks or{" "}
-                    <a href="https://github.com/StellarLock/StellarLock" className="text-primary hover:underline">
-                      visit our GitHub
-                    </a>
-                    .
+                  <Trans
+                    i18nKey="notfound.helpDesc"
+                    components={{
+                      explorer: <Link to="/explore" className="text-primary hover:underline" />,
+                      github: (
+                        <a href="https://github.com/StellarLock/StellarLock" className="text-primary hover:underline" />
+                      ),
+                    }}
+                  >
+                    Check our <explorer>explorer</explorer> to find locks or <github>visit our GitHub</github>.
                   </Trans>
                 </p>
               </div>

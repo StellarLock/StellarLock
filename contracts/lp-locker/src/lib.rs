@@ -21,6 +21,10 @@ const INSTANCE_THRESHOLD: u32 = 7 * LEDGERS_PER_DAY;
 const WITHDRAWN_BUMP: u32 = 30 * LEDGERS_PER_DAY;
 const WITHDRAWN_THRESHOLD: u32 = 7 * LEDGERS_PER_DAY;
 
+// ── Rate limiting ─────────────────────────────────────────────────────────────
+const RATE_LIMIT_COOLDOWN: u64 = 60;
+const RATE_LIMIT_TTL_LEDGERS: u32 = 720;
+
 // ── Storage keys ─────────────────────────────────────────────────────────────
 
 #[contracttype]
@@ -35,6 +39,7 @@ pub enum DataKey {
     TotalLocked(Address),
     GlobalLockCount,
     UniquePoolShareCount,
+    LastLockAt(Address),
     Admin,
     PendingAdmin,
     UpgradeProposal,
@@ -71,7 +76,9 @@ pub enum ContractError {
     SharesMustSum10000 = 14,
     VestingEndBeforeStart = 15,
     NothingToRelease = 16,
-    IdenticalTokens = 17,
+    RateLimitExceeded = 17,
+    NoPendingUpgrade = 18,
+    TimelockNotElapsed = 19,
 }
 
 // ── On-chain types ────────────────────────────────────────────────────────────
@@ -187,7 +194,8 @@ fn next_id(env: &Env) -> u64 {
         .instance()
         .get(&DataKey::NextId)
         .unwrap_or(5000);
-    env.storage().instance().set(&DataKey::NextId, &(id + 1));
+    let next = id.saturating_add(1);
+    env.storage().instance().set(&DataKey::NextId, &next);
     env.storage()
         .instance()
         .extend_ttl(INSTANCE_THRESHOLD, INSTANCE_BUMP);
@@ -253,7 +261,7 @@ fn collect_locks_paginated(env: &Env, ids: Vec<u64>, offset: u32, limit: u32) ->
     let mut out: Vec<LpLock> = vec![env];
     let len = ids.len();
     let start = offset.min(len);
-    let end = (start + limit).min(len);
+    let end = start.saturating_add(limit).min(len);
     let mut i = start;
     while i < end {
         let id = ids.get(i).unwrap();
@@ -385,9 +393,12 @@ impl LpLocker {
                 .persistent()
                 .get(&DataKey::UniquePoolShareCount)
                 .unwrap_or(0);
+            let new_unique_count = unique_count
+                .checked_add(1)
+                .ok_or(ContractError::AmountOverflow)?;
             env.storage()
                 .persistent()
-                .set(&DataKey::UniquePoolShareCount, &(unique_count + 1));
+                .set(&DataKey::UniquePoolShareCount, &new_unique_count);
         }
         env.storage()
             .persistent()
@@ -397,9 +408,12 @@ impl LpLocker {
             .persistent()
             .get(&DataKey::GlobalLockCount)
             .unwrap_or(0);
+        let new_lock_count = lock_count
+            .checked_add(1)
+            .ok_or(ContractError::AmountOverflow)?;
         env.storage()
             .persistent()
-            .set(&DataKey::GlobalLockCount, &(lock_count + 1));
+            .set(&DataKey::GlobalLockCount, &new_lock_count);
 
         env.events().publish(
             (
@@ -554,9 +568,17 @@ impl LpLocker {
     pub fn bump_lock_ttl(env: Env, id: u64) {
         let key = DataKey::Lock(id);
         if env.storage().persistent().has(&key) {
-            env.storage()
-                .persistent()
-                .extend_ttl(&key, PERSISTENT_THRESHOLD, PERSISTENT_BUMP);
+            if let Ok(lock) = load_lock(&env, id) {
+                if lock.withdrawn {
+                    env.storage()
+                        .persistent()
+                        .extend_ttl(&key, WITHDRAWN_THRESHOLD, WITHDRAWN_BUMP);
+                } else {
+                    env.storage()
+                        .persistent()
+                        .extend_ttl(&key, PERSISTENT_THRESHOLD, PERSISTENT_BUMP);
+                }
+            }
         }
         env.storage()
             .instance()
@@ -639,6 +661,12 @@ impl LpLocker {
             return Err(ContractError::IdenticalTokens);
         }
 
+        let rate_key = DataKey::LastLockAt(creator.clone());
+        let last_at: u64 = env.storage().temporary().get(&rate_key).unwrap_or(0);
+        if now.saturating_sub(last_at) < RATE_LIMIT_COOLDOWN {
+            return Err(ContractError::RateLimitExceeded);
+        }
+
         if let Some(ref v) = vesting {
             if v.end <= v.start {
                 return Err(ContractError::VestingEndBeforeStart);
@@ -656,6 +684,9 @@ impl LpLocker {
         let mut total_bps: u64 = 0;
         for i in 0..n {
             let (_, bps) = beneficiaries.get(i).unwrap();
+            if bps == 0 {
+                return Err(ContractError::SharesMustSum10000);
+            }
             total_bps += bps;
         }
         if total_bps != 10_000 {
@@ -671,13 +702,23 @@ impl LpLocker {
 
         let group_id = next_id(&env);
         let mut lock_ids: Vec<u64> = vec![&env];
+        let mut total_allocated: i128 = 0;
 
         for i in 0..n {
             let (beneficiary, bps) = beneficiaries.get(i).unwrap();
-            let share_amount = total_amount
-                .checked_mul(bps as i128)
-                .ok_or(ContractError::AmountOverflow)?
-                / 10_000;
+            let share_amount = if i == n - 1 {
+                // Last beneficiary gets the remainder to avoid dust
+                total_amount - total_allocated
+            } else {
+                let amount = total_amount
+                    .checked_mul(bps as i128)
+                    .ok_or(ContractError::AmountOverflow)?
+                    / 10_000;
+                total_allocated = total_allocated
+                    .checked_add(amount)
+                    .ok_or(ContractError::AmountOverflow)?;
+                amount
+            };
 
             // The first sub-lock reuses group_id so the group_id is also a
             // valid lock id; subsequent sub-locks get their own ids.
@@ -732,6 +773,13 @@ impl LpLocker {
             DataKey::SplitByCreator(creator.clone()),
             group_id,
             false,
+        );
+
+        env.storage().temporary().set(&rate_key, &now);
+        env.storage().temporary().extend_ttl(
+            &rate_key,
+            RATE_LIMIT_TTL_LEDGERS,
+            RATE_LIMIT_TTL_LEDGERS,
         );
 
         // Update TVL and global stats (mirrors create_lock logic).
@@ -849,7 +897,7 @@ impl LpLocker {
             .storage()
             .instance()
             .get(&DataKey::Admin)
-            .expect("not initialised");
+            .ok_or(ContractError::NotAdmin)?;
         admin.require_auth();
         env.storage()
             .instance()
@@ -894,12 +942,12 @@ impl LpLocker {
             .extend_ttl(INSTANCE_THRESHOLD, INSTANCE_BUMP);
     }
 
-    pub fn propose_upgrade(env: Env, new_wasm_hash: BytesN<32>) {
+    pub fn propose_upgrade(env: Env, new_wasm_hash: BytesN<32>) -> Result<(), ContractError> {
         let admin: Address = env
             .storage()
             .instance()
             .get(&DataKey::Admin)
-            .expect("not initialised");
+            .ok_or(ContractError::NotAdmin)?;
         admin.require_auth();
         let execute_after = env.ledger().timestamp() + UPGRADE_DELAY;
         let proposal = UpgradeProposal {
@@ -914,37 +962,44 @@ impl LpLocker {
             .extend_ttl(INSTANCE_THRESHOLD, INSTANCE_BUMP);
         env.events()
             .publish((Symbol::new(&env, "upgrade_proposed"), execute_after), ());
+        Ok(())
     }
 
-    pub fn execute_upgrade(env: Env) {
+    pub fn execute_upgrade(env: Env) -> Result<(), ContractError> {
         let admin: Address = env
             .storage()
             .instance()
             .get(&DataKey::Admin)
-            .expect("not initialised");
+            .ok_or(ContractError::NotAdmin)?;
         admin.require_auth();
         let proposal: UpgradeProposal = env
             .storage()
             .instance()
             .get(&DataKey::UpgradeProposal)
-            .expect("no pending upgrade");
+            .ok_or(ContractError::NoPendingUpgrade)?;
         if env.ledger().timestamp() < proposal.execute_after {
-            panic!("timelock not elapsed");
+            return Err(ContractError::TimelockNotElapsed);
         }
         env.storage().instance().remove(&DataKey::UpgradeProposal);
         env.deployer()
             .update_current_contract_wasm(proposal.new_wasm_hash);
+        Ok(())
     }
 
-    pub fn cancel_upgrade(env: Env) {
+    pub fn cancel_upgrade(env: Env) -> Result<(), ContractError> {
         let admin: Address = env
             .storage()
             .instance()
             .get(&DataKey::Admin)
-            .expect("not initialised");
+            .ok_or(ContractError::NotAdmin)?;
         admin.require_auth();
+        env.storage()
+            .instance()
+            .get(&DataKey::UpgradeProposal)
+            .ok_or(ContractError::NoPendingUpgrade)?;
         env.storage().instance().remove(&DataKey::UpgradeProposal);
         env.events()
             .publish((Symbol::new(&env, "upgrade_cancelled"),), ());
+        Ok(())
     }
 }

@@ -15,8 +15,9 @@ import { toast } from "react-hot-toast"
 import { Card } from "@/components/ui/Card"
 import { buttonVariants } from "@/components/ui/Button"
 import { Badge } from "@/components/ui/Badge"
+import { CopyButton } from "@/components/ui/CopyButton"
 import { NETWORK } from "@/lib/stellar"
-import { formatDate, formatDateTime } from "@/lib/utils"
+import { formatDate, formatDateTime, shortAddress } from "@/lib/utils"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -142,11 +143,17 @@ export function LockCreated() {
         </DetailRow>
 
         <DetailRow label="Beneficiary">
-          <span className="font-mono text-sm">{beneficiary}</span>
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-sm">{shortAddress(beneficiary)}</span>
+            <CopyButton text={beneficiary} className="ml-1" />
+          </div>
         </DetailRow>
 
         <DetailRow label="Creator">
-          <span className="font-mono text-sm">{creator}</span>
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-sm">{shortAddress(creator)}</span>
+            <CopyButton text={creator} className="ml-1" />
+          </div>
         </DetailRow>
 
         <DetailRow label="Unlock date">

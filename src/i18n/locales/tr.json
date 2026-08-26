@@ -58,6 +58,8 @@
   "createLock": {
     "title": "Kilit oluştur",
     "subtitle": "Tokenleri veya LP pozisyonlarını değiştirilemez bir Soroban sözleşmesinde kilitleyin.",
+    "modeSimple": "Basit",
+    "modeWizard": "Sihirbaz",
     "tabToken": "Token Kilidi",
     "tabLp": "LP Kilidi"
   },
@@ -456,5 +458,13 @@
     "lockVolume": "Kilit Oluşturma Hacmi",
     "tokenDistribution": "Token Dağılımı",
     "noData": "Henüz görüntülenecek kilit etkinliği yok."
+  },
+  "notfound": {
+    "title": "Sayfa Bulunamadı",
+    "description": "Aradığınız sayfa mevcut değil veya taşınmış olabilir.",
+    "goHome": "Anasayfaya Dön",
+    "explore": "Kilitleri Keşfet",
+    "helpTitle": "Yardıma mı ihtiyacınız var?",
+    "helpDesc": "Kilitleri bulmak için <explorer>gezginimizi</explorer> kontrol edin veya <github>GitHub'ı ziyaret edin</github>."
   }
 }

@@ -36,6 +36,7 @@ export function CreateLock() {
         <div className="mb-4 flex justify-center gap-2">
           <button
             onClick={() => setMode("simple")}
+            aria-pressed={mode === "simple"}
             className={cn(
               "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
               mode === "simple"
@@ -43,10 +44,11 @@ export function CreateLock() {
                 : "bg-secondary text-muted-foreground hover:text-foreground"
             )}
           >
-            Simple
+            {t("createLock.modeSimple")}
           </button>
           <button
             onClick={() => setMode("wizard")}
+            aria-pressed={mode === "wizard"}
             className={cn(
               "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
               mode === "wizard"
@@ -55,7 +57,7 @@ export function CreateLock() {
             )}
           >
             <Sparkles className="h-3.5 w-3.5" />
-            Wizard
+            {t("createLock.modeWizard")}
           </button>
         </div>
 

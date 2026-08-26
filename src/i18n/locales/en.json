@@ -58,6 +58,8 @@
   "createLock": {
     "title": "Create a lock",
     "subtitle": "Lock tokens or LP positions in an immutable Soroban contract.",
+    "modeSimple": "Simple",
+    "modeWizard": "Wizard",
     "tabToken": "Token Lock",
     "tabLp": "LP Lock"
   },
@@ -456,5 +458,13 @@
     "lockVolume": "Lock Creation Volume",
     "tokenDistribution": "Token Distribution",
     "noData": "No lock activity to display yet."
+  },
+  "notfound": {
+    "title": "Page Not Found",
+    "description": "The page you're looking for doesn't exist or may have been moved.",
+    "goHome": "Back to Home",
+    "explore": "Explore Locks",
+    "helpTitle": "Need Help?",
+    "helpDesc": "Check our <explorer>explorer</explorer> to find locks or <github>visit our GitHub</github>."
   }
 }
