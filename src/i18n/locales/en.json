@@ -226,6 +226,7 @@
     "emailDesc": "Receive email reminders at 7 days, 1 day, and at unlock. Requires a connected wallet.",
     "emailPlaceholder": "you@example.com",
     "emailNeedsWallet": "Connect your wallet to enable email reminders.",
+    "emailInvalid": "Please enter a valid email address.",
     "emailError": "Failed to save email subscription. Please try again.",
     "webhook": "Webhook",
     "webhookDesc": "Send unlock events to a URL (Telegram bot, Discord, etc).",
