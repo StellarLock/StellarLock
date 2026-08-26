@@ -560,9 +560,17 @@ impl TokenLocker {
     pub fn bump_lock_ttl(env: Env, id: u64) {
         let key = DataKey::Lock(id);
         if env.storage().persistent().has(&key) {
-            env.storage()
-                .persistent()
-                .extend_ttl(&key, PERSISTENT_THRESHOLD, PERSISTENT_BUMP);
+            if let Ok(lock) = load_lock(&env, id) {
+                if lock.withdrawn {
+                    env.storage()
+                        .persistent()
+                        .extend_ttl(&key, WITHDRAWN_THRESHOLD, WITHDRAWN_BUMP);
+                } else {
+                    env.storage()
+                        .persistent()
+                        .extend_ttl(&key, PERSISTENT_THRESHOLD, PERSISTENT_BUMP);
+                }
+            }
         }
         env.storage()
             .instance()
@@ -879,12 +887,11 @@ impl TokenLocker {
 
     /// Admin proposes a WASM upgrade. Executable only after 7 days.
     pub fn propose_upgrade(env: Env, new_wasm_hash: BytesN<32>) -> Result<(), ContractError> {
-    pub fn propose_upgrade(env: Env, new_wasm_hash: BytesN<32>) {
         let admin: Address = env
             .storage()
             .instance()
             .get(&DataKey::Admin)
-            .ok_or(ContractError::NotInitialized)?;
+            .ok_or(ContractError::NotAdmin)?;
         admin.require_auth();
         let execute_after = env.ledger().timestamp() + UPGRADE_DELAY;
         let proposal = UpgradeProposal { new_wasm_hash, execute_after };
@@ -899,31 +906,11 @@ impl TokenLocker {
 
     /// Execute a previously proposed upgrade after the timelock has elapsed.
     pub fn execute_upgrade(env: Env) -> Result<(), ContractError> {
-            .expect("not initialised");
-        admin.require_auth();
-        let execute_after = env.ledger().timestamp() + UPGRADE_DELAY;
-        let proposal = UpgradeProposal {
-            new_wasm_hash,
-            execute_after,
-        };
-        env.storage()
-            .instance()
-            .set(&DataKey::UpgradeProposal, &proposal);
-        env.storage()
-            .instance()
-            .extend_ttl(INSTANCE_THRESHOLD, INSTANCE_BUMP);
-        env.events()
-            .publish((Symbol::new(&env, "upgrade_proposed"), execute_after), ());
-    }
-
-    /// Execute a previously proposed upgrade after the timelock has elapsed.
-    pub fn execute_upgrade(env: Env) {
         let admin: Address = env
             .storage()
             .instance()
             .get(&DataKey::Admin)
-            .ok_or(ContractError::NotInitialized)?;
-            .expect("not initialised");
+            .ok_or(ContractError::NotAdmin)?;
         admin.require_auth();
         let proposal: UpgradeProposal = env
             .storage()
@@ -940,25 +927,18 @@ impl TokenLocker {
 
     /// Cancel a pending upgrade. Admin only.
     pub fn cancel_upgrade(env: Env) -> Result<(), ContractError> {
-        env.deployer()
-            .update_current_contract_wasm(proposal.new_wasm_hash);
-    }
-
-    /// Cancel a pending upgrade. Admin only.
-    pub fn cancel_upgrade(env: Env) {
         let admin: Address = env
             .storage()
             .instance()
             .get(&DataKey::Admin)
-            .ok_or(ContractError::NotInitialized)?;
+            .ok_or(ContractError::NotAdmin)?;
         admin.require_auth();
+        env.storage()
+            .instance()
+            .get(&DataKey::UpgradeProposal)
+            .ok_or(ContractError::NoPendingUpgrade)?;
         env.storage().instance().remove(&DataKey::UpgradeProposal);
         env.events().publish((Symbol::new(&env, "upgrade_cancelled"),), ());
         Ok(())
-            .expect("not initialised");
-        admin.require_auth();
-        env.storage().instance().remove(&DataKey::UpgradeProposal);
-        env.events()
-            .publish((Symbol::new(&env, "upgrade_cancelled"),), ());
     }
 }
