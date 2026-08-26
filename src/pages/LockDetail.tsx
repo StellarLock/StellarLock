@@ -397,7 +397,7 @@ function LockDetailView({ lock: sourceLock, onChange }: { lock: Lock; onChange: 
                     100,
                     Math.max(
                       0,
-                      Math.round(((now - lock.vesting.start) / (lock.vesting.end - lock.vesting.start)) * 100),
+                      Math.round(((now - lock.vesting.start) / Math.max(1, lock.vesting.end - lock.vesting.start)) * 100),
                     ),
                   )}
                   %
@@ -407,7 +407,7 @@ function LockDetailView({ lock: sourceLock, onChange }: { lock: Lock; onChange: 
                 <div
                   className="h-full rounded-full bg-gradient-to-r from-primary to-primary/60 transition-all"
                   style={{
-                    width: `${Math.min(100, Math.max(0, ((now - lock.vesting.start) / (lock.vesting.end - lock.vesting.start)) * 100))}%`,
+                    width: `${Math.min(100, Math.max(0, ((now - lock.vesting.start) / Math.max(1, lock.vesting.end - lock.vesting.start)) * 100))}%`,
                   }}
                 />
               </div>
