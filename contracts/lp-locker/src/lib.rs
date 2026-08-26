@@ -186,7 +186,8 @@ fn next_id(env: &Env) -> u64 {
         .instance()
         .get(&DataKey::NextId)
         .unwrap_or(5000);
-    env.storage().instance().set(&DataKey::NextId, &(id + 1));
+    let next = id.saturating_add(1);
+    env.storage().instance().set(&DataKey::NextId, &next);
     env.storage()
         .instance()
         .extend_ttl(INSTANCE_THRESHOLD, INSTANCE_BUMP);
@@ -252,7 +253,7 @@ fn collect_locks_paginated(env: &Env, ids: Vec<u64>, offset: u32, limit: u32) ->
     let mut out: Vec<LpLock> = vec![env];
     let len = ids.len();
     let start = offset.min(len);
-    let end = (start + limit).min(len);
+    let end = start.saturating_add(limit).min(len);
     let mut i = start;
     while i < end {
         let id = ids.get(i).unwrap();
@@ -381,9 +382,12 @@ impl LpLocker {
                 .persistent()
                 .get(&DataKey::UniquePoolShareCount)
                 .unwrap_or(0);
+            let new_unique_count = unique_count
+                .checked_add(1)
+                .ok_or(ContractError::AmountOverflow)?;
             env.storage()
                 .persistent()
-                .set(&DataKey::UniquePoolShareCount, &(unique_count + 1));
+                .set(&DataKey::UniquePoolShareCount, &new_unique_count);
         }
         env.storage()
             .persistent()
@@ -393,9 +397,12 @@ impl LpLocker {
             .persistent()
             .get(&DataKey::GlobalLockCount)
             .unwrap_or(0);
+        let new_lock_count = lock_count
+            .checked_add(1)
+            .ok_or(ContractError::AmountOverflow)?;
         env.storage()
             .persistent()
-            .set(&DataKey::GlobalLockCount, &(lock_count + 1));
+            .set(&DataKey::GlobalLockCount, &new_lock_count);
 
         env.events().publish(
             (
