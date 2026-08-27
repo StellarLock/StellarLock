@@ -100,12 +100,13 @@ export function addBreadcrumb(message: string, category: string, data?: Record<s
   }
 }
 
-export function setUserContext(walletAddress?: string): void {
+export async function setUserContext(walletAddress?: string): Promise<void> {
   const Sentry = window.Sentry
   if (Sentry) {
     if (walletAddress) {
-      const hash = new TextEncoder().encode(walletAddress)
-      const hashArray = Array.from(new Uint8Array(hash))
+      const encoded = new TextEncoder().encode(walletAddress)
+      const hashBuffer = await crypto.subtle.digest("SHA-256", encoded)
+      const hashArray = Array.from(new Uint8Array(hashBuffer))
       const hashHex = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("")
       Sentry.setUser({ id: hashHex })
     } else {
