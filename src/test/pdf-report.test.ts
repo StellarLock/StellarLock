@@ -1,126 +1,133 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { downloadLockReport } from "@/lib/pdf-report"
-import { mockLock } from "./mocks"
 import type { Lock } from "@/types/lock"
 
-// Fully mock jspdf so the report renderer is exercised without touching a real
-// PDF/canvas backend. The fake records every doc.text call and the save target.
-const mocks = vi.hoisted(() => {
-  class FakeJsPdf {
-    texts: string[] = []
-    save = vi.fn(() => undefined as never)
-
-    setFont() {
-      return this
-    }
-    setFontSize() {
-      return this
-    }
-    setTextColor() {
-      return this
-    }
-    setDrawColor() {
-      return this
-    }
-    setLineWidth() {
-      return this
-    }
-    line() {
-      return this
-    }
-    text(value: string | string[]) {
-      if (Array.isArray(value)) this.texts.push(...value)
-      else this.texts.push(value)
-      return this
-    }
-    splitTextToSize(value: string) {
-      return [value]
+const { MockJsPDF, getInstances } = vi.hoisted(() => {
+  const instances: MockJsPDF[] = []
+  class MockJsPDF {
+    text = vi.fn()
+    setFont = vi.fn()
+    setFontSize = vi.fn()
+    setTextColor = vi.fn()
+    setDrawColor = vi.fn()
+    setLineWidth = vi.fn()
+    line = vi.fn()
+    splitTextToSize = vi.fn((value: string) => [value])
+    save = vi.fn()
+    constructor() {
+      instances.push(this)
     }
   }
-  return { FakeJsPdf }
+  return { MockJsPDF, getInstances: () => instances }
 })
 
-vi.mock("jspdf", () => ({ jsPDF: vi.fn(() => new mocks.FakeJsPdf()) }))
+vi.mock("jspdf", () => ({ jsPDF: MockJsPDF }))
 
-// Each call creates a fresh instance; read the text buffer off the last one.
-function lastInstanceTexts(): string[] {
-  const calls = (vi.mocked(jsPDFFactory()).mock.results ?? []) as Array<{ value: InstanceType<typeof mocks.FakeJsPdf> }>
-  const last = calls[calls.length - 1]?.value
-  return last ? last.texts : []
-}
+const CREATOR = "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF"
+const BENEFICIARY = "GD6ROJBYLKQMOW3E7N4M2YBPUHMZD7PL65VRHRMO24BOVSBV5H3BQRSL"
+const TOKEN_ADDR = "CBFCKEOQRQIXKLGU4QBUQVOINOKFBOXJ37LXEKLKNUO6TW4FNGDU26AW"
 
-import { jsPDF } from "jspdf"
-function jsPDFFactory(): ReturnType<typeof vi.fn> {
-  return vi.mocked(jsPDF)
-}
-
-function lockWithVesting(overrides: Partial<Lock> = {}): Lock {
+function makeLock(overrides: Partial<Lock> = {}): Lock {
   return {
-    ...mockLock,
-    vesting: {
-      start: mockLock.createdAt,
-      end: mockLock.unlockAt,
-      released: 250,
-    },
+    id: "42",
+    kind: "token",
+    status: "locked",
+    token: { address: TOKEN_ADDR, symbol: "USDC", name: "USD Coin", decimals: 6 },
+    creator: CREATOR,
+    beneficiary: BENEFICIARY,
+    amount: 1000,
+    usdValue: 1000,
+    createdAt: 1_700_000_000_000,
+    unlockAt: 9_999_999_999_000,
+    extendedCount: 0,
     ...overrides,
   }
 }
 
-describe("downloadLockReport", () => {
+/** Flatten every string argument passed to the mock's text() calls. */
+function renderedStrings(): string[] {
+  const doc = getInstances().at(-1)!
+  // text() is called with plain strings (labels) and with the string[] returned
+  // by splitTextToSize (values), so flatten recursively before filtering.
+  return doc.text.mock.calls.flat(Infinity).filter((c): c is string => typeof c === "string")
+}
+
+describe("pdf-report", () => {
   beforeEach(() => {
-    jsPDFFactory().mockClear()
+    vi.clearAllMocks()
   })
 
-  it("saves a PDF with the expected report filename", () => {
-    downloadLockReport(mockLock)
-    const saveCalls = (lastInstance().save as ReturnType<typeof vi.fn>).mock.calls
-    expect(saveCalls).toHaveLength(1)
-    const filename = String(saveCalls[0][0])
-    expect(filename).toMatch(/^stellarlock-report-\d+-\d{4}-\d{2}-\d{2}\.pdf$/)
+  it("renders the report header, lock details, parties and on-chain verification", () => {
+    downloadLockReport(makeLock())
+    const strings = renderedStrings()
+
+    // Header
+    expect(strings).toContain("StellarLock")
+    expect(strings).toContain("Token Lock Report")
+    expect(strings).toContain("LOCKED") // status, uppercased
+
+    // Sections
+    expect(strings).toContain("LOCK DETAILS")
+    expect(strings).toContain("PARTIES")
+    expect(strings).toContain("ON-CHAIN VERIFICATION")
+
+    // Lock details rows
+    expect(strings).toContain("#42")
+    expect(strings).toContain("USDC — USD Coin")
+    expect(strings).toContain(TOKEN_ADDR)
+    expect(strings).toContain("Locked amount")
+    expect(strings).toContain("Extended count")
+    expect(strings).toContain(CREATOR)
+    expect(strings).toContain(BENEFICIARY)
+
+    // Verify-at link uses the current origin
+    expect(strings).toContain(`${window.location.origin}/app/lock/42`)
   })
 
-  it("renders the report header and lock id", () => {
-    downloadLockReport(mockLock)
-    const texts = lastInstanceTexts()
-    expect(texts).toContain("StellarLock")
-    expect(texts).toContain("Token Lock Report")
-    expect(texts).toContain(`Lock #${mockLock.id}`)
+  it("includes the vesting schedule section when the lock has vesting", () => {
+    downloadLockReport(
+      makeLock({
+        vesting: { start: 1_700_000_000_000, end: 1_800_000_000_000, released: 250 },
+      }),
+    )
+    const strings = renderedStrings()
+    expect(strings).toContain("VESTING SCHEDULE")
+    expect(strings).toContain("Vesting start")
+    expect(strings).toContain("Vesting end")
+    expect(strings).toContain("Released")
   })
 
-  it("renders lock details including token, amount, and status", () => {
-    downloadLockReport(mockLock)
-    const texts = lastInstanceTexts().join(" ")
-    expect(texts).toContain(mockLock.token.symbol)
-    expect(texts).toContain(mockLock.token.name)
-    expect(texts).toContain(mockLock.status)
-    expect(texts).toContain("Creator")
-    expect(texts).toContain("Beneficiary")
+  it("omits the vesting section when the lock has no vesting", () => {
+    downloadLockReport(makeLock())
+    expect(renderedStrings()).not.toContain("VESTING SCHEDULE")
   })
 
-  it("renders a vesting schedule section when the lock has vesting", () => {
-    downloadLockReport(lockWithVesting())
-    const texts = lastInstanceTexts()
-    expect(texts.some((t) => t.toLowerCase().includes("vesting schedule"))).toBe(true)
-    expect(texts.some((t) => t.toLowerCase().includes("vesting start"))).toBe(true)
+  it("saves the file with a date-stamped filename containing the lock id", () => {
+    downloadLockReport(makeLock())
+    const doc = getInstances().at(-1)!
+    expect(doc.save).toHaveBeenCalledTimes(1)
+    const filename = doc.save.mock.calls[0][0] as string
+    expect(filename).toMatch(/^stellarlock-report-42-\d{4}-\d{2}-\d{2}\.pdf$/)
   })
 
-  it("omits the vesting schedule section for a lock without vesting", () => {
-    downloadLockReport({ ...mockLock, vesting: undefined })
-    const texts = lastInstanceTexts()
-    expect(texts.some((t) => t.toLowerCase().includes("vesting schedule"))).toBe(false)
+  it("uses the status-specific colour for known statuses", () => {
+    downloadLockReport(makeLock({ status: "locked" }))
+    const doc = getInstances().at(-1)!
+    expect(doc.setTextColor).toHaveBeenCalledWith(22, 101, 52) // green
   })
 
-  it("renders an on-chain verification link using the current origin", () => {
-    downloadLockReport(mockLock)
-    const texts = lastInstanceTexts()
-    expect(texts.some((t) => t.includes("Verify at"))).toBe(true)
-    expect(texts.some((t) => t.includes(window.location.origin))).toBe(true)
+  it("falls back to a neutral grey for unknown statuses (edge case)", () => {
+    downloadLockReport(makeLock({ status: "withdrawn" as Lock["status"] }))
+    const doc = getInstances().at(-1)!
+    expect(doc.setTextColor).toHaveBeenCalledWith(55, 65, 81) // default grey
+  })
+
+  it("wraps long values with splitTextToSize so rows never overflow the page width", () => {
+    const longAddress = "C" + "A".repeat(54) // very long contract address
+    downloadLockReport(makeLock({ token: { ...makeLock().token, address: longAddress } }))
+    const doc = getInstances().at(-1)!
+    expect(doc.splitTextToSize).toHaveBeenCalled()
+    const wrappedValues = doc.splitTextToSize.mock.calls.map((c) => c[0])
+    expect(wrappedValues).toContain(longAddress)
   })
 })
-
-function lastInstance(): InstanceType<typeof mocks.FakeJsPdf> {
-  const results = jsPDFFactory().mock.results as Array<{
-    value: InstanceType<typeof mocks.FakeJsPdf>
-  }>
-  return results[results.length - 1].value
-}
