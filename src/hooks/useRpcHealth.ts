@@ -13,7 +13,8 @@ const RPC_ENDPOINTS = [
 ]
 
 const HEALTH_CHECK_INTERVAL = 30000 // 30 seconds
-const RPC_TIMEOUT = 3000 // 3 second timeout = slow
+const RPC_TIMEOUT = 3000 // hard timeout — treat as disconnected if exceeded
+const SLOW_THRESHOLD = 1500 // flag as slow if response takes longer than this
 
 async function checkRpcHealth(): Promise<RpcStatus> {
   try {
@@ -26,13 +27,15 @@ async function checkRpcHealth(): Promise<RpcStatus> {
         ),
       ])
 
+      // If we reach here the request completed before RPC_TIMEOUT,
+      // so elapsed is always < RPC_TIMEOUT. Check against SLOW_THRESHOLD instead.
       const elapsed = Date.now() - start
 
       if (!response.ok) {
         return 'disconnected'
       }
 
-      if (elapsed > RPC_TIMEOUT) {
+      if (elapsed > SLOW_THRESHOLD) {
         return 'slow'
       }
     }
