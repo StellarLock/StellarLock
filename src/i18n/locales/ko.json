@@ -226,6 +226,7 @@
     "browserDesc": "잠금 해제 7일 전, 1일 전, 그리고 해제 시 알림을 받으세요.",
     "webhook": "웹훅",
     "webhookDesc": "잠금 해제 이벤트를 URL로 전송합니다 (텔레그램 봇, 디스코드 등).",
+    "emailInvalid": "유효한 이메일 주소를 입력해 주세요.",
     "enable": "활성화",
     "enabled": "활성화됨",
     "save": "저장",

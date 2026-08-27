@@ -228,6 +228,7 @@
     "emailDesc": "Kilit açılmadan 7 gün, 1 gün önce ve açıldığında e-posta hatırlatıcıları alın. Bağlı bir cüzdan gerektirir.",
     "emailPlaceholder": "siz@ornek.com",
     "emailNeedsWallet": "E-posta hatırlatıcılarını etkinleştirmek için cüzdanınızı bağlayın.",
+    "emailInvalid": "Lütfen geçerli bir e-posta adresi girin.",
     "emailError": "E-posta aboneliği kaydedilemedi. Lütfen tekrar deneyin.",
     "webhook": "Webhook",
     "webhookDesc": "Kilit açma olaylarını bir URL'ye gönderin (Telegram botu, Discord, vb).",

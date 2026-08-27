@@ -80,6 +80,12 @@ export function NotificationSettings({ lockId, unlockAt, address }: Props) {
       return
     }
 
+    const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!EMAIL_REGEX.test(email)) {
+      setEmailError(t("notifications.emailInvalid"))
+      return
+    }
+
     if (!address) {
       setEmailError(t("notifications.emailNeedsWallet"))
       return
