@@ -22,6 +22,18 @@ Every entry maps directly to an error case defined in `src/lib/errors.ts`.
   - [UnlockTooSoon](#unlocktooson)
   - [ExtensionLimitReached](#extensionlimitreached)
   - [UnlockExceedsMax](#unlockexceedsmax)
+  - [NothingToRelease](#nothingtorerelease)
+  - [VestingEndBeforeStart](#vestingendbeforestart)
+  - [TooFewBeneficiaries](#toofewbeneficiaries)
+  - [TooManyBeneficiaries](#toomanybeneficiaries)
+  - [SharesMustSum10000](#sharesmustsum10000)
+  - [RateLimitExceeded](#ratelimitexceeded)
+  - [AmountOverflow](#amountoverflow)
+  - [NotAdmin](#notadmin)
+  - [NoPendingAdmin](#nopendingadmin)
+  - [NotPendingAdmin](#notpendingadmin)
+  - [ReentrancyDetected](#reentrancydetected)
+  - [IdenticalTokens](#identicaltokens)
 - [Connection issues](#connection-issues)
   - [Freighter not detected](#freighter-not-detected)
   - [Wallet disconnected mid-session](#wallet-disconnected-mid-session)
@@ -155,6 +167,109 @@ If timeouts are frequent, the RPC node may be having issues. Check the health in
 **Cause:** The new unlock date you chose when extending is beyond the contract's absolute maximum allowed unlock timestamp.
 
 **Fix:** Choose an earlier date. The contract's maximum is enforced globally regardless of the original lock duration.
+
+---
+
+### NothingToRelease
+
+**Cause:** You triggered a release on a vesting lock, but no vested tranche has become claimable yet. This can happen if:
+- The current ledger time is before the first vesting milestone.
+- All already-vested tranches have been claimed in a prior transaction.
+
+**Fix:** Check the lock's vesting schedule on the detail page and wait until the next tranche unlocks. The page shows the date of the next claimable release.
+
+---
+
+### VestingEndBeforeStart
+
+**Cause:** The vesting schedule you submitted has an end date that is the same as, or earlier than, the start date. The contract requires the vesting period to have a positive duration.
+
+**Fix:** Set the vesting end date to a time strictly after the vesting start date. The form inputs enforce a minimum gap — if you bypassed them (e.g. via direct API use), ensure `vesting_end > vesting_start`.
+
+---
+
+### TooFewBeneficiaries
+
+**Cause:** The multi-beneficiary lock you tried to create listed fewer beneficiaries than the contract's minimum (at least 2 are required).
+
+**Fix:** Add at least one more beneficiary address. If you only need one recipient, use a standard (single-beneficiary) lock instead.
+
+---
+
+### TooManyBeneficiaries
+
+**Cause:** The multi-beneficiary lock you tried to create exceeded the contract's maximum beneficiary count.
+
+**Fix:** Reduce the number of beneficiaries to the allowed maximum. If you need to distribute tokens to more recipients, split the amount across multiple separate locks.
+
+---
+
+### SharesMustSum10000
+
+**Cause:** The per-beneficiary share values you provided do not add up to exactly `10000` (representing 100.00%). This is enforced by the contract to prevent rounding gaps or over-allocation.
+
+**Fix:** Adjust the share percentages so they total exactly 100%. Each share is expressed in basis points (1 bp = 0.01%), so 100% = `10000`. Example: two equal beneficiaries should each have `5000`.
+
+---
+
+### RateLimitExceeded
+
+**Cause:** Your account has submitted too many contract invocations within a short window. The contract enforces a per-account rate limit to protect the network from spam.
+
+**Fix:**
+1. Wait a few minutes before retrying.
+2. If you are running automated scripts or tests, add a delay between calls.
+3. On Mainnet, if you legitimately need a higher throughput, contact the StellarLock team to discuss options.
+
+---
+
+### AmountOverflow
+
+**Cause:** An internal arithmetic overflow occurred while the contract was computing token amounts. This is most likely triggered by entering an extremely large value (close to the `i128` maximum).
+
+**Fix:** Enter a smaller amount. If you believe your amount is reasonable and this error still appears, this may be a contract bug — please [open an issue](https://github.com/your-org/StellarLock/issues) with the exact amount and token you used.
+
+---
+
+### NotAdmin
+
+**Cause:** The transaction was signed by a wallet that is not the current contract administrator. This operation is restricted to the admin account.
+
+**Fix:** Ensure you are connected with the admin wallet. If you are a regular user and see this error, the action you attempted is not available to non-admin accounts. Contact the contract operator for assistance.
+
+---
+
+### NoPendingAdmin
+
+**Cause:** An attempt was made to accept or cancel an admin transfer, but no admin transfer is currently in progress.
+
+**Fix:** No action is needed if you are a regular user. If you are administering the contract, initiate a new admin transfer first before trying to accept or cancel one.
+
+---
+
+### NotPendingAdmin
+
+**Cause:** You tried to accept an admin transfer but your wallet address is not the one nominated as the pending admin.
+
+**Fix:** Connect with the wallet address that was designated as the pending admin, then retry the accept-admin action.
+
+---
+
+### ReentrancyDetected
+
+**Cause:** The contract's reentrancy guard was triggered. This should never happen during normal usage — it indicates an attempt to call back into the contract during a transaction it is already executing.
+
+**Fix:** This is not something end-users can trigger through the standard UI. If you see this error:
+1. Do not retry the same transaction.
+2. [Open a bug report](https://github.com/your-org/StellarLock/issues) with your transaction hash so the team can investigate.
+
+---
+
+### IdenticalTokens
+
+**Cause:** You tried to create an LP (liquidity-pair) lock where both token addresses in the pair are the same. The LP locker contract requires two distinct tokens.
+
+**Fix:** Select two different token addresses for the liquidity pair. If you want to lock a single token, use the standard token locker instead.
 
 ---
 
