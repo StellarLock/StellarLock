@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom"
-import { ExternalLink } from "lucide-react"
+import { ExternalLink, Inbox } from "lucide-react"
 import type { Lock } from "@/types/lock"
 import { Card } from "@/components/ui/Card"
 import { StatusBadge } from "@/components/ui/StatusBadge"
@@ -23,52 +23,59 @@ export function TokenLockList({ locks }: { locks: Lock[] }) {
         <span className="col-span-2 text-right">Status</span>
       </div>
 
-      <ul>
-        {sorted.map((lock) => (
-          <li
-            key={lock.id}
-            className="grid grid-cols-1 gap-3 border-b border-border px-5 py-4 last:border-b-0 transition-colors hover:bg-secondary/40 md:grid-cols-12 md:items-center md:gap-4"
-          >
-            <div className="col-span-3 flex flex-col gap-1">
-              <span className="font-semibold tabular-nums">{formatAmount(lock.amount, { compact: true })}</span>
-              <span className="flex items-center gap-2 text-xs text-muted-foreground">
-                {formatUsd(lock.usdValue)}
-                {lock.kind === "lp" && lock.dex && <DexBadge dex={lock.dex} />}
-                {lock.extendedCount > 0 && <Badge variant="outline">{lock.extendedCount}× extended</Badge>}
-              </span>
-              {lock.metadata?.description && (
-                <span className="text-xs text-muted-foreground line-clamp-1">{lock.metadata.description}</span>
-              )}
-            </div>
+      {locks.length === 0 ? (
+        <div className="flex flex-col items-center justify-center gap-3 py-16 text-muted-foreground">
+          <Inbox className="h-10 w-10 opacity-40" />
+          <p className="text-sm">No locks found for this token</p>
+        </div>
+      ) : (
+        <ul>
+          {sorted.map((lock) => (
+            <li
+              key={lock.id}
+              className="grid grid-cols-1 gap-3 border-b border-border px-5 py-4 last:border-b-0 transition-colors hover:bg-secondary/40 md:grid-cols-12 md:items-center md:gap-4"
+            >
+              <div className="col-span-3 flex flex-col gap-1">
+                <span className="font-semibold tabular-nums">{formatAmount(lock.amount, { compact: true })}</span>
+                <span className="flex items-center gap-2 text-xs text-muted-foreground">
+                  {formatUsd(lock.usdValue)}
+                  {lock.kind === "lp" && lock.dex && <DexBadge dex={lock.dex} />}
+                  {lock.extendedCount > 0 && <Badge variant="outline">{lock.extendedCount}x extended</Badge>}
+                </span>
+                {lock.metadata?.description && (
+                  <span className="text-xs text-muted-foreground line-clamp-1">{lock.metadata.description}</span>
+                )}
+              </div>
 
-            <div className="col-span-3 flex items-center gap-1 font-mono text-sm">
-              <span className="md:hidden text-xs text-muted-foreground">Beneficiary: </span>
-              {shortAddress(lock.beneficiary, 6, 6)}
-              <CopyButton text={lock.beneficiary} />
-            </div>
+              <div className="col-span-3 flex items-center gap-1 font-mono text-sm">
+                <span className="md:hidden text-xs text-muted-foreground">Beneficiary: </span>
+                {shortAddress(lock.beneficiary, 6, 6)}
+                <CopyButton text={lock.beneficiary} />
+              </div>
 
-            <div className="col-span-2 text-sm text-muted-foreground">
-              <span className="md:hidden text-xs">Unlock: </span>
-              {formatDate(lock.unlockAt)}
-            </div>
+              <div className="col-span-2 text-sm text-muted-foreground">
+                <span className="md:hidden text-xs">Unlock: </span>
+                {formatDate(lock.unlockAt)}
+              </div>
 
-            <div className="col-span-2 text-sm">
-              <CountdownTimer target={lock.unlockAt} compact />
-            </div>
+              <div className="col-span-2 text-sm">
+                <CountdownTimer target={lock.unlockAt} compact />
+              </div>
 
-            <div className="col-span-2 flex items-center justify-between gap-2 md:justify-end">
-              <StatusBadge status={lock.status} />
-              <Link
-                to={`/app/lock/${lock.kind ?? "token"}/${lock.id}`}
-                className="text-muted-foreground transition-colors hover:text-primary"
-                aria-label={`View lock ${lock.id}`}
-              >
-                <ExternalLink className="h-4 w-4" />
-              </Link>
-            </div>
-          </li>
-        ))}
-      </ul>
+              <div className="col-span-2 flex items-center justify-between gap-2 md:justify-end">
+                <StatusBadge status={lock.status} />
+                <Link
+                  to={`/app/lock/${lock.kind ?? "token"}/${lock.id}`}
+                  className="text-muted-foreground transition-colors hover:text-primary"
+                  aria-label={`View lock ${lock.id}`}
+                >
+                  <ExternalLink className="h-4 w-4" />
+                </Link>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
     </Card>
   )
 }
