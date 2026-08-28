@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils"
+import { useRef, KeyboardEvent } from "react"
 
 export interface TabItem {
   value: string
@@ -17,6 +18,40 @@ export function Tabs({
   onChange: (value: string) => void
   className?: string
 }) {
+  const tabRefs = useRef<Map<string, HTMLButtonElement>>(new Map())
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLButtonElement>, currentValue: string) => {
+    const currentIndex = items.findIndex((item) => item.value === currentValue)
+    let newIndex = currentIndex
+
+    switch (e.key) {
+      case "ArrowRight":
+      case "ArrowDown":
+        e.preventDefault()
+        newIndex = (currentIndex + 1) % items.length
+        break
+      case "ArrowLeft":
+      case "ArrowUp":
+        e.preventDefault()
+        newIndex = (currentIndex - 1 + items.length) % items.length
+        break
+      case "Home":
+        e.preventDefault()
+        newIndex = 0
+        break
+      case "End":
+        e.preventDefault()
+        newIndex = items.length - 1
+        break
+      default:
+        return
+    }
+
+    const newValue = items[newIndex].value
+    onChange(newValue)
+    tabRefs.current.get(newValue)?.focus()
+  }
+
   return (
     <div
       role="tablist"
@@ -27,11 +62,18 @@ export function Tabs({
         return (
           <button
             key={item.value}
+            ref={(el) => {
+              if (el) tabRefs.current.set(item.value, el)
+              else tabRefs.current.delete(item.value)
+            }}
             role="tab"
             aria-selected={active}
+            tabIndex={active ? 0 : -1}
             onClick={() => onChange(item.value)}
+            onKeyDown={(e) => handleKeyDown(e, item.value)}
             className={cn(
               "inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors cursor-pointer",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
               active ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground",
             )}
           >
