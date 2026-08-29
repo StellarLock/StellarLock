@@ -86,3 +86,23 @@ yarn-error.log*
 # Misc leftover root-level scratch files
 README.me
 1}
+
+# Vitest UI output
+vitest-ui/
+
+# Type-check cache
+*.tsc-out
+
+# Local env overrides
+.env.*.local
+
+# Mac extended attributes
+__MACOSX/
+
+# Turborepo / nx cache
+.turbo/
+.nx/
+
+# Temporary test output
+tmp/
+.tmp/
