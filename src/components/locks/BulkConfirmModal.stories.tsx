@@ -1,0 +1,158 @@
+import type { Meta, StoryObj } from "@storybook/react"
+import { BulkConfirmModal } from "./BulkConfirmModal"
+import type { Lock } from "@/types/lock"
+
+const meta = {
+  title: "Locks/BulkConfirmModal",
+  component: BulkConfirmModal,
+  tags: ["autodocs"],
+  decorators: [
+    (Story) => (
+      <div className="min-h-screen bg-background">
+        <Story />
+      </div>
+    ),
+  ],
+} satisfies Meta<typeof BulkConfirmModal>
+
+export default meta
+type Story = StoryObj<typeof meta>
+
+const mockLocks: Lock[] = [
+  {
+    id: "1",
+    kind: "token",
+    status: "locked",
+    token: {
+      address: "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      symbol: "USDC",
+      name: "USD Coin",
+      decimals: 6,
+    },
+    beneficiary: "GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+    amount: "1000000000",
+    unlockDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
+    createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+    vesting: false,
+  },
+  {
+    id: "2",
+    kind: "token",
+    status: "locked",
+    token: {
+      address: "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB",
+      symbol: "SOROSWAP",
+      name: "Soroswap Token",
+      decimals: 7,
+    },
+    beneficiary: "GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+    amount: "5000000000",
+    unlockDate: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString(),
+    createdAt: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(),
+    vesting: false,
+  },
+  {
+    id: "3",
+    kind: "lp",
+    status: "locked",
+    token: {
+      address: "CDCDCDCDCDCDCDCDCDCDCDCDCDCDCDCDCDCDCDCDCDCDCDCDCDCDCD",
+      symbol: "USDC-SOROSWAP",
+      name: "USDC-SOROSWAP LP",
+      decimals: 8,
+    },
+    beneficiary: "GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+    amount: "2500000000",
+    unlockDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+    createdAt: new Date(Date.now() - 120 * 24 * 60 * 60 * 1000).toISOString(),
+    vesting: true,
+    dex: "soroswap",
+    poolPair: [
+      "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB",
+    ],
+  },
+]
+
+export const ExtendPending: Story = {
+  args: {
+    action: "extend",
+    locks: mockLocks,
+    onConfirm: async () => {
+      console.log("Confirm extend clicked")
+    },
+    onClose: () => console.log("Close clicked"),
+  },
+}
+
+export const TransferPending: Story = {
+  args: {
+    action: "transfer",
+    locks: mockLocks.slice(0, 2),
+    onConfirm: async () => {
+      console.log("Confirm transfer clicked")
+    },
+    onClose: () => console.log("Close clicked"),
+  },
+}
+
+export const ExtendSingleLock: Story = {
+  args: {
+    action: "extend",
+    locks: mockLocks.slice(0, 1),
+    onConfirm: async () => {
+      console.log("Confirm extend clicked")
+    },
+    onClose: () => console.log("Close clicked"),
+  },
+}
+
+export const TransferInProgress: Story = {
+  args: {
+    action: "transfer",
+    locks: mockLocks,
+    onConfirm: async (value, onItemSettled) => {
+      console.log("Confirm transfer with value:", value)
+      // Simulate processing items
+      await new Promise((resolve) => setTimeout(resolve, 500))
+      onItemSettled("1", { status: "success" })
+      await new Promise((resolve) => setTimeout(resolve, 500))
+      onItemSettled("2", { status: "success" })
+      await new Promise((resolve) => setTimeout(resolve, 500))
+      onItemSettled("3", { status: "error", error: "Insufficient balance" })
+    },
+    onClose: () => console.log("Close clicked"),
+  },
+}
+
+export const ExtendCompleted: Story = {
+  args: {
+    action: "extend",
+    locks: mockLocks,
+    onConfirm: async (value, onItemSettled) => {
+      console.log("Confirm extend with date:", value)
+      // Simulate all items completed
+      await new Promise((resolve) => setTimeout(resolve, 300))
+      onItemSettled("1", { status: "success" })
+      onItemSettled("2", { status: "success" })
+      onItemSettled("3", { status: "success" })
+    },
+    onClose: () => console.log("Close clicked"),
+  },
+}
+
+export const TransferWithFailures: Story = {
+  args: {
+    action: "transfer",
+    locks: mockLocks,
+    onConfirm: async (value, onItemSettled) => {
+      console.log("Confirm transfer with address:", value)
+      // Simulate mixed results
+      await new Promise((resolve) => setTimeout(resolve, 300))
+      onItemSettled("1", { status: "success" })
+      onItemSettled("2", { status: "error", error: "Invalid address" })
+      onItemSettled("3", { status: "success" })
+    },
+    onClose: () => console.log("Close clicked"),
+  },
+}
