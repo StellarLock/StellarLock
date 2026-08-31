@@ -10,7 +10,7 @@ import { CountdownTimer } from "@/components/ui/CountdownTimer"
 import { LockProgressBar } from "@/components/ui/LockProgressBar"
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge"
 import { useVerifiedToken } from "@/hooks/useVerifiedToken"
-import { formatAmount, formatUsd, shortAddress } from "@/lib/utils"
+import { formatAmount, formatUsdValue, shortAddress } from "@/lib/utils"
 import { cn } from "@/lib/utils"
 
 interface LockCardProps {
@@ -64,7 +64,9 @@ export function LockCard({ lock, selectable = false, selected = false, onSelect 
           <p className="text-xs text-muted-foreground">{t("lockCard.lockedAmount")}</p>
           <p className="text-lg font-semibold tabular-nums">
             {formatAmount(lock.amount, { compact: true })}{" "}
-            <span className="text-sm font-normal text-muted-foreground">({formatUsd(lock.usdValue)})</span>
+            <span className="text-sm font-normal text-muted-foreground">
+              ({formatUsdValue(lock.token.address, lock.usdValue)})
+            </span>
           </p>
         </div>
         <div className="text-end">

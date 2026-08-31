@@ -33,6 +33,39 @@ function parseAmount(amount: string): number | null {
   return n
 }
 
+const MIN_LOCK_DURATION_SECONDS = 86_400; // 24 hours
+const MAX_LOCK_DURATION_SECONDS = 315_360_000; // 10 years
+
+function validateLockDuration(unlockAtMs: number): { isValid: boolean; issue?: FieldValidationIssue } {
+  const now = Date.now()
+  const durationMs = unlockAtMs - now
+  const durationSeconds = Math.floor(durationMs / 1000)
+
+  if (durationSeconds < MIN_LOCK_DURATION_SECONDS) {
+    return {
+      isValid: false,
+      issue: {
+        field: "unlockDate",
+        message: "Lock duration must be at least 24 hours.",
+        guidance: "Choose a date at least 24 hours in the future.",
+      },
+    }
+  }
+
+  if (durationSeconds > MAX_LOCK_DURATION_SECONDS) {
+    return {
+      isValid: false,
+      issue: {
+        field: "unlockDate",
+        message: "Lock duration cannot exceed 10 years.",
+        guidance: "Choose a date within 10 years from now.",
+      },
+    }
+  }
+
+  return { isValid: true }
+}
+
 export function validateTokenLockForm(params: {
   tokenAddress: string
   amount: string
@@ -83,6 +116,11 @@ export function validateTokenLockForm(params: {
       message: "Unlock date must be in the future.",
       guidance: "Choose a date after today (the unlock date cannot be in the past).",
     })
+  } else {
+    const durationCheck = validateLockDuration(unlockAtMs)
+    if (!durationCheck.isValid && durationCheck.issue) {
+      issues.push(durationCheck.issue)
+    }
   }
 
   if (params.multiMode) {
@@ -196,6 +234,11 @@ export function validateLpLockForm(params: {
       message: "Unlock date must be in the future.",
       guidance: "Choose a date after today.",
     })
+  } else {
+    const durationCheck = validateLockDuration(unlockAtMs)
+    if (!durationCheck.isValid && durationCheck.issue) {
+      issues.push(durationCheck.issue)
+    }
   }
 
   const allowance = params.allowance

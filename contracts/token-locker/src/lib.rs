@@ -24,6 +24,11 @@ use locker_common::{
 };
 pub use locker_common::{LockMetadata, UpgradeProposal, Vesting};
 
+// ── Lock duration bounds ──────────────────────────────────────────────────────
+const MIN_LOCK_DURATION: u64 = 86_400; // 24 hours in seconds
+const MAX_LOCK_DURATION: u64 = 315_360_000; // 10 years in seconds
+const MAX_EXTENSIONS: u32 = 52; // Once per week for a year
+
 // ── Storage keys ─────────────────────────────────────────────────────────────
 
 #[contracttype]
@@ -44,6 +49,7 @@ pub enum DataKey {
     PendingAdmin,
     UpgradeProposal,
     ReentrancyGuard,
+    Paused,
 }
 
 // ── Error types ───────────────────────────────────────────────────────────────
@@ -71,6 +77,13 @@ pub enum ContractError {
     TimelockNotElapsed = 17,
     ReentrancyDetected = 19,
     LockNotFound = 20,
+    LockDurationTooShort = 19,
+    LockDurationTooLong = 20,
+    ContractPaused = 21,
+    ExtensionLimitExceeded = 22,
+    ReentrancyDetected = 23,
+    LockNotFound = 24,
+    TimelockNotElapsed = 25,
 }
 // ── On-chain types ────────────────────────────────────────────────────────────
 
@@ -160,6 +173,18 @@ fn guard_exit(env: &Env) {
     exit_guard(env, &DataKey::ReentrancyGuard);
 }
 
+fn require_not_paused(env: &Env) -> Result<(), ContractError> {
+    let is_paused: bool = env
+        .storage()
+        .instance()
+        .get(&DataKey::Paused)
+        .unwrap_or(false);
+    if is_paused {
+        return Err(ContractError::ContractPaused);
+    }
+    Ok(())
+}
+
 // ── Contract ──────────────────────────────────────────────────────────────────
 
 #[contract]
@@ -178,6 +203,7 @@ impl TokenLocker {
         metadata: LockMetadata,
     ) -> Result<u64, ContractError> {
         creator.require_auth();
+        require_not_paused(&env)?;
 
         if amount <= 0 {
             return Err(ContractError::AmountMustBePositive);
@@ -185,6 +211,14 @@ impl TokenLocker {
         let now = env.ledger().timestamp();
         if unlock_at <= now {
             return Err(ContractError::UnlockMustBeFuture);
+        }
+
+        let lock_duration = unlock_at.saturating_sub(now);
+        if lock_duration < MIN_LOCK_DURATION {
+            return Err(ContractError::LockDurationTooShort);
+        }
+        if lock_duration > MAX_LOCK_DURATION {
+            return Err(ContractError::LockDurationTooLong);
         }
 
         let rate_key = DataKey::LastLockAt(creator.clone());
@@ -289,6 +323,7 @@ impl TokenLocker {
     pub fn withdraw(env: Env, id: u64) -> Result<(), ContractError> {
         guard_enter(&env)?;
         let result = (|| {
+            require_not_paused(&env)?;
             let mut lock = load_lock(&env, id)?;
             lock.beneficiary.require_auth();
 
@@ -355,6 +390,7 @@ impl TokenLocker {
     pub fn extend(env: Env, id: u64, new_unlock_at: u64) -> Result<(), ContractError> {
         guard_enter(&env)?;
         let result = (|| {
+            require_not_paused(&env)?;
             let mut lock = load_lock(&env, id)?;
             lock.creator.require_auth();
 
@@ -363,6 +399,16 @@ impl TokenLocker {
             }
             if new_unlock_at <= lock.unlock_at {
                 return Err(ContractError::CanOnlyExtend);
+            }
+
+            let now = env.ledger().timestamp();
+            let new_lock_duration = new_unlock_at.saturating_sub(now);
+            if new_lock_duration > MAX_LOCK_DURATION {
+                return Err(ContractError::LockDurationTooLong);
+            }
+
+            if lock.extended_count >= MAX_EXTENSIONS {
+                return Err(ContractError::ExtensionLimitExceeded);
             }
 
             let old_unlock_at = lock.unlock_at;
@@ -393,6 +439,7 @@ impl TokenLocker {
     ) -> Result<(), ContractError> {
         guard_enter(&env)?;
         let result = (|| {
+            require_not_paused(&env)?;
             let mut lock = load_lock(&env, id)?;
             lock.beneficiary.require_auth();
 
@@ -503,12 +550,21 @@ impl TokenLocker {
         vesting: Option<Vesting>,
     ) -> Result<u64, ContractError> {
         creator.require_auth();
+        require_not_paused(&env)?;
         if total_amount <= 0 {
             return Err(ContractError::AmountMustBePositive);
         }
         let now = env.ledger().timestamp();
         if unlock_at <= now {
             return Err(ContractError::UnlockMustBeFuture);
+        }
+
+        let lock_duration = unlock_at.saturating_sub(now);
+        if lock_duration < MIN_LOCK_DURATION {
+            return Err(ContractError::LockDurationTooShort);
+        }
+        if lock_duration > MAX_LOCK_DURATION {
+            return Err(ContractError::LockDurationTooLong);
         }
 
         let rate_key = DataKey::LastLockAt(creator.clone());
@@ -822,6 +878,42 @@ impl TokenLocker {
             .ok_or(ContractError::NoPendingUpgrade)?;
         env.storage().instance().remove(&DataKey::UpgradeProposal);
         env.events().publish((Symbol::new(&env, "upgrade_cancelled"),), ());
+        Ok(())
+    }
+
+    // ── Emergency pause mechanism ─────────────────────────────────────────────
+
+    /// Pause the contract, preventing all state-mutating operations.
+    /// Admin only. Read-only queries remain available.
+    pub fn pause(env: Env) -> Result<(), ContractError> {
+        let admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .ok_or(ContractError::NotAdmin)?;
+        admin.require_auth();
+        env.storage().instance().set(&DataKey::Paused, &true);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_THRESHOLD, INSTANCE_BUMP);
+        env.events().publish((Symbol::new(&env, "contract_paused"),), ());
+        Ok(())
+    }
+
+    /// Unpause the contract, restoring normal operation.
+    /// Admin only.
+    pub fn unpause(env: Env) -> Result<(), ContractError> {
+        let admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .ok_or(ContractError::NotAdmin)?;
+        admin.require_auth();
+        env.storage().instance().set(&DataKey::Paused, &false);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_THRESHOLD, INSTANCE_BUMP);
+        env.events().publish((Symbol::new(&env, "contract_unpaused"),), ());
         Ok(())
     }
 }

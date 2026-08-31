@@ -9,7 +9,7 @@ import { CountdownTimer } from "@/components/ui/CountdownTimer"
 import { TokenAvatar } from "@/components/ui/TokenAvatar"
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge"
 import { useVerifiedToken } from "@/hooks/useVerifiedToken"
-import { formatAmount, formatDate, formatUsd, shortAddress, cn } from "@/lib/utils"
+import { formatAmount, formatDate, formatUsdValue, shortAddress, cn } from "@/lib/utils"
 import { CopyButton } from "@/components/ui/CopyButton"
 
 interface LockTableRowProps {
@@ -69,7 +69,7 @@ function LockTableRow({ lock, selectable, selected, onSelect }: LockTableRowProp
       {/* Amount */}
       <td className="px-4 py-3.5 tabular-nums">
         <span className="font-semibold text-sm">{formatAmount(lock.amount, { compact: true })}</span>
-        <p className="text-xs text-muted-foreground">{formatUsd(lock.usdValue)}</p>
+        <p className="text-xs text-muted-foreground">{formatUsdValue(lock.token.address, lock.usdValue)}</p>
       </td>
 
       {/* Beneficiary */}
@@ -81,9 +81,7 @@ function LockTableRow({ lock, selectable, selected, onSelect }: LockTableRowProp
       </td>
 
       {/* Unlock date */}
-      <td className="hidden px-4 py-3.5 text-sm text-muted-foreground md:table-cell">
-        {formatDate(lock.unlockAt)}
-      </td>
+      <td className="hidden px-4 py-3.5 text-sm text-muted-foreground md:table-cell">{formatDate(lock.unlockAt)}</td>
 
       {/* Countdown */}
       <td className="hidden px-4 py-3.5 lg:table-cell">
@@ -141,10 +139,16 @@ export function LockTable({ locks, selectable = false, selectedIds = new Set(), 
           <thead>
             <tr className="border-b border-border bg-secondary/30">
               {selectable && <th className="w-10 px-4 py-3" scope="col" aria-label="Select" />}
-              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground" scope="col">
+              <th
+                className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+                scope="col"
+              >
                 Token
               </th>
-              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground" scope="col">
+              <th
+                className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+                scope="col"
+              >
                 Amount
               </th>
               <th
@@ -165,7 +169,10 @@ export function LockTable({ locks, selectable = false, selectedIds = new Set(), 
               >
                 Unlocks in
               </th>
-              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground" scope="col">
+              <th
+                className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+                scope="col"
+              >
                 Status
               </th>
               {!selectable && <th className="pr-4 py-3" scope="col" aria-label="Actions" />}
