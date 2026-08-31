@@ -2,8 +2,7 @@
 
 use soroban_sdk::{
     testutils::{Address as _, Events, Ledger},
-    token, vec, Address, BytesN, Env,
-    token, vec, Address, Env, IntoVal, Symbol, TryFromVal,
+    token, vec, Address, BytesN, Env, IntoVal, Symbol, TryFromVal,
 };
 
 use crate::{ContractError, LockMetadata, TokenLocker, TokenLockerClient, Vesting};
