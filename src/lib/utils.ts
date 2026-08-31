@@ -45,6 +45,15 @@ export function formatUsd(value: number): string {
   }).format(value)
 }
 
+/** Format USD value with price availability context for contract tokens. */
+export function formatUsdValue(tokenAddress: string, value: number): string {
+  // Contract tokens (C...) have no price feed available via Horizon
+  if (value === 0 && tokenAddress.startsWith("C")) {
+    return "price unavailable"
+  }
+  return formatUsd(value)
+}
+
 /** Returns ms remaining until unlock (negative if unlockable). */
 export function msUntil(timestamp: number): number {
   return timestamp - Date.now()

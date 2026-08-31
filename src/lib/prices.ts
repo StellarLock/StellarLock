@@ -53,12 +53,9 @@ export async function getTokenPriceUsd(tokenAddress: string): Promise<number> {
 }
 
 async function fetchPrice(tokenAddress: string): Promise<number> {
-  const issuer = usdcIssuer()
-  // Try direct token/USDC orderbook
-  const directUrl = `${NETWORK.horizonUrl}/order_book?selling_asset_type=credit_alphanum4&selling_asset_code=USDC&selling_asset_issuer=${issuer}&buying_asset_type=credit_alphanum56&buying_asset_code=LP&buying_asset_issuer=${tokenAddress}&limit=1`
-  void directUrl // Horizon doesn't support contract assets in orderbook - use XLM route
-
   // Route: token → XLM via orderbook, then XLM → USD
+  // Horizon doesn't support Soroban contract assets (C...) in orderbook.
+  // For contract tokens, no price feed is available — return 0.
   const xlmUsd = await xlmPriceUsd()
   if (xlmUsd === 0) return 0
 
@@ -139,4 +136,9 @@ export async function fetchPricesBatch(tokenAddresses: string[]): Promise<Map<st
 /** Invalidate the full price cache (e.g. after a lock is created). */
 export function invalidatePriceCache(): void {
   priceCache.clear()
+}
+
+/** Check if a token address represents a Soroban contract (price unavailable via Horizon). */
+export function isContractToken(tokenAddress: string): boolean {
+  return tokenAddress.startsWith("C")
 }
