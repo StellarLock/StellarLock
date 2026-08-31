@@ -6,7 +6,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge"
 import { DexBadge } from "@/components/ui/DexBadge"
 import { CountdownTimer } from "@/components/ui/CountdownTimer"
 import { Badge } from "@/components/ui/Badge"
-import { formatAmount, formatDate, formatUsd, shortAddress } from "@/lib/utils"
+import { formatAmount, formatDate, formatUsdValue, shortAddress } from "@/lib/utils"
 import { CopyButton } from "@/components/ui/CopyButton"
 
 export function TokenLockList({ locks }: { locks: Lock[] }) {
@@ -38,7 +38,7 @@ export function TokenLockList({ locks }: { locks: Lock[] }) {
               <div className="col-span-3 flex flex-col gap-1">
                 <span className="font-semibold tabular-nums">{formatAmount(lock.amount, { compact: true })}</span>
                 <span className="flex items-center gap-2 text-xs text-muted-foreground">
-                  {formatUsd(lock.usdValue)}
+                  {formatUsdValue(lock.token.address, lock.usdValue)}
                   {lock.kind === "lp" && lock.dex && <DexBadge dex={lock.dex} />}
                   {lock.extendedCount > 0 && <Badge variant="outline">{lock.extendedCount}x extended</Badge>}
                 </span>
