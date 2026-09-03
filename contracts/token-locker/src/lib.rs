@@ -1,31 +1,28 @@
 #![cfg_attr(not(test), no_std)]
-// Soroban contract entry points (create_lock) take a fixed set of ABI
-// arguments plus the `Env`, so `too_many_arguments` is not actionable here.
+#![cfg_attr(not(test), no_std)]
+// Soroban contract entry points take a fixed set of ABI arguments plus the
+// `Env`, so `too_many_arguments` is not actionable here.
 #![allow(clippy::too_many_arguments)]
-
-use soroban_sdk::{
-    contract, contracterror, contractimpl, contracttype, token, vec, Address, BytesN, Env, String,
-    Symbol, Vec,
-};
 
 #[cfg(test)]
 mod prop_tests;
 #[cfg(test)]
 mod tests;
 
-// ── TTL constants ─────────────────────────────────────────────────────────────
-const LEDGERS_PER_DAY: u32 = 17_280;
-const PERSISTENT_BUMP: u32 = 365 * LEDGERS_PER_DAY;
-const PERSISTENT_THRESHOLD: u32 = PERSISTENT_BUMP;
-const INSTANCE_BUMP: u32 = 30 * LEDGERS_PER_DAY;
-const INSTANCE_THRESHOLD: u32 = 7 * LEDGERS_PER_DAY;
-// Withdrawn locks get a short TTL — enough to be queried but not renewed forever (~11.6× cheaper).
-const WITHDRAWN_BUMP: u32 = 30 * LEDGERS_PER_DAY;
-const WITHDRAWN_THRESHOLD: u32 = 7 * LEDGERS_PER_DAY;
+use soroban_sdk::{
+    contract, contracterror, contractimpl, contracttype, token, vec, Address, BytesN, Env, Symbol,
+    Vec,
+};
 
-// ── Rate limiting ─────────────────────────────────────────────────────────────
-const RATE_LIMIT_COOLDOWN: u64 = 60;
-const RATE_LIMIT_TTL_LEDGERS: u32 = 720;
+// ── Shared types, constants, and helpers from locker-common ──────────────────
+use locker_common::{
+    calculate_vested, collect_paginated, enter_guard, exit_guard, get_index, next_id, push_index,
+    remove_from_index,
+    INSTANCE_BUMP, INSTANCE_THRESHOLD, PERSISTENT_BUMP, PERSISTENT_THRESHOLD,
+    RATE_LIMIT_COOLDOWN, RATE_LIMIT_TTL_LEDGERS, UPGRADE_DELAY, WITHDRAWN_BUMP,
+    WITHDRAWN_THRESHOLD,
+};
+pub use locker_common::{LockMetadata, UpgradeProposal, Vesting};
 
 // ── Lock duration bounds ──────────────────────────────────────────────────────
 const MIN_LOCK_DURATION: u64 = 86_400; // 24 hours in seconds
@@ -35,6 +32,7 @@ const MAX_EXTENSIONS: u32 = 52; // Once per week for a year
 // ── Storage keys ─────────────────────────────────────────────────────────────
 
 #[contracttype]
+#[derive(Clone)]
 pub enum DataKey {
     Lock(u64),
     NextId,
@@ -52,16 +50,6 @@ pub enum DataKey {
     UpgradeProposal,
     ReentrancyGuard,
     Paused,
-}
-
-// 7-day timelock before an upgrade can be executed.
-const UPGRADE_DELAY: u64 = 7 * 24 * 3600;
-
-#[contracttype]
-#[derive(Clone)]
-pub struct UpgradeProposal {
-    pub new_wasm_hash: BytesN<32>,
-    pub execute_after: u64,
 }
 
 // ── Error types ───────────────────────────────────────────────────────────────
@@ -86,6 +74,9 @@ pub enum ContractError {
     NotAdmin = 15,
     NotInitialized = 16,
     NoPendingUpgrade = 18,
+    TimelockNotElapsed = 17,
+    ReentrancyDetected = 19,
+    LockNotFound = 20,
     LockDurationTooShort = 19,
     LockDurationTooLong = 20,
     ContractPaused = 21,
@@ -94,7 +85,6 @@ pub enum ContractError {
     LockNotFound = 24,
     TimelockNotElapsed = 25,
 }
-
 // ── On-chain types ────────────────────────────────────────────────────────────
 
 #[contracttype]
@@ -119,60 +109,7 @@ pub struct GlobalStats {
     pub unique_token_count: u64,
 }
 
-#[contracttype]
-#[derive(Clone)]
-pub struct Vesting {
-    pub start: u64,
-    pub end: u64,
-    pub released: i128,
-}
-
-impl Vesting {
-    /// Sentinel for a lock without a vesting schedule.
-    pub fn none() -> Self {
-        Vesting {
-            start: 0,
-            end: 0,
-            released: 0,
-        }
-    }
-
-    /// A vesting schedule is "absent" when both timestamps are zero.
-    pub fn is_none(&self) -> bool {
-        self.start == 0 && self.end == 0
-    }
-}
-
-/// Optional public-facing info about the locked project.
-/// Stored on-chain as plain strings (not a hash) so the explorer can render
-/// it directly — keep values short, this isn't meant for arbitrary blobs.
-///
-/// Not wrapped in `Option`: the #[contracttype] macro doesn't generate the
-/// `Option<CustomStruct> -> ScVal` XDR bridge needed for std/testutils builds
-/// (only the bare struct gets one), so "no metadata" is represented by all
-/// fields being empty strings instead.
-#[contracttype]
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct LockMetadata {
-    pub description: String,
-    pub project_url: String,
-    pub logo_url: String,
-}
-
-impl LockMetadata {
-    pub fn is_empty(&self) -> bool {
-        self.description.is_empty() && self.project_url.is_empty() && self.logo_url.is_empty()
-    }
-
-    /// Sentinel for lock-creation paths that don't (yet) accept metadata, e.g. split locks.
-    pub fn empty(env: &Env) -> Self {
-        LockMetadata {
-            description: String::from_str(env, ""),
-            project_url: String::from_str(env, ""),
-            logo_url: String::from_str(env, ""),
-        }
-    }
-}
+// Vesting, LockMetadata, and UpgradeProposal are re-exported from locker-common.
 
 #[contracttype]
 #[derive(Clone)]
@@ -190,53 +127,17 @@ pub struct Lock {
     pub metadata: LockMetadata,
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ── Contract-specific helpers ─────────────────────────────────────────────────
+//
+// `next_id`, `push_index`, `remove_from_index`, `get_index`,
+// `collect_paginated`, `calculate_vested`, `enter_guard`, and `exit_guard`
+// are all provided by `locker_common` and re-exported above.
+//
+// Only helpers that depend on the contract-specific `Lock` type or DataKey
+// variants remain here.
 
-fn next_id(env: &Env) -> u64 {
-    let id: u64 = env
-        .storage()
-        .instance()
-        .get(&DataKey::NextId)
-        .unwrap_or(1000);
-    let next = id.saturating_add(1);
-    env.storage().instance().set(&DataKey::NextId, &next);
-    env.storage()
-        .instance()
-        .extend_ttl(INSTANCE_THRESHOLD, INSTANCE_BUMP);
-    id
-}
-
-fn push_index(env: &Env, key: DataKey, id: u64, withdrawn: bool) {
-    let mut ids: Vec<u64> = env.storage().persistent().get(&key).unwrap_or(vec![env]);
-    ids.push_back(id);
-    env.storage().persistent().set(&key, &ids);
-    if withdrawn {
-        env.storage()
-            .persistent()
-            .extend_ttl(&key, WITHDRAWN_THRESHOLD, WITHDRAWN_BUMP);
-    } else {
-        env.storage()
-            .persistent()
-            .extend_ttl(&key, PERSISTENT_THRESHOLD, PERSISTENT_BUMP);
-    }
-}
-
-fn remove_from_index(env: &Env, key: DataKey, id: u64) {
-    let ids: Vec<u64> = env.storage().persistent().get(&key).unwrap_or(vec![env]);
-    let mut filtered: Vec<u64> = vec![env];
-    for existing in ids.iter() {
-        if existing != id {
-            filtered.push_back(existing);
-        }
-    }
-    env.storage().persistent().set(&key, &filtered);
-    env.storage()
-        .persistent()
-        .extend_ttl(&key, PERSISTENT_THRESHOLD, PERSISTENT_BUMP);
-}
-
-fn get_index(env: &Env, key: DataKey) -> Vec<u64> {
-    env.storage().persistent().get(&key).unwrap_or(vec![env])
+fn get_id(env: &Env) -> u64 {
+    next_id(env, DataKey::NextId, 1_000)
 }
 
 fn load_lock(env: &Env, id: u64) -> Result<Lock, ContractError> {
@@ -250,7 +151,6 @@ fn save_lock(env: &Env, lock: &Lock) {
     let key = DataKey::Lock(lock.id);
     env.storage().persistent().set(&key, lock);
     if lock.withdrawn {
-        // Withdrawn locks get a short TTL — enough to be queried but not renewed forever.
         env.storage()
             .persistent()
             .extend_ttl(&key, WITHDRAWN_THRESHOLD, WITHDRAWN_BUMP);
@@ -262,49 +162,15 @@ fn save_lock(env: &Env, lock: &Lock) {
 }
 
 fn collect_locks_paginated(env: &Env, ids: Vec<u64>, offset: u32, limit: u32) -> Vec<Lock> {
-    let mut out: Vec<Lock> = vec![env];
-    let len = ids.len();
-    let start = offset.min(len);
-    let end = start.saturating_add(limit).min(len);
-    let mut i = start;
-    while i < end {
-        let id = ids.get(i).unwrap();
-        if let Some(lock) = env.storage().persistent().get(&DataKey::Lock(id)) {
-            out.push_back(lock);
-        }
-        i += 1;
-    }
-    out
+    collect_paginated(env, ids, offset, limit, DataKey::Lock)
 }
 
-pub(crate) fn calculate_vested(amount: i128, start: u64, end: u64, now: u64) -> i128 {
-    if now < start || amount <= 0 {
-        return 0;
-    }
-    let elapsed = now.saturating_sub(start) as i128;
-    let duration = end.saturating_sub(start) as i128;
-    if duration <= 0 {
-        return amount;
-    }
-    let vested = amount.saturating_mul(elapsed) / duration;
-    vested.min(amount).max(0)
+fn guard_enter(env: &Env) -> Result<(), ContractError> {
+    enter_guard(env, &DataKey::ReentrancyGuard, ContractError::ReentrancyDetected)
 }
 
-fn enter_guard(env: &Env) -> Result<(), ContractError> {
-    if env.storage().temporary().has(&DataKey::ReentrancyGuard) {
-        return Err(ContractError::ReentrancyDetected);
-    }
-    env.storage()
-        .temporary()
-        .set(&DataKey::ReentrancyGuard, &true);
-    env.storage()
-        .temporary()
-        .extend_ttl(&DataKey::ReentrancyGuard, 1, 1);
-    Ok(())
-}
-
-fn exit_guard(env: &Env) {
-    env.storage().temporary().remove(&DataKey::ReentrancyGuard);
+fn guard_exit(env: &Env) {
+    exit_guard(env, &DataKey::ReentrancyGuard);
 }
 
 fn require_not_paused(env: &Env) -> Result<(), ContractError> {
@@ -373,7 +239,7 @@ impl TokenLocker {
             &amount,
         );
 
-        let id = next_id(&env);
+        let id = get_id(&env);
         let lock = Lock {
             id,
             token: token.clone(),
@@ -455,7 +321,7 @@ impl TokenLocker {
     }
 
     pub fn withdraw(env: Env, id: u64) -> Result<(), ContractError> {
-        enter_guard(&env)?;
+        guard_enter(&env)?;
         let result = (|| {
             require_not_paused(&env)?;
             let mut lock = load_lock(&env, id)?;
@@ -517,12 +383,12 @@ impl TokenLocker {
             );
             Ok(())
         })();
-        exit_guard(&env);
+        guard_exit(&env);
         result
     }
 
     pub fn extend(env: Env, id: u64, new_unlock_at: u64) -> Result<(), ContractError> {
-        enter_guard(&env)?;
+        guard_enter(&env)?;
         let result = (|| {
             require_not_paused(&env)?;
             let mut lock = load_lock(&env, id)?;
@@ -562,7 +428,7 @@ impl TokenLocker {
             );
             Ok(())
         })();
-        exit_guard(&env);
+        guard_exit(&env);
         result
     }
 
@@ -571,7 +437,7 @@ impl TokenLocker {
         id: u64,
         new_beneficiary: Address,
     ) -> Result<(), ContractError> {
-        enter_guard(&env)?;
+        guard_enter(&env)?;
         let result = (|| {
             require_not_paused(&env)?;
             let mut lock = load_lock(&env, id)?;
@@ -604,7 +470,7 @@ impl TokenLocker {
             );
             Ok(())
         })();
-        exit_guard(&env);
+        guard_exit(&env);
         result
     }
 
@@ -739,7 +605,7 @@ impl TokenLocker {
             &total_amount,
         );
 
-        let group_id = next_id(&env);
+        let group_id = get_id(&env);
         let mut lock_ids: Vec<u64> = vec![&env];
         let mut total_allocated: i128 = 0;
 
@@ -758,7 +624,7 @@ impl TokenLocker {
                     .ok_or(ContractError::AmountOverflow)?;
                 amount
             };
-            let lock_id = if i == 0 { group_id } else { next_id(&env) };
+            let lock_id = if i == 0 { group_id } else { get_id(&env) };
             let lock = Lock {
                 id: lock_id,
                 token: token.clone(),

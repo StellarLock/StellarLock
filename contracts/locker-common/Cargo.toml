@@ -1,15 +1,15 @@
 [package]
-name = "lp-locker"
+name = "locker-common"
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
+description = "Shared types, constants, and helpers for token-locker and lp-locker contracts."
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["rlib"]
 
 [dependencies]
 soroban-sdk = { workspace = true }
-locker-common = { path = "../locker-common" }
 
 [dev-dependencies]
 soroban-sdk = { version = "22.0.7", features = ["testutils"] }

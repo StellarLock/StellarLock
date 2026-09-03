@@ -11,7 +11,7 @@
 #   docker build -f Dockerfile.contracts -t stellarlock-contracts .
 #   docker run -v $(pwd)/contracts:/app/contracts stellarlock-contracts build
 
-FROM rust:1.82-slim AS base
+FROM rust:1.93-slim AS base
 
 # Install build essentials and Stellar CLI
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -27,7 +27,7 @@ RUN rustup target add wasm32v1-none
 # Install the Stellar CLI (pinned version for reproducibility).
 # ⚠️  Keep this version in sync with the `stellar/stellar-cli` action version
 #     used in .github/workflows/ci.yml (contracts job) — currently v27.0.0.
-RUN cargo install --locked stellar-cli@27.0.0 --features opt
+RUN cargo install --locked stellar-cli@27.0.0
 
 WORKDIR /app
 
