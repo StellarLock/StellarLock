@@ -104,11 +104,16 @@ Branch protection is configured via `.github/scripts/apply-branch-protection.sh`
 
 | Path | Required reviewer |
 |---|---|
+| `*` (catch-all) | `@StellarLock/core-team` |
 | `/contracts/` | `@StellarLock/core-team` |
 | `/src/lib/` | `@StellarLock/core-team` |
 | `/src/` | `@StellarLock/frontend-team` |
 | `/.github/` | `@StellarLock/lead` |
-| `package.json`, `Cargo.toml` | `@StellarLock/core-team` |
+| `/vercel.json` | `@StellarLock/lead` |
+| `/package.json` | `@StellarLock/core-team` |
+| `/pnpm-lock.yaml` | `@StellarLock/core-team` |
+| `/contracts/Cargo.toml` | `@StellarLock/core-team` |
+| `/contracts/Cargo.lock` | `@StellarLock/core-team` |
 
 To update protection rules, a repository admin must use the GitHub UI (**Settings → Branches**) or the GitHub API. Do not bypass reviews with admin overrides on contract-touching PRs.
 
