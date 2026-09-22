@@ -153,7 +153,7 @@ This runs `cargo test` inside the contracts workspace with the full Rust + Sorob
 
 | File | Purpose |
 |---|---|
-| `Dockerfile.dev` | Frontend — Node 20 + pnpm, dependency layer caching |
+| `Dockerfile.dev` | Frontend — Node 22 + pnpm, dependency layer caching |
 | `Dockerfile.contracts` | Contracts — Rust + Soroban CLI |
 | `docker-compose.yml` | Orchestrates both services |
 | `.dockerignore` | Excludes `node_modules`, `target`, build artifacts, and secrets |
