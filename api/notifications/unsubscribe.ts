@@ -1,8 +1,8 @@
 /**
- * DELETE /api/notifications/subscribe/:lockId?address=G...
+ * DELETE /api/notifications/unsubscribe?lockId=token:1042&address=G...
  *
- * Removes a notification subscription. Both lockId (path param or query param)
- * and the subscriber's Stellar address (query param) are required to prevent
+ * Removes a notification subscription. Both lockId and the subscriber's
+ * Stellar address are required query params to prevent
  * one user from deleting another's subscription.
  *
  * Query params:
