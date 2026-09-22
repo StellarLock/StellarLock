@@ -1,4 +1,4 @@
-import { Page } from '@playwright/test'
+import { Page } from "@playwright/test"
 
 export class LockDetailPage {
   constructor(public page: Page) {}
@@ -8,15 +8,15 @@ export class LockDetailPage {
   }
 
   async waitForLockInfo() {
-    await this.page.locator('h1').first().waitFor()
+    await this.page.locator("h1").first().waitFor()
   }
 
   async getLockId() {
-    return await this.page.locator('text=/Lock #\d+/').textContent()
+    return await this.page.getByText(/Lock #\d+/).textContent()
   }
 
   async getUnlockDate() {
-    return await this.page.locator('text=/Unlocks/').textContent()
+    return await this.page.locator("text=/Unlocks/").textContent()
   }
 
   async clickWithdraw() {
