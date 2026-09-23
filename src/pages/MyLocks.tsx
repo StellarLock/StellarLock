@@ -488,7 +488,11 @@ function LockListView({
 
   if (locks.length === 0) {
     return (
-      <div className="mt-10 rounded-xl border border-dashed border-border bg-card/40 p-12 text-center">
+      <div
+        data-testid="locks-empty-state"
+        className="mt-10 rounded-xl border border-dashed border-border bg-card/40 p-12 text-center"
+      >
+        {" "}
         <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-primary/15 text-primary">
           <Wallet className="h-6 w-6" />
         </span>

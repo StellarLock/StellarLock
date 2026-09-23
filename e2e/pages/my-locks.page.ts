@@ -1,48 +1,48 @@
-import { Page } from '@playwright/test'
+import { Page } from "@playwright/test"
 
 export class MyLocksPage {
   constructor(public page: Page) {}
 
   async goto() {
-    await this.page.goto('/app/locks')
+    await this.page.goto("/app/locks")
   }
 
-  async clickTab(tab: 'created' | 'received') {
-    await this.page.click(`button:has-text("${tab === 'created' ? 'Created by Me' : 'Beneficiary'}")`)
+  async clickTab(tab: "created" | "received") {
+    await this.page.click(`button:has-text("${tab === "created" ? "Created by Me" : "Beneficiary"}")`)
   }
 
   async searchLock(query: string) {
     await this.page.fill('input[placeholder*="Search"]', query)
   }
 
+  async getSearchValue() {
+    return await this.page.locator('input[placeholder*="Search"]').inputValue()
+  }
+
   async filterByStatus(status: string) {
-    await this.page.selectOption('select', status)
+    await this.page.locator('select[aria-label="Filter by status"]').selectOption(status)
+  }
+
+  async getStatusFilterValue() {
+    return await this.page.locator('select[aria-label="Filter by status"]').inputValue()
   }
 
   async filterByType(type: string) {
-    const selects = await this.page.locator('select').all()
-    if (selects.length > 1) {
-      await selects[1].selectOption(type)
+    const selects = await this.page.locator('select[aria-label="Filter by type"]')
+    if ((await selects.count()) > 0) {
+      await selects.first().selectOption(type)
     }
   }
 
-  async getLockCards() {
-    return await this.page.locator('[class*="LockCard"]').count()
+  async getTypeFilterValue() {
+    return await this.page.locator('select[aria-label="Filter by type"]').inputValue()
   }
 
-  async clickFirstLock() {
-    await this.page.locator('[class*="LockCard"]').first().click()
+  async getLockCards() {
+    return await this.page.getByTestId("lock-card").count()
   }
 
   async getEmptyStateMessage() {
-    return await this.page.locator('text=/no locks/i').textContent()
-  }
-
-  async isLoading() {
-    return await this.page.locator('[class*="SkeletonLockCard"]').isVisible()
-  }
-
-  async waitForSkeletonsToLoad() {
-    await this.page.locator('[class*="animate-pulse"]').first().waitFor()
+    return await this.page.getByTestId("locks-empty-state").textContent()
   }
 }

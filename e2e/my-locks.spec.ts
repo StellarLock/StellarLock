@@ -35,17 +35,39 @@ test.describe("My Locks Page", () => {
     const myLocks = new MyLocksPage(page)
     await mockConnectedWallet(page)
     await myLocks.goto()
-    const searchInput = page.locator('input[placeholder*="Search"]')
-    await expect(searchInput).toBeVisible()
+    await myLocks.searchLock("zzz-no-such-token")
+    expect(await myLocks.getSearchValue()).toBe("zzz-no-such-token")
   })
 
-  test("Filter dropdowns are present", async ({ page }) => {
+  test("Filter dropdowns are present and selectable", async ({ page }) => {
     const myLocks = new MyLocksPage(page)
     await mockConnectedWallet(page)
     await myLocks.goto()
-    const selects = page.locator("select")
-    await expect(selects.first()).toBeVisible()
-    expect(await selects.count()).toBeGreaterThan(0)
+    await myLocks.filterByStatus("locked")
+    expect(await myLocks.getStatusFilterValue()).toBe("locked")
+    await myLocks.filterByType("token")
+    expect(await myLocks.getTypeFilterValue()).toBe("token")
+  })
+
+  test("Impossible filter combination shows empty state with no cards", async ({ page }) => {
+    const myLocks = new MyLocksPage(page)
+    await mockConnectedWallet(page)
+    await myLocks.goto()
+    await myLocks.searchLock("zzz-no-such-token")
+    await myLocks.filterByStatus("withdrawn")
+    await myLocks.filterByType("lp")
+    // The empty state only renders once chain data loads. If this
+    // environment cannot reach the backend (error state), there is no
+    // empty state to assert — skip instead of failing on infra.
+    await expect(
+      myLocks.page.getByTestId("locks-empty-state").or(myLocks.page.locator("text=/failed to load/i")),
+    ).toBeVisible()
+    if (await myLocks.page.locator("text=/failed to load/i").isVisible()) {
+      test.skip(true, "chain backend unreachable; empty state needs loaded data")
+    }
+    expect(await myLocks.getLockCards()).toBe(0)
+    const message = await myLocks.getEmptyStateMessage()
+    expect(message).toMatch(/no locks/i)
   })
 
   test("Empty state message displays correctly", async ({ page }) => {

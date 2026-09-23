@@ -26,6 +26,7 @@ export function LockCard({ lock, selectable = false, selected = false, onSelect 
 
   const inner = (
     <Card
+      data-testid="lock-card"
       className={cn(
         "p-5 transition-colors hover:border-primary/40",
         selected && "border-primary ring-1 ring-primary/40",
