@@ -1,20 +1,18 @@
 import { Check, Circle, Loader2 } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { cn } from "@/lib/utils"
 import type { TxPhase } from "@/lib/stellar"
 
 type TxDisplayPhase = TxPhase | "idle"
 
-const STEPS: { phase: TxPhase; label: string }[] = [
-  { phase: "simulating", label: "Simulating transaction…" },
-  { phase: "signing", label: "Please sign in your wallet…" },
-  { phase: "submitting", label: "Submitting to network…" },
-  { phase: "confirming", label: "Waiting for confirmation…" },
-]
+const PHASES: TxPhase[] = ["simulating", "signing", "submitting", "confirming"]
 
 export function TxProgressSteps({ phase }: { phase: TxDisplayPhase }) {
+  const { t } = useTranslation()
+  
   if (phase === "idle") return null
 
-  const currentIdx = STEPS.findIndex((s) => s.phase === phase)
+  const currentIdx = PHASES.findIndex((p) => p === phase)
 
   return (
     <div
@@ -22,12 +20,12 @@ export function TxProgressSteps({ phase }: { phase: TxDisplayPhase }) {
       aria-live="polite"
       className="flex flex-col gap-2 rounded-lg border border-border bg-secondary/40 p-3"
     >
-      {STEPS.map((step, i) => {
+      {PHASES.map((p, i) => {
         const isDone = i < currentIdx
-        const isActive = step.phase === phase
+        const isActive = p === phase
         return (
           <div
-            key={step.phase}
+            key={p}
             className={cn(
               "flex items-center gap-2 text-sm transition-colors",
               isActive && "text-foreground font-medium",
@@ -42,7 +40,7 @@ export function TxProgressSteps({ phase }: { phase: TxDisplayPhase }) {
             ) : (
               <Circle className="h-3.5 w-3.5 shrink-0" />
             )}
-            {step.label}
+            {t(`txProgress.${p}`)}
           </div>
         )
       })}

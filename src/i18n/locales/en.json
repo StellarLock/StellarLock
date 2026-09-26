@@ -228,7 +228,14 @@
     "allLocks": "All locks ({{count}})",
     "noLocksTitle": "No locks found",
     "noLocksDesc": "We couldn't find any locks for <1>{{query}}</1>. Double-check the token symbol or contract address, or create the first lock for this token.",
-    "createLock": "Create a lock"
+    "createLock": "Create a lock",
+    "badge": {
+      "title": "Locked on StellarLock",
+      "summary": "{{count}} active lock · {{value}} secured",
+      "summary_other": "{{count}} active locks · {{value}} secured",
+      "copyUrl": "Copy share link",
+      "copyBadge": "Copy README badge"
+    }
   },
   "discover": {
     "title": "Explore Locks",
@@ -547,5 +554,11 @@
     "title": "Something went wrong",
     "message": "Something went wrong. Please try again.",
     "tryAgain": "Try again"
+  },
+  "txProgress": {
+    "simulating": "Simulating transaction…",
+    "signing": "Please sign in your wallet…",
+    "submitting": "Submitting to network…",
+    "confirming": "Waiting for confirmation…"
   }
 }
