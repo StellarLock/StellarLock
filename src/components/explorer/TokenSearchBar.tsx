@@ -166,6 +166,11 @@ export function TokenSearchBar({ className, autoFocus }: { className?: string; a
           aria-autocomplete="list"
           aria-controls="search-suggestions"
           aria-expanded={showSuggestions && suggestions.length > 0}
+          aria-activedescendant={
+            selectedIndex >= 0 && selectedIndex < suggestions.length
+              ? `search-suggestion-${selectedIndex}`
+              : undefined
+          }
           className="h-10 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
         />
         <Button type="submit" size="md" className="shrink-0">
@@ -182,6 +187,7 @@ export function TokenSearchBar({ className, autoFocus }: { className?: string; a
           {suggestions.map((suggestion, index) => (
             <li
               key={suggestion.address}
+              id={`search-suggestion-${index}`}
               role="option"
               aria-selected={index === selectedIndex}
               onClick={() => handleSelect(suggestion.address)}

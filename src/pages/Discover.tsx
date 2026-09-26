@@ -83,6 +83,11 @@ export function Discover() {
                 <SkeletonLockCard key={i} />
               ))}
             </div>
+          ) : recentLocks.length === 0 ? (
+            <Card className="p-10 text-center">
+              <Lock className="mx-auto mb-3 h-10 w-10 text-muted-foreground/40" />
+              <p className="text-sm text-muted-foreground">{t("discover.noRecentLocks")}</p>
+            </Card>
           ) : (
           <Card className="divide-y divide-border">
             {recentLocks.map((lock) => (
@@ -119,6 +124,11 @@ export function Discover() {
                 <SkeletonLockCard key={i} />
               ))}
             </div>
+          ) : upcomingUnlocks.length === 0 ? (
+            <Card className="p-10 text-center">
+              <CalendarClock className="mx-auto mb-3 h-10 w-10 text-muted-foreground/40" />
+              <p className="text-sm text-muted-foreground">{t("discover.noUpcomingUnlocks")}</p>
+            </Card>
           ) : (
           <Card className="divide-y divide-border">
             {upcomingUnlocks.map((lock) => (

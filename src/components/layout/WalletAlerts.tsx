@@ -35,7 +35,7 @@ export function WalletAlerts() {
       )}
 
       {networkChanged && (
-        <div className="fixed top-4 end-4 z-50 flex max-w-md items-start gap-3 rounded-lg border border-yellow-500/50 bg-yellow-500/10 p-4 text-sm text-yellow-700 shadow-lg">
+        <div className="fixed top-4 end-4 z-50 flex max-w-md items-start gap-3 rounded-lg border border-yellow-500/50 bg-yellow-500/10 p-4 text-sm text-yellow-700 dark:text-yellow-400 shadow-lg">
           <Wifi className="mt-0.5 h-5 w-5 shrink-0" />
           <div className="flex-1">
             <p className="font-medium">{t("wallet.networkChanged")}</p>
