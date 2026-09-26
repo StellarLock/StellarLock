@@ -316,5 +316,10 @@ MIT
 
 ## Handsoff notes
 
+<!-- handsoff-issue-778 -->
+- #778: Lock-creation 'Lock Details' metadata section ignores its own i18n keys in both forms
+
+<!-- handsoff-issue-779 -->
+- #779: CreateLpLockForm's beneficiary field has no i18n key at all, unlike CreateTokenLockForm's
 <!-- handsoff-issue-785 -->
 - #785: NotificationSettings validates the email address but saves the webhook URL with no format check
