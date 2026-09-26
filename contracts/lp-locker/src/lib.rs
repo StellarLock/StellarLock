@@ -813,7 +813,7 @@ impl LpLocker {
         let mut out: Vec<SplitGroup> = vec![&env];
         let len = ids.len();
         let start = offset.min(len);
-        let end = (start + limit).min(len);
+        let end = start.saturating_add(limit).min(len);
         let mut i = start;
         while i < end {
             let id = ids.get(i).unwrap();
