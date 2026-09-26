@@ -1742,6 +1742,18 @@ fn get_split_groups_by_creator_pagination_works() {
         client.get_split_groups_by_creator(&creator, &3, &10).len(),
         0
     );
+
+    // offset + limit overflows u32 without saturating arithmetic.
+    let remaining = client.get_split_groups_by_creator(&creator, &1, &u32::MAX);
+    assert_eq!(remaining.len(), 2);
+    assert_eq!(
+        remaining.get(0).unwrap().group_id,
+        client.get_split_groups_by_creator(&creator, &1, &1).get(0).unwrap().group_id
+    );
+    assert_eq!(
+        client.get_split_groups_by_creator(&creator, &u32::MAX, &u32::MAX).len(),
+        0
+    );
 }
 
 // ── create_split_lock: TVL and global stats ───────────────────────────────────
