@@ -18,6 +18,7 @@ import { TxErrorAlert } from "@/components/ui/TxErrorAlert"
 import { TxProgressSteps } from "@/components/ui/TxProgressSteps"
 import type { TxPhase } from "@/lib/stellar"
 import { addNotification } from "@/hooks/useNotifications"
+import { validateTokenLockForm, validateLpLockForm } from "@/lib/validation/lockFormValidation"
 
 type LockType = "token" | "lp"
 
@@ -175,10 +176,33 @@ export function LockCreationWizard() {
       : isValidStellarContractAddress(state.poolShareAddress.trim()) &&
         isValidStellarContractAddress(state.tokenA.trim()) &&
         isValidStellarContractAddress(state.tokenB.trim())
-  const step3Valid =
-    Number(state.amount) > 0 &&
-    new Date(state.unlockDate).getTime() > Date.now() &&
-    (state.beneficiary.trim() === "" || isValidStellarAddress(state.beneficiary.trim()))
+  const step3Valid = (() => {
+    if (state.beneficiary.trim() !== "" && !isValidStellarAddress(state.beneficiary.trim())) {
+      return false
+    }
+    if (state.lockType === "token") {
+      const result = validateTokenLockForm({
+        tokenAddress: state.tokenAddress,
+        amount: state.amount,
+        beneficiary: state.beneficiary,
+        walletAddress: address ?? null,
+        unlockDate: state.unlockDate,
+        multiMode: false,
+        splitBeneficiaries: [],
+      })
+      return result.isValid
+    } else {
+      const result = validateLpLockForm({
+        poolShareAddress: state.poolShareAddress,
+        tokenA: state.tokenA,
+        tokenB: state.tokenB,
+        amount: state.amount,
+        unlockDate: state.unlockDate,
+        walletAddress: address ?? null,
+      })
+      return result.isValid
+    }
+  })()
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10">
