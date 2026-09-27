@@ -140,7 +140,7 @@ export function LockCreationWizard() {
             tokenA: state.tokenA.trim(),
             tokenB: state.tokenB.trim(),
             amount: Number(state.amount),
-            beneficiary: address!,
+            beneficiary: state.beneficiary.trim() || address!,
             unlockAt: Math.floor(new Date(state.unlockDate).getTime() / 1000),
             metadata: {},
           },
@@ -427,6 +427,9 @@ function Step3({ state, updateState }: { state: WizardState; updateState: (updat
 
 // Step 4: Review & Confirm
 function Step4({ state }: { state: WizardState }) {
+  const { address } = useWallet()
+  const effectiveBeneficiary = state.beneficiary.trim() || address || ""
+
   return (
     <div>
       <h2 className="mb-4 text-lg font-semibold">Review & Confirm</h2>
@@ -449,6 +452,12 @@ function Step4({ state }: { state: WizardState }) {
         <div className="flex justify-between">
           <span className="text-sm text-muted-foreground">Amount:</span>
           <span className="font-medium">{state.amount}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-sm text-muted-foreground">Beneficiary:</span>
+          <span className="font-mono text-sm" title={effectiveBeneficiary}>
+            {effectiveBeneficiary ? `${effectiveBeneficiary.substring(0, 8)}…` : "—"}
+          </span>
         </div>
         <div className="flex justify-between">
           <span className="text-sm text-muted-foreground">Unlock Date:</span>
