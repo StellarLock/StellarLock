@@ -25,6 +25,7 @@ jobs:
   mutation-testing:
     name: cargo mutants (${{ matrix.contract }})
     runs-on: ubuntu-latest
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:

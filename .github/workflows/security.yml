@@ -16,6 +16,7 @@ jobs:
   npm-audit:
     name: npm dependency audit
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
 
@@ -37,6 +38,7 @@ jobs:
   cargo-audit:
     name: Cargo dependency audit
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
@@ -62,6 +64,7 @@ jobs:
   cargo-deny:
     name: Cargo license & advisory check
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
 
