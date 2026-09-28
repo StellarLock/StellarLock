@@ -1,46 +1,34 @@
 /**
- * Unit tests for src/hooks/useWallet.tsx — #746
+ * Unit tests for src/hooks/useWallet.tsx — #745 & #746
  *
- * networkChanged was declared, exposed on WalletContext, and reset by
+ * #746: networkChanged was declared, exposed on WalletContext, and reset by
  * disconnect()/dismissNetworkAlert() — but nothing ever called
  * setNetworkChanged(true), so the fully-built "network changed, please
  * reconnect" alert could never actually appear. This covers the new
  * detection added to the existing 10s connection-status poll: comparing
  * the wallet's active network (via the kit's getNetwork()) against
  * NETWORK.passphrase.
+ *
+ * #745: connect()'s retry loop used to treat every openModal rejection the
+ * same way, including the user deliberately closing the wallet-selection
+ * modal (onClosed). That meant closing the modal caused it to silently
+ * reopen itself after a 1s/2s/4s backoff, up to 3 more times. This covers
+ * the fix: the "Connection cancelled" rejection now exits the retry loop
+ * immediately instead of being retried.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 import { renderHook, act } from "@testing-library/react"
 import { Networks } from "@stellar/stellar-sdk"
 import type { ReactNode } from "react"
 
-const getAddressMock = vi.fn()
-const getNetworkMock = vi.fn()
- * Unit tests for src/hooks/useWallet.tsx — #745
- *
- * connect()'s retry loop used to treat every openModal rejection the same
- * way, including the user deliberately closing the wallet-selection modal
- * (onClosed). That meant closing the modal caused it to silently reopen
- * itself after a 1s/2s/4s backoff, up to 3 more times. This covers the
- * fix: the "Connection cancelled" rejection now exits the retry loop
- * immediately instead of being retried.
- */
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
-import { renderHook, act } from "@testing-library/react"
-import type { ReactNode } from "react"
-
 const openModalMock = vi.fn()
 const getAddressMock = vi.fn()
+const getNetworkMock = vi.fn()
 
 vi.mock("@creit.tech/stellar-wallets-kit", () => ({
   StellarWalletsKit: vi.fn().mockImplementation(() => ({
     getAddress: getAddressMock,
     getNetwork: getNetworkMock,
-    setWallet: vi.fn(),
-    openModal: vi.fn(),
-    getNetwork: vi
-      .fn()
-      .mockResolvedValue({ network: "TESTNET", networkPassphrase: "Test SDF Network ; September 2015" }),
     setWallet: vi.fn(),
     openModal: openModalMock,
     signTransaction: vi.fn(),
@@ -79,13 +67,6 @@ describe("useWallet — network-change detection (#746)", () => {
     getNetworkMock.mockResolvedValue({ network: "TESTNET", networkPassphrase: Networks.TESTNET })
     localStorage.setItem(STORAGE_KEY, WALLET_ADDRESS)
     localStorage.setItem(WALLET_ID_KEY, "freighter")
-describe("useWallet — connect() cancellation (#745)", () => {
-  beforeEach(() => {
-    vi.useFakeTimers()
-    localStorage.clear()
-    openModalMock.mockReset()
-    getAddressMock.mockReset()
-    getAddressMock.mockResolvedValue({ address: null })
   })
 
   afterEach(() => {
@@ -139,6 +120,25 @@ describe("useWallet — connect() cancellation (#745)", () => {
     })
 
     expect(result.current.networkChanged).toBe(false)
+  })
+})
+
+describe("useWallet — connect() cancellation (#745)", () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+    localStorage.clear()
+    openModalMock.mockReset()
+    getAddressMock.mockReset()
+    getNetworkMock.mockReset()
+    getNetworkMock.mockResolvedValue({ network: "TESTNET", networkPassphrase: Networks.TESTNET })
+    getAddressMock.mockResolvedValue({ address: null })
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+    localStorage.clear()
+  })
+
   it("does not retry when the user closes the wallet-selection modal", async () => {
     openModalMock.mockImplementation(({ onClosed }: { onClosed: () => void }) => {
       onClosed()

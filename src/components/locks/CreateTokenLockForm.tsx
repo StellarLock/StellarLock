@@ -134,6 +134,11 @@ export function CreateTokenLockForm() {
   const trimmedTokenAddress = tokenAddress.trim()
   const trimmedBeneficiary = beneficiary.trim()
 
+  // True when the split-beneficiary rows are ready to submit: exactly 10 000 bps
+  // total and at least two entries (mirrors the validation in MultiBeneficiaryFields).
+  const splitSharesOk =
+    splitBeneficiaries.length >= 2 && splitBeneficiaries.reduce((sum, b) => sum + b.shareBps, 0) === 10_000
+
   // Single source of truth for this form's validity — the same module backs
   // CreateLpLockForm, so the two forms can't drift apart. Memoized because
   // FormValidationErrors keys its screen-reader announcement off the result.
@@ -198,7 +203,7 @@ export function CreateTokenLockForm() {
   const costArgs = useMemo((): xdr.ScVal[] | null => {
     try {
       if (!validTokenAddress || !address || Number(amount) <= 0 || unlockTs <= Date.now()) return null
-      
+
       if (multiMode) {
         // Cost estimation for split lock (create_split_lock method)
         if (!splitSharesOk) return null
@@ -213,7 +218,7 @@ export function CreateTokenLockForm() {
               key: xdr.ScVal.scvSymbol("share_bps"),
               val: nativeToScVal(b.shareBps, { type: "u32" }),
             }),
-          ])
+          ]),
         )
         return [
           new Address(address).toScVal(),
@@ -239,7 +244,7 @@ export function CreateTokenLockForm() {
             : xdr.ScVal.scvVoid(),
         ]
       }
-      
+
       // Cost estimation for regular lock (create_lock method)
       const beneficiaryAddr = beneficiary.trim().length > 0 ? beneficiary.trim() : address
       const amountStroops = BigInt(Math.round(Number(amount) * 1e7))
@@ -710,10 +715,10 @@ export function CreateTokenLockForm() {
 
         <TxErrorAlert error={error} />
 
-        <CostEstimate 
-          contractId={CONTRACTS.tokenLocker} 
-          method={multiMode ? "create_split_lock" : "create_lock"} 
-          args={costArgs} 
+        <CostEstimate
+          contractId={CONTRACTS.tokenLocker}
+          method={multiMode ? "create_split_lock" : "create_lock"}
+          args={costArgs}
         />
 
         <FormValidationErrors issues={visibleIssues} />
