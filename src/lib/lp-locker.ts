@@ -300,13 +300,17 @@ export async function createLpLock(
   signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>,
   onProgress?: (phase: TxPhase) => void,
 ): Promise<{ id: string; txHash: string }> {
+  // Issue #738: fetch the pool-share token's real decimals instead of hardcoding 7
+  const { decimals } = await getOnChainTokenMeta(args.poolShareAddress)
+  const amountStroops = BigInt(Math.round(args.amount * 10 ** decimals))
+
   const scArgs: xdr.ScVal[] = [
     addressArg(sourceAddress),
     addressArg(args.poolShareAddress),
     dexArg(args.dex),
     addressArg(args.tokenA),
     addressArg(args.tokenB),
-    nativeToScVal(BigInt(Math.round(args.amount * 1e7)), { type: "i128" }),
+    nativeToScVal(amountStroops, { type: "i128" }),
     addressArg(args.beneficiary),
     nativeToScVal(BigInt(Math.floor(args.unlockAt)), { type: "u64" }),
     metadataArg(args.metadata),
