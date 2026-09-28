@@ -18,6 +18,7 @@ import { TxErrorAlert } from "@/components/ui/TxErrorAlert"
 import { TxProgressSteps } from "@/components/ui/TxProgressSteps"
 import type { TxPhase } from "@/lib/stellar"
 import { addNotification } from "@/hooks/useNotifications"
+import { validateTokenLockForm, validateLpLockForm } from "@/lib/validation/lockFormValidation"
 
 type LockType = "token" | "lp"
 
@@ -140,7 +141,7 @@ export function LockCreationWizard() {
             tokenA: state.tokenA.trim(),
             tokenB: state.tokenB.trim(),
             amount: Number(state.amount),
-            beneficiary: address!,
+            beneficiary: state.beneficiary.trim() || address!,
             unlockAt: Math.floor(new Date(state.unlockDate).getTime() / 1000),
             metadata: {},
           },
@@ -175,10 +176,33 @@ export function LockCreationWizard() {
       : isValidStellarContractAddress(state.poolShareAddress.trim()) &&
         isValidStellarContractAddress(state.tokenA.trim()) &&
         isValidStellarContractAddress(state.tokenB.trim())
-  const step3Valid =
-    Number(state.amount) > 0 &&
-    new Date(state.unlockDate).getTime() > Date.now() &&
-    (state.beneficiary.trim() === "" || isValidStellarAddress(state.beneficiary.trim()))
+  const step3Valid = (() => {
+    if (state.beneficiary.trim() !== "" && !isValidStellarAddress(state.beneficiary.trim())) {
+      return false
+    }
+    if (state.lockType === "token") {
+      const result = validateTokenLockForm({
+        tokenAddress: state.tokenAddress,
+        amount: state.amount,
+        beneficiary: state.beneficiary,
+        walletAddress: address ?? null,
+        unlockDate: state.unlockDate,
+        multiMode: false,
+        splitBeneficiaries: [],
+      })
+      return result.isValid
+    } else {
+      const result = validateLpLockForm({
+        poolShareAddress: state.poolShareAddress,
+        tokenA: state.tokenA,
+        tokenB: state.tokenB,
+        amount: state.amount,
+        unlockDate: state.unlockDate,
+        walletAddress: address ?? null,
+      })
+      return result.isValid
+    }
+  })()
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10">
@@ -427,6 +451,9 @@ function Step3({ state, updateState }: { state: WizardState; updateState: (updat
 
 // Step 4: Review & Confirm
 function Step4({ state }: { state: WizardState }) {
+  const { address } = useWallet()
+  const effectiveBeneficiary = state.beneficiary.trim() || address || ""
+
   return (
     <div>
       <h2 className="mb-4 text-lg font-semibold">Review & Confirm</h2>
@@ -449,6 +476,12 @@ function Step4({ state }: { state: WizardState }) {
         <div className="flex justify-between">
           <span className="text-sm text-muted-foreground">Amount:</span>
           <span className="font-medium">{state.amount}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-sm text-muted-foreground">Beneficiary:</span>
+          <span className="font-mono text-sm" title={effectiveBeneficiary}>
+            {effectiveBeneficiary ? `${effectiveBeneficiary.substring(0, 8)}…` : "—"}
+          </span>
         </div>
         <div className="flex justify-between">
           <span className="text-sm text-muted-foreground">Unlock Date:</span>
