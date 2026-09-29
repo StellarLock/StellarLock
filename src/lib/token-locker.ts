@@ -276,7 +276,9 @@ export async function createTokenLock(
   onProgress?: (phase: TxPhase) => void,
 ): Promise<{ id: string; txHash: string }> {
   const unlockAtSecs = Math.floor(args.unlockAt)
-  const amountStroops = BigInt(Math.round(args.amount * 1e7))
+  // Issue #737: fetch the token's real decimals instead of hardcoding 7
+  const { decimals } = await getOnChainTokenMeta(args.tokenAddress)
+  const amountStroops = BigInt(Math.round(args.amount * 10 ** decimals))
 
   const scArgs: xdr.ScVal[] = [
     addressArg(sourceAddress),
