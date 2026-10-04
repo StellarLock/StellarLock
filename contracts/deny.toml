@@ -1,3 +1,12 @@
+[advisories]
+# Both are "unmaintained" notices (not vulnerabilities) for crates pulled in
+# transitively by soroban-sdk -> soroban-env-host -> ark-* (BLS12-381 support).
+# There is no upgrade path from our side; revisit when soroban-sdk drops them.
+ignore = [
+    { id = "RUSTSEC-2024-0388", reason = "derivative unmaintained; transitive via soroban-env-host/ark-*" },
+    { id = "RUSTSEC-2024-0436", reason = "paste unmaintained; transitive via soroban-env-host/ark-* and wasmi" },
+]
+
 [licenses]
 allow = [
     "MIT",
