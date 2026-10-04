@@ -20,7 +20,7 @@ export class ExplorerPage {
   }
 
   lockList() {
-    return this.page.locator('[class*="LockCard"]')
+    return this.page.locator('a[href^="/app/lock/"]')
   }
 
   notFoundHeading() {

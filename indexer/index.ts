@@ -428,21 +428,13 @@ export interface EventSource {
  * `inFlight` guard forever.
  */
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(() => {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
       reject(new Error(`[indexer] ${label} timed out after ${ms}ms`))
     }, ms)
-    promise.then(
-      (value) => {
-        clearTimeout(timer)
-        resolve(value)
-      },
-      (err) => {
-        clearTimeout(timer)
-        reject(err)
-      },
-    )
   })
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer))
 }
 
 /**
@@ -517,9 +509,7 @@ export async function pollOnce(server: EventSource): Promise<number> {
   // re-includes maxEventLedger rather than skipping its tail. Already-seen
   // event IDs are deduplicated by INSERT OR IGNORE, so the re-fetch is safe.
   // When the page is partial we've consumed everything up to latestLedger.
-  const lastIndexed = pageFull
-    ? Math.max(maxEventLedger - 1, 0)
-    : Math.max(maxEventLedger, resp.latestLedger)
+  const lastIndexed = pageFull ? Math.max(maxEventLedger - 1, 0) : Math.max(maxEventLedger, resp.latestLedger)
   if (lastIndexed > getLastIndexed()) setMeta(META_LAST_LEDGER, String(lastIndexed))
 
   return processed

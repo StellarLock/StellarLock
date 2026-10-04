@@ -4,7 +4,7 @@ import { screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { render } from "./utils"
 import { CreateLpLockForm } from "../components/locks/CreateLpLockForm"
-import { VALID_PUBLIC_KEY, VALID_CONTRACT_ADDRESS } from "./mocks"
+import { VALID_PUBLIC_KEY, VALID_CONTRACT_ADDRESS, VALID_CONTRACT_ADDRESS_B } from "./mocks"
 
 vi.mock("@stellar/stellar-sdk", () => ({
   Address: class {
@@ -62,7 +62,7 @@ describe("CreateLpLockForm Validation Requirements", () => {
     expect(submitBtn).toBeDisabled()
 
     // 3. Enter Token B Contract Address
-    await user.type(screen.getByLabelText(/token b address/i), VALID_CONTRACT_ADDRESS)
+    await user.type(screen.getByLabelText(/token b address/i), VALID_CONTRACT_ADDRESS_B)
     expect(submitBtn).toBeDisabled()
 
     // 4. Enter Valid Number Amount

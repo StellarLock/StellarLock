@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useRef, ReactNode } from "react"
+import { createContext, useContext, useState, useCallback, useEffect, useRef, ReactNode } from "react"
 
 interface AnnouncerContextValue {
   message: string
@@ -44,6 +44,16 @@ export function AnnouncerProvider({ children }: { children: ReactNode }) {
       }, 50)
     }
   }, [])
+
+  // Cancel pending announcements on unmount so a timer never sets state on an
+  // unmounted provider.
+  useEffect(
+    () => () => {
+      if (politeTimerRef.current !== null) clearTimeout(politeTimerRef.current)
+      if (assertiveTimerRef.current !== null) clearTimeout(assertiveTimerRef.current)
+    },
+    [],
+  )
 
   return (
     <AnnouncerContext.Provider value={{ message: polite, announce }}>

@@ -33,11 +33,37 @@ test.describe("Explorer Page", () => {
   })
 
   test("Lock list renders", async ({ page }) => {
+    // Serve one indexed lock for this token so the list is deterministic rather
+    // than depending on whatever happens to be on testnet.
+    const token = "CBFCKEOQRQIXKLGU4QBUQVOINOKFBOXJ37LXEKLKNUO6TW4FNGDU26AW"
+    const nowSecs = Math.floor(Date.now() / 1000)
+    await page.route(INDEXER_LOCKS, (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          total: 1,
+          locks: [
+            {
+              id: "1",
+              kind: "token",
+              creator: "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF",
+              beneficiary: "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF",
+              token,
+              amount: "1000000000",
+              unlockAt: nowSecs + 30 * 86_400,
+              status: "locked",
+              createdAt: nowSecs - 86_400,
+            },
+          ],
+        }),
+      }),
+    )
+    await mockSorobanRpc(page)
+
     const explorer = new ExplorerPage(page)
-    await explorer.goto("GBMXUQVSF5VVFV7THVNO6ZSPHVZXDXHEHC3CFLCV4BQXLRGLVKZAQWEF")
+    await explorer.goto(token)
     await expect(explorer.tokenHeading()).toBeVisible()
-    // At least one LockCard must be present — expect() auto-waits and fails
-    // loudly if the selector never matches.
     await expect(explorer.lockList().first()).toBeVisible()
   })
 
@@ -70,6 +96,6 @@ test.describe("Discover Page", () => {
     await discover.goto()
     await discover.searchToken("GBMXUQVSF5VVFV7THVNO6ZSPHVZXDXHEHC3CFLCV4BQXLRGLVKZAQWEF")
     await explorer.waitForTokenHeader()
-    expect(await page.url()).toContain("GBMXUQVSF5VVFV7THVNO6ZSPHVZXDXHEHC3CFLCV4BQXLRGLVKZAQWEF")
+    expect(page.url()).toContain("GBMXUQVSF5VVFV7THVNO6ZSPHVZXDXHEHC3CFLCV4BQXLRGLVKZAQWEF")
   })
 })

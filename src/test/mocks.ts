@@ -2,6 +2,9 @@ import { vi } from "vitest"
 
 export const VALID_PUBLIC_KEY = "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF"
 export const VALID_CONTRACT_ADDRESS = "CBFCKEOQRQIXKLGU4QBUQVOINOKFBOXJ37LXEKLKNUO6TW4FNGDU26AW"
+// A second, distinct contract id for cases that need two different tokens
+// (e.g. LP token A/B, which must not be identical).
+export const VALID_CONTRACT_ADDRESS_B = "CA3WYETNIF5IAF3VUNQ3SYKZFV45TOFBF7CEZ46I7QEBPWTRM73WLEI4"
 
 export const mockWallet = {
   address: VALID_PUBLIC_KEY,
