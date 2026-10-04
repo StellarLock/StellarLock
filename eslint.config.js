@@ -7,7 +7,7 @@ import prettierConfig from "eslint-config-prettier"
 export default tseslint.config(
   // public/sw.js is a standalone service worker script with no benefit from
   // type-aware linting.
-  { ignores: ["dist", "contracts", "public/sw.js"] },
+  { ignores: ["dist", "storybook-static", "playwright-report", "test-results", "contracts", "public/sw.js"] },
   eslint.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
   {
@@ -30,8 +30,9 @@ export default tseslint.config(
             "e2e/pages/*.ts",
           ],
           // The globs above intentionally span more than the typescript-eslint
-          // default cap of 8 files sharing the synthetic "default project".
-          maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING: 30,
+          // default cap of 8 files sharing the synthetic "default project"
+          // (currently ~45 across api/, indexer/, e2e/ and tool configs).
+          maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING: 100,
         },
         tsconfigRootDir: import.meta.dirname,
       },
