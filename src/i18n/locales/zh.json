@@ -195,7 +195,14 @@
     "allLocks": "所有锁定 ({{count}})",
     "noLocksTitle": "未找到锁定",
     "noLocksDesc": "未找到 <1>{{query}}</1> 的任何锁定。请检查代币符号或合约地址，或为此代币创建第一个锁定。",
-    "createLock": "创建锁定"
+    "createLock": "创建锁定",
+    "badge": {
+      "title": "已在 StellarLock 锁定",
+      "summary": "{{count}} 个活跃锁仓 · 已保障 {{value}}",
+      "summary_other": "{{count}} 个活跃锁仓 · 已保障 {{value}}",
+      "copyUrl": "复制分享链接",
+      "copyBadge": "复制 README 徽章"
+    }
   },
   "discover": {
     "title": "浏览锁定",
@@ -471,6 +478,21 @@
       "title": "Identical Tokens",
       "message": "Token A and Token B must be different addresses.",
       "recovery": "Choose two distinct token addresses for your LP pair."
+    },
+    "notInitialized": {
+      "title": "合约未初始化",
+      "message": "该合约尚未设置管理员并完成初始化。",
+      "recovery": "请联系合约运营方初始化部署。"
+    },
+    "lockNotFound": {
+      "title": "未找到锁仓",
+      "message": "未找到与此锁仓 ID 匹配的记录。",
+      "recovery": "请核对锁仓 ID 和合约地址后重试。"
+    },
+    "contractPaused": {
+      "title": "合约已暂停",
+      "message": "管理员因维护或紧急情况暂停了该合约。",
+      "recovery": "请在恢复运行后再试。"
     }
   },
   "notfound": {
@@ -499,5 +521,47 @@
     "title": "出了点问题",
     "message": "出了点问题。请重试。",
     "tryAgain": "重试"
+  },
+  "lockStatus": {
+    "locked": "已锁定",
+    "unlockable": "可解锁",
+    "withdrawn": "已提取"
+  },
+  "lockCreated": {
+    "title": "锁仓已创建 | StellarLock",
+    "description": "您的锁仓已在 Stellar 上成功创建。",
+    "heading": "锁仓已创建！",
+    "subheading": "您的代币现已在链上锁定。",
+    "vestingActive": "归属计划已生效。",
+    "lockSummary": "锁仓摘要",
+    "lockId": "锁仓 ID",
+    "copyLockId": "复制锁仓 ID",
+    "type": "类型",
+    "lpLock": "LP 锁仓",
+    "tokenLock": "代币锁仓",
+    "token": "代币",
+    "amount": "数量",
+    "beneficiary": "受益人",
+    "creator": "创建者",
+    "unlockDate": "解锁日期",
+    "vesting": "归属",
+    "vestingEnabled": "已启用线性归属",
+    "createdAt": "创建时间",
+    "transactionDetails": "交易详情",
+    "txHash": "交易哈希",
+    "copyTxHash": "复制交易哈希",
+    "viewTxStellarExpert": "在 Stellar Expert 上查看交易",
+    "network": "网络",
+    "shareTitle": "分享此锁仓",
+    "copyShareLink": "复制分享链接",
+    "viewLockDetail": "查看锁仓详情",
+    "createAnother": "再创建一个",
+    "copied": "{{label}} 已复制！"
+  },
+  "txProgress": {
+    "simulating": "正在模拟交易…",
+    "signing": "请在钱包中签名…",
+    "submitting": "正在提交到网络…",
+    "confirming": "等待确认…"
   }
 }

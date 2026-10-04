@@ -34,6 +34,9 @@ vi.mock("@/lib/stellar", () => ({
   isValidStellarAddress: (addr: string) => addr.startsWith("G") && addr.length === 56,
   isValidStellarContractAddress: (addr: string) => addr.startsWith("C") && addr.length === 56,
   getTokenBalance: vi.fn().mockResolvedValue(0),
+  // Token metadata lookups (getOnChainTokenMeta) go through simulateCall; a null
+  // result makes them fall back to defaults.
+  simulateCall: vi.fn().mockResolvedValue(null),
 }))
 
 describe("CreateTokenLockForm Validation Rules", () => {

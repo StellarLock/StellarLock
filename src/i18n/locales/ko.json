@@ -195,7 +195,14 @@
     "allLocks": "모든 잠금 ({{count}})",
     "noLocksTitle": "잠금을 찾을 수 없음",
     "noLocksDesc": "<1>{{query}}</1>에 대한 잠금을 찾을 수 없습니다. 토큰 심볼이나 컨트랙트 주소를 확인하거나, 이 토큰의 첫 번째 잠금을 생성하세요.",
-    "createLock": "잠금 생성"
+    "createLock": "잠금 생성",
+    "badge": {
+      "title": "StellarLock에 잠김",
+      "summary": "활성 잠금 {{count}}개 · {{value}} 보호됨",
+      "summary_other": "활성 잠금 {{count}}개 · {{value}} 보호됨",
+      "copyUrl": "공유 링크 복사",
+      "copyBadge": "README 배지 복사"
+    }
   },
   "discover": {
     "title": "잠금 탐색",
@@ -471,6 +478,21 @@
       "title": "Identical Tokens",
       "message": "Token A and Token B must be different addresses.",
       "recovery": "Choose two distinct token addresses for your LP pair."
+    },
+    "notInitialized": {
+      "title": "컨트랙트가 초기화되지 않음",
+      "message": "컨트랙트가 아직 관리자로 초기화되지 않았습니다.",
+      "recovery": "배포를 초기화하려면 컨트랙트 운영자에게 문의하세요."
+    },
+    "lockNotFound": {
+      "title": "잠금을 찾을 수 없음",
+      "message": "이 잠금 ID와 일치하는 잠금 기록이 없습니다.",
+      "recovery": "잠금 ID와 컨트랙트 주소를 확인한 후 다시 시도하세요."
+    },
+    "contractPaused": {
+      "title": "컨트랙트 일시 중지됨",
+      "message": "관리자가 유지보수 또는 긴급 상황으로 컨트랙트를 일시 중지했습니다.",
+      "recovery": "운영이 재개된 후 다시 시도하세요."
     }
   },
   "notfound": {
@@ -499,5 +521,47 @@
     "title": "문제가 발생했습니다",
     "message": "문제가 발생했습니다. 다시 시도해 주세요.",
     "tryAgain": "다시 시도"
+  },
+  "lockStatus": {
+    "locked": "잠김",
+    "unlockable": "잠금 해제 가능",
+    "withdrawn": "인출됨"
+  },
+  "lockCreated": {
+    "title": "잠금 생성됨 | StellarLock",
+    "description": "Stellar에서 잠금이 성공적으로 생성되었습니다.",
+    "heading": "잠금이 생성되었습니다!",
+    "subheading": "토큰이 이제 온체인에 잠겼습니다.",
+    "vestingActive": "베스팅 일정이 활성화되어 있습니다.",
+    "lockSummary": "잠금 요약",
+    "lockId": "잠금 ID",
+    "copyLockId": "잠금 ID 복사",
+    "type": "유형",
+    "lpLock": "LP 잠금",
+    "tokenLock": "토큰 잠금",
+    "token": "토큰",
+    "amount": "수량",
+    "beneficiary": "수혜자",
+    "creator": "생성자",
+    "unlockDate": "잠금 해제일",
+    "vesting": "베스팅",
+    "vestingEnabled": "선형 베스팅 활성화됨",
+    "createdAt": "생성 시각",
+    "transactionDetails": "트랜잭션 세부 정보",
+    "txHash": "TX 해시",
+    "copyTxHash": "트랜잭션 해시 복사",
+    "viewTxStellarExpert": "Stellar Expert에서 트랜잭션 보기",
+    "network": "네트워크",
+    "shareTitle": "이 잠금 공유",
+    "copyShareLink": "공유 링크 복사",
+    "viewLockDetail": "잠금 상세 보기",
+    "createAnother": "하나 더 만들기",
+    "copied": "{{label}} 복사됨!"
+  },
+  "txProgress": {
+    "simulating": "트랜잭션 시뮬레이션 중…",
+    "signing": "지갑에서 서명해 주세요…",
+    "submitting": "네트워크에 제출 중…",
+    "confirming": "확인 대기 중…"
   }
 }

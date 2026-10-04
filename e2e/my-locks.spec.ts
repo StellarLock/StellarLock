@@ -69,7 +69,7 @@ test.describe("My Locks Page", () => {
     await mockNoLocks(page)
     await myLocks.goto()
     // exercises MyLocksPage.filterByStatus() and filterByType()
-    await myLocks.filterByStatus("active")
+    await myLocks.filterByStatus("locked")
     await myLocks.filterByType("token")
     const selects = page.locator("select")
     await expect(selects.first()).toBeVisible()

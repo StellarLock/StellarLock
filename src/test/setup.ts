@@ -3,6 +3,9 @@ import { cleanup } from "@testing-library/react"
 import "@testing-library/jest-dom/vitest"
 import "vitest-axe/extend-expect"
 import * as axeMatchers from "vitest-axe/matchers"
+// Initialise the shared i18next instance so components that call
+// useTranslation() render real English strings without needing a provider.
+import "@/i18n"
 
 // Extend expect with axe a11y matchers (toHaveNoViolations)
 expect.extend(axeMatchers)
