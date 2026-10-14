@@ -46,6 +46,10 @@ Token and LP liquidity lock platform built on [Stellar Soroban](https://soroban.
 │   └── types/          # Shared TypeScript types
 ```
 
+## Documentation
+
+See the [documentation index](docs/README.md) for architecture decisions, operational guides, security notes, and project documentation.
+
 ## Getting Started
 
 ### Prerequisites
