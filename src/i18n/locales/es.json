@@ -245,6 +245,12 @@
     "enable": "Activar",
     "enabled": "Activado",
     "save": "Guardar",
+    "preferences": "Preferencias de notificación",
+    "preferencesDesc": "Elige qué eventos de bloqueo quieres recibir.",
+    "typeLockCreated": "Bloqueo creado",
+    "typeLockExtended": "Bloqueo extendido",
+    "typeWithdrawn": "Retiro confirmado",
+    "typeBeneficiaryTransferred": "Beneficiario transferido",
     "center": {
       "extendedMessage": "El bloqueo #{{id}} ahora se desbloquea el {{date}}.",
       "extendedTitle": "Bloqueo extendido",
