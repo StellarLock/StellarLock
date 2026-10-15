@@ -54,6 +54,11 @@ describe("BulkConfirmModal", () => {
     expect(screen.getByText(/bulk transfer — 2 locks/i)).toBeInTheDocument()
   })
 
+  it("renders the translated title for extend with multiple locks", () => {
+    render(<BulkConfirmModal action="extend" locks={[lock1, lock2]} onConfirm={onConfirm} onClose={onClose} />)
+    expect(screen.getByText(/bulk extend — 2 locks$/i)).toBeInTheDocument()
+  })
+
   // ─── Lock list ─────────────────────────────────────────────────────────────
 
   it("renders all locks in the list before confirmation", () => {
@@ -68,6 +73,11 @@ describe("BulkConfirmModal", () => {
     render(<BulkConfirmModal action="extend" locks={[lock1]} onConfirm={onConfirm} onClose={onClose} />)
     expect(screen.getByText(/new unlock date for all selected locks/i)).toBeInTheDocument()
     expect(screen.getByDisplayValue("")).toHaveAttribute("type", "date")
+  })
+
+  it("shows the translated label for the extend date input", () => {
+    render(<BulkConfirmModal action="extend" locks={[lock1]} onConfirm={onConfirm} onClose={onClose} />)
+    expect(screen.getByText(/new unlock date for all selected locks/i)).toBeInTheDocument()
   })
 
   it("disables confirm button when no date is set for extend", () => {
@@ -89,6 +99,11 @@ describe("BulkConfirmModal", () => {
     render(<BulkConfirmModal action="transfer" locks={[lock1]} onConfirm={onConfirm} onClose={onClose} />)
     expect(screen.getByText(/new beneficiary address/i)).toBeInTheDocument()
     expect(screen.getByPlaceholderText("G…")).toBeInTheDocument()
+  })
+
+  it("shows the translated label for the transfer address input", () => {
+    render(<BulkConfirmModal action="transfer" locks={[lock1]} onConfirm={onConfirm} onClose={onClose} />)
+    expect(screen.getByText(/new beneficiary address/i)).toBeInTheDocument()
   })
 
   it("disables confirm button when transfer address is too short", () => {
@@ -129,6 +144,11 @@ describe("BulkConfirmModal", () => {
     render(<BulkConfirmModal action="extend" locks={[lock1]} onConfirm={onConfirm} onClose={onClose} />)
     await user.click(screen.getByRole("button", { name: /cancel/i }))
     expect(onClose).toHaveBeenCalledOnce()
+  })
+
+  it("renders the translated Cancel button label", () => {
+    render(<BulkConfirmModal action="extend" locks={[lock1]} onConfirm={onConfirm} onClose={onClose} />)
+    expect(screen.getByRole("button", { name: /cancel/i })).toBeInTheDocument()
   })
 
   it("calls onClose when the X close button is clicked", async () => {
@@ -232,6 +252,28 @@ describe("BulkConfirmModal", () => {
 
     // The form section should no longer be rendered
     expect(screen.queryByText(/new unlock date/i)).not.toBeInTheDocument()
+  })
+
+  it("renders the translated Done button label in the settled state", async () => {
+    const successConfirm = vi.fn(
+      (
+        _value: string,
+        onItemSettled: (id: string, outcome: { status: "success" | "error"; error?: string }) => void,
+      ) => {
+        onItemSettled("1", { status: "success" })
+        return Promise.resolve()
+      },
+    )
+
+    const user = userEvent.setup()
+    render(<BulkConfirmModal action="extend" locks={[lock1]} onConfirm={successConfirm} onClose={onClose} />)
+    const dateInput = screen.getByDisplayValue("")
+    await user.type(dateInput, "2099-01-01")
+    await user.click(screen.getByRole("button", { name: /confirm extension/i }))
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /done/i })).toBeInTheDocument()
+    })
   })
 
   it("shows error message for a failed lock after settling", async () => {
