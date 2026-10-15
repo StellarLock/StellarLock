@@ -563,5 +563,45 @@
     "signing": "Lütfen cüzdanınızda imzalayın…",
     "submitting": "Ağa gönderiliyor…",
     "confirming": "Onay bekleniyor…"
+  },
+  "wizard": {
+    "title": "Kilit Sihirbazı",
+    "stepOf": "Adım {{current}} / {{total}}",
+    "back": "Geri",
+    "next": "İleri",
+    "cancel": "İptal",
+    "review": "İncele",
+    "confirm": "Kilidi onayla",
+    "stepType": {
+      "title": "Kilit türünü seçin",
+      "desc": "Bir token tahsisini veya bir LP pozisyonunu kilitleyin."
+    },
+    "stepDetails": {
+      "title": "Ayrıntıları girin",
+      "desc": "Kilitlenecek varlığı, miktarı ve kilit açma koşullarını belirtin."
+    },
+    "stepBeneficiaries": {
+      "title": "Yararlanıcılar",
+      "desc": "Kilit açıldığında tokenleri kimin çekebileceğini seçin."
+    },
+    "stepReview": {
+      "title": "İncele ve onayla",
+      "desc": "Göndermeden önce kilit ayrıntılarını doğrulayın."
+    },
+    "summary": {
+      "title": "Özet",
+      "type": "Tür",
+      "token": "Token",
+      "amount": "Miktar",
+      "unlockDate": "Kilit açma tarihi",
+      "beneficiaries": "Yararlanıcılar",
+      "vesting": "Hakediş"
+    },
+    "validation": {
+      "selectType": "Devam etmek için bir kilit türü seçin.",
+      "enterDetails": "Devam etmek için tüm gerekli ayrıntıları girin.",
+      "addBeneficiary": "Devam etmek için en az bir yararlanıcı ekleyin.",
+      "reviewBeforeConfirm": "Onaylamadan önce lütfen ayrıntıları inceleyin."
+    }
   }
 }

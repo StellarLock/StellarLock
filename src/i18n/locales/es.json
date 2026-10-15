@@ -563,5 +563,29 @@
     "signing": "Firma en tu billetera…",
     "submitting": "Enviando a la red…",
     "confirming": "Esperando confirmación…"
+  },
+  "wizard": {
+    "stepLabel": "Paso {{current}} de {{total}}",
+    "back": "Atrás",
+    "next": "Siguiente",
+    "review": "Revisar",
+    "confirm": "Confirmar bloqueo",
+    "step1Title": "Elige el tipo de bloqueo",
+    "step1Desc": "Selecciona si deseas bloquear tokens o una posición de liquidez LP.",
+    "step2Title": "Detalles del bloqueo",
+    "step2Desc": "Ingresa el token o la posición LP, el monto y la fecha de desbloqueo.",
+    "step3Title": "Revisar y confirmar",
+    "step3Desc": "Verifica los detalles de tu bloqueo antes de firmar la transacción.",
+    "summaryTitle": "Resumen del bloqueo",
+    "summaryType": "Tipo",
+    "summaryToken": "Token",
+    "summaryAmount": "Cantidad",
+    "summaryBeneficiary": "Beneficiario",
+    "summaryUnlockDate": "Fecha de desbloqueo",
+    "summaryVesting": "Vesting",
+    "summaryVestingEnabled": "Vesting lineal activado",
+    "summaryVestingDisabled": "Sin vesting",
+    "editStep": "Editar",
+    "reviewNotice": "Los bloqueos son inmutables. Una vez confirmados, solo pueden extenderse, nunca acortarse."
   }
 }

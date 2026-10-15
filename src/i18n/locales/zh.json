@@ -563,5 +563,19 @@
     "signing": "请在钱包中签名…",
     "submitting": "正在提交到网络…",
     "confirming": "等待确认…"
+  },
+  "wizard": {
+    "stepLabel": "第 {{current}} 步，共 {{total}} 步",
+    "step1Title": "选择锁定类型",
+    "step1Desc": "选择你要锁定的资产。",
+    "step2Title": "配置锁定",
+    "step2Desc": "设置金额、受益人和解锁日期。",
+    "step3Title": "检查并确认",
+    "step3Desc": "检查详细信息并签署交易。",
+    "back": "返回",
+    "next": "下一步",
+    "review": "检查",
+    "confirm": "确认并锁定",
+    "cancel": "取消"
   }
 }
