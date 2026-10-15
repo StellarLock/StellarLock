@@ -193,4 +193,38 @@ describe("getOnChainTokenMeta", () => {
     expect(meta.name).toBe("My Token")
     expect(meta.decimals).toBe(8)
   })
+
+  it("does not cache fallback when decimals call fails so a subsequent call returns real decimals", async () => {
+    simulateCall
+      .mockResolvedValueOnce("WETH")
+      .mockResolvedValueOnce("Wrapped Ether")
+      .mockRejectedValueOnce(new Error("transient RPC error"))
+      .mockResolvedValueOnce("WETH")
+      .mockResolvedValueOnce("Wrapped Ether")
+      .mockResolvedValueOnce(18)
+
+    const first = await getOnChainTokenMeta(CONTRACT_ID)
+    expect(first.decimals).toBe(7)
+
+    const second = await getOnChainTokenMeta(CONTRACT_ID)
+    expect(second.decimals).toBe(18)
+    expect(simulateCall).toHaveBeenCalledTimes(6)
+  })
+
+  it("does not cache fallback when decimals call resolves to NaN", async () => {
+    simulateCall
+      .mockResolvedValueOnce("WETH")
+      .mockResolvedValueOnce("Wrapped Ether")
+      .mockResolvedValueOnce(NaN)
+      .mockResolvedValueOnce("WETH")
+      .mockResolvedValueOnce("Wrapped Ether")
+      .mockResolvedValueOnce(18)
+
+    const first = await getOnChainTokenMeta(CONTRACT_ID)
+    expect(first.decimals).toBe(7)
+
+    const second = await getOnChainTokenMeta(CONTRACT_ID)
+    expect(second.decimals).toBe(18)
+    expect(simulateCall).toHaveBeenCalledTimes(6)
+  })
 })

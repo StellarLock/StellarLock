@@ -169,13 +169,19 @@ export async function getOnChainTokenMeta(contractId: string): Promise<OnChainTo
     simulateCall<number>(contractId, "decimals", []),
   ])
 
+  const parsedDecimals =
+    decimalsResult.status === "fulfilled" && decimalsResult.value != null ? Number(decimalsResult.value) : NaN
+  const decimalsSucceeded = Number.isFinite(parsedDecimals) && parsedDecimals >= 0
+
   const meta: OnChainTokenMeta = {
     symbol: symbolResult.status === "fulfilled" && symbolResult.value ? symbolResult.value : contractId.slice(0, 6),
     name: nameResult.status === "fulfilled" && nameResult.value ? nameResult.value : contractId.slice(0, 6),
-    decimals: decimalsResult.status === "fulfilled" && decimalsResult.value != null ? Number(decimalsResult.value) : 7,
+    decimals: decimalsSucceeded ? parsedDecimals : 7,
   }
 
-  onChainCache.set(contractId, meta)
+  if (decimalsSucceeded) {
+    onChainCache.set(contractId, meta)
+  }
   return meta
 }
 
