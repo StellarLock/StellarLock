@@ -18,15 +18,9 @@ import {
   queryLockCountByToken,
   queryMyLocks,
   querySiteStats,
-  type UserLocks,
-  type SiteStats,
   type TokenGroup,
 } from "@/lib/queryLocks"
-import type { Lock, TokenMeta } from "@/types/lock"
-
-// Re-export shared types so callers that currently import from useLocks.ts
-// do not need a find-and-replace migration.
-export type { UserLocks, SiteStats }
+import type { Lock } from "@/types/lock"
 
 /**
  * Upper bound used when a view needs a user's complete lock set (e.g. for
@@ -93,8 +87,8 @@ export function useMyLocksStats(address: string | null) {
   }, [address])
 }
 
-// Re-export DiscoverStats-related types under the names pages currently import.
-export type DiscoverTokenGroup = TokenGroup
+// Local alias: the discover views name this shape DiscoverTokenGroup.
+type DiscoverTokenGroup = TokenGroup
 
 export interface DiscoverStats {
   source: "indexer" | "mock"
@@ -143,8 +137,3 @@ export function useTokenAllowance(tokenAddress: string | undefined, owner: strin
   )
 }
 
-// ---------------------------------------------------------------------------
-// TokenMeta re-export — kept so pages that previously imported it from here
-// do not need a migration.
-// ---------------------------------------------------------------------------
-export type { TokenMeta }

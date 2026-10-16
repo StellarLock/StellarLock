@@ -11,7 +11,7 @@ const NETWORK_PASSPHRASE = Networks.TESTNET
 const LATEST_LEDGER = 1_000_000
 
 /** A contract function's return value — fixed, or computed from the call's args. */
-export type MockResult = xdr.ScVal | ((args: xdr.ScVal[]) => xdr.ScVal | null)
+type MockResult = xdr.ScVal | ((args: xdr.ScVal[]) => xdr.ScVal | null)
 
 export interface SorobanRpcMockOptions {
   /**

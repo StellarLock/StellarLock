@@ -2,7 +2,7 @@ import { createLogger } from "@/lib/logger"
 
 const log = createLogger("sentry")
 
-export interface SentryGlobal {
+interface SentryGlobal {
   init(options: { dsn?: string; environment?: string; tracesSampleRate?: number; integrations?: unknown[] }): void
   Replay: new (options: { maskAllText: boolean; blockAllMedia: boolean }) => unknown
   captureException(error: Error, options?: { contexts?: { custom?: Record<string, unknown> } }): void
