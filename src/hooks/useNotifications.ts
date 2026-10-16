@@ -241,7 +241,7 @@ export function rearmAllReminders(): void {
   }
 }
 
-export interface WebhookPayload {
+interface WebhookPayload {
   event: "unlock_reminder" | "unlocked"
   lockId: string
   unlockAt: number

@@ -24,7 +24,7 @@ export interface IndexerLockDTO {
   withdrawn?: boolean
 }
 
-export interface IndexerTokenAggregateDTO {
+interface IndexerTokenAggregateDTO {
   token: string
   lockCount: number
   totalLocked: string

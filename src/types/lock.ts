@@ -1,4 +1,4 @@
-export type LockKind = "token" | "lp"
+type LockKind = "token" | "lp"
 
 export const DEX_VALUES = ["aquarius", "soroswap"] as const
 export type Dex = (typeof DEX_VALUES)[number]
@@ -15,7 +15,7 @@ export interface TokenMeta {
   logo?: string
 }
 
-export interface VestingSchedule {
+interface VestingSchedule {
   /** Unix ms when linear vesting begins. */
   start: number
   /** Unix ms when fully vested. */

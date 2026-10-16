@@ -11,9 +11,9 @@
  * - Format is compatible with log-aggregation services (JSON-serialisable shape).
  */
 
-export type LogLevel = "debug" | "info" | "warn" | "error"
+type LogLevel = "debug" | "info" | "warn" | "error"
 
-export interface LogEntry {
+interface LogEntry {
   timestamp: string
   level: LogLevel
   component: string
