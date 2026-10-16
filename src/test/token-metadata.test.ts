@@ -193,4 +193,27 @@ describe("getOnChainTokenMeta", () => {
     expect(meta.name).toBe("My Token")
     expect(meta.decimals).toBe(8)
   })
+
+  // #972: a transient decimals() failure must not pin the 7-decimal fallback
+  it("does not cache the 7-decimal fallback when the decimals call fails, and retries next time", async () => {
+    simulateCall
+      .mockResolvedValueOnce("WETH")
+      .mockResolvedValueOnce("Wrapped Ether")
+      .mockRejectedValueOnce(new Error("RPC unavailable")) // decimals fails
+      .mockResolvedValueOnce("WETH")
+      .mockResolvedValueOnce("Wrapped Ether")
+      .mockResolvedValueOnce(18) // decimals succeeds on retry
+
+    const first = await getOnChainTokenMeta(CONTRACT_ID)
+    expect(first.decimals).toBe(7)
+
+    const second = await getOnChainTokenMeta(CONTRACT_ID)
+    expect(second.decimals).toBe(18)
+    expect(simulateCall).toHaveBeenCalledTimes(6)
+
+    // The successful result is cached
+    const third = await getOnChainTokenMeta(CONTRACT_ID)
+    expect(third).toBe(second)
+    expect(simulateCall).toHaveBeenCalledTimes(6)
+  })
 })

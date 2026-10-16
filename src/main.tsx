@@ -11,6 +11,7 @@ import { AnnouncerProvider } from "@/hooks/useAnnouncer"
 import { ErrorBoundary } from "@/components/ErrorBoundary"
 import { initErrorTracking } from "@/lib/sentry"
 import { initWebVitals } from "@/lib/web-vitals"
+import { initAnalytics } from "@/lib/analytics"
 import { rearmAllReminders } from "@/hooks/useNotifications"
 import "@/index.css"
 
@@ -22,6 +23,7 @@ if ("serviceWorker" in navigator) {
   })
 }
 initErrorTracking()
+initAnalytics()
 void initWebVitals()
 
 // Re-arm browser unlock-reminder timers for every lock that had notifications
