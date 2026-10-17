@@ -563,5 +563,18 @@
     "signing": "请在钱包中签名…",
     "submitting": "正在提交到网络…",
     "confirming": "正在等待确认…"
+  },
+  "settings": {
+    "title": "设置",
+    "addressBook": "地址簿",
+    "newAddress": "新地址",
+    "notificationPreferences": "通知偏好",
+    "label": "标签",
+    "stellarAddress": "Stellar 地址",
+    "address": "地址",
+    "actions": "操作",
+    "exportJson": "导出为 JSON",
+    "importJson": "从 JSON 导入",
+    "searchPlaceholder": "按标签或地址搜索…"
   }
 }

@@ -1,4 +1,5 @@
 import { useRef } from "react"
+import { useTranslation } from "react-i18next"
 import { Helmet } from "react-helmet-async"
 import { BookUser, Plus, Pencil, Trash2, Check, Download, Upload, Search, Bell, Compass } from "lucide-react"
 import { Button } from "@/components/ui/Button"
@@ -11,37 +12,38 @@ import { NotificationPreferences } from "@/components/ui/NotificationPreferences
 import { startOnboardingTour } from "@/components/onboarding/startOnboardingTour"
 
 export function Settings() {
+  const { t } = useTranslation()
   const ui = useAddressBookUI()
   const importRef = useRef<HTMLInputElement>(null)
 
   return (
     <>
       <Helmet>
-        <title>Settings — StellarLock</title>
-        <meta name="description" content="Manage your address book and app settings on StellarLock." />
+        <title>{t("settings.pageTitle")}</title>
+        <meta name="description" content={t("settings.pageDescription")} />
       </Helmet>
 
       <div className="mx-auto max-w-3xl px-4 py-10 md:px-6">
-        <h1 className="mb-6 text-3xl font-bold tracking-tight">Settings</h1>
+        <h1 className="mb-6 text-3xl font-bold tracking-tight">{t("settings.title")}</h1>
 
         <Card className="overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-border px-6 py-4">
             <div className="flex items-center gap-2">
               <BookUser className="h-5 w-5 text-primary" />
-              <h2 className="text-lg font-semibold">Address Book</h2>
+              <h2 className="text-lg font-semibold">{t("settings.addressBook")}</h2>
               <span className="ml-1 rounded-full bg-secondary px-2 py-0.5 text-xs text-muted-foreground">
                 {ui.allEntries.length}
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={ui.handleExport} title="Export as JSON">
+              <Button variant="outline" size="sm" onClick={ui.handleExport} title={t("settings.exportAsJson")}>
                 <Download className="h-4 w-4" />
-                Export
+                {t("settings.export")}
               </Button>
-              <Button variant="outline" size="sm" onClick={() => importRef.current?.click()} title="Import from JSON">
+              <Button variant="outline" size="sm" onClick={() => importRef.current?.click()} title={t("settings.importFromJson")}>
                 <Upload className="h-4 w-4" />
-                Import
+                {t("settings.import")}
               </Button>
               <input
                 ref={importRef}
@@ -55,7 +57,7 @@ export function Settings() {
                 onClick={ui.toggleAddMode}
               >
                 <Plus className="h-4 w-4" />
-                Add Address
+                {t("settings.addAddress")}
               </Button>
             </div>
           </div>
@@ -72,7 +74,7 @@ export function Settings() {
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <input
                 type="search"
-                placeholder="Search by label or address…"
+                placeholder={t("settings.searchPlaceholder")}
                 value={ui.search}
                 onChange={(e) => ui.setSearch(e.target.value)}
                 className="h-9 w-full rounded-md border border-border bg-background pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
@@ -82,23 +84,23 @@ export function Settings() {
             {/* Add new entry form */}
             {ui.addMode && (
               <div className="mb-4 rounded-lg border border-border bg-secondary/30 p-4">
-                <h3 className="mb-3 text-sm font-medium">New Address</h3>
+                <h3 className="mb-3 text-sm font-medium">{t("settings.newAddress")}</h3>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
-                    <Label htmlFor="ab-new-label">Label</Label>
+                    <Label htmlFor="ab-new-label">{t("settings.label")}</Label>
                     <Input
                       id="ab-new-label"
-                      placeholder="e.g. Team Wallet"
+                      placeholder={t("settings.labelPlaceholder")}
                       value={ui.newLabel}
                       onChange={(e) => ui.setNewLabel(e.target.value)}
                       autoFocus
                     />
                   </div>
                   <div>
-                    <Label htmlFor="ab-new-address">Stellar Address</Label>
+                    <Label htmlFor="ab-new-address">{t("settings.stellarAddress")}</Label>
                     <Input
                       id="ab-new-address"
-                      placeholder="G… or C…"
+                      placeholder={t("settings.addressPlaceholder")}
                       value={ui.newAddress}
                       onChange={(e) => ui.setNewAddress(e.target.value)}
                       className={
@@ -116,11 +118,11 @@ export function Settings() {
                     size="sm"
                     onClick={ui.handleAddCancel}
                   >
-                    Cancel
+                    {t("settings.cancel")}
                   </Button>
                   <Button size="sm" onClick={ui.handleAdd}>
                     <Check className="h-4 w-4" />
-                    Save Address
+                    {t("settings.saveAddress")}
                   </Button>
                 </div>
               </div>
@@ -132,8 +134,8 @@ export function Settings() {
                 <BookUser className="mx-auto mb-3 h-10 w-10 text-muted-foreground/40" />
                 <p className="text-sm text-muted-foreground">
                   {ui.allEntries.length === 0
-                    ? 'No saved addresses yet. Click "Add Address" to save your first beneficiary.'
-                    : "No addresses match your search."}
+                    ? t("settings.emptyState")
+                    : t("settings.noMatches")}
                 </p>
               </div>
             ) : (
@@ -141,9 +143,9 @@ export function Settings() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-border bg-secondary/50">
-                      <th className="px-4 py-2 text-left font-medium text-muted-foreground">Label</th>
-                      <th className="px-4 py-2 text-left font-medium text-muted-foreground">Address</th>
-                      <th className="px-4 py-2 text-right font-medium text-muted-foreground">Actions</th>
+                      <th className="px-4 py-2 text-left font-medium text-muted-foreground">{t("settings.label")}</th>
+                      <th className="px-4 py-2 text-left font-medium text-muted-foreground">{t("settings.address")}</th>
+                      <th className="px-4 py-2 text-right font-medium text-muted-foreground">{t("settings.actions")}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
@@ -153,7 +155,7 @@ export function Settings() {
                           <td className="px-4 py-2" colSpan={3}>
                             <div className="grid gap-3 sm:grid-cols-2">
                               <div>
-                                <Label htmlFor={`ab-edit-label-${entry.id}`}>Label</Label>
+                                <Label htmlFor={`ab-edit-label-${entry.id}`}>{t("settings.label")}</Label>
                                 <Input
                                   id={`ab-edit-label-${entry.id}`}
                                   value={ui.editLabel}
@@ -162,7 +164,7 @@ export function Settings() {
                                 />
                               </div>
                               <div>
-                                <Label htmlFor={`ab-edit-addr-${entry.id}`}>Address</Label>
+                                <Label htmlFor={`ab-edit-addr-${entry.id}`}>{t("settings.address")}</Label>
                                 <Input
                                   id={`ab-edit-addr-${entry.id}`}
                                   value={ui.editAddress}
@@ -175,11 +177,11 @@ export function Settings() {
                               {ui.error && <p className="col-span-2 text-xs text-destructive">{ui.error}</p>}
                               <div className="col-span-2 flex justify-end gap-2">
                                 <Button variant="ghost" size="sm" onClick={ui.handleEditCancel}>
-                                  Cancel
+                                  {t("settings.cancel")}
                                 </Button>
                                 <Button size="sm" onClick={ui.handleEditSave}>
                                   <Check className="h-4 w-4" />
-                                  Save
+                                  {t("settings.save")}
                                 </Button>
                               </div>
                             </div>
@@ -195,14 +197,14 @@ export function Settings() {
                             <div className="flex justify-end gap-1">
                               <button
                                 onClick={() => ui.handleEditStart(entry)}
-                                aria-label={`Edit ${entry.label}`}
+                                aria-label={t("settings.editEntry", { label: entry.label })}
                                 className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
                               >
                                 <Pencil className="h-4 w-4" />
                               </button>
                               <button
                                 onClick={() => ui.remove(entry.id)}
-                                aria-label={`Delete ${entry.label}`}
+                                aria-label={t("settings.deleteEntry", { label: entry.label })}
                                 className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
                               >
                                 <Trash2 className="h-4 w-4" />
@@ -223,7 +225,7 @@ export function Settings() {
         <Card className="mt-8 overflow-hidden">
           <div className="flex items-center gap-2 border-b border-border px-6 py-4">
             <Bell className="h-5 w-5 text-primary" />
-            <h2 className="text-lg font-semibold">Notification Preferences</h2>
+            <h2 className="text-lg font-semibold">{t("settings.notificationPreferences")}</h2>
           </div>
           <div className="p-6">
             <NotificationPreferences />
@@ -234,17 +236,17 @@ export function Settings() {
         <Card className="mt-8 overflow-hidden">
           <div className="flex items-center gap-2 border-b border-border px-6 py-4">
             <Compass className="h-5 w-5 text-primary" />
-            <h2 className="text-lg font-semibold">Onboarding</h2>
+            <h2 className="text-lg font-semibold">{t("settings.onboarding")}</h2>
           </div>
           <div className="flex items-center justify-between p-6">
             <div>
-              <p className="text-sm font-medium">First-time tour</p>
+              <p className="text-sm font-medium">{t("settings.firstTimeTour")}</p>
               <p className="text-xs text-muted-foreground">
-                Replay the guided tour covering wallets, lock types, vesting, and the explorer.
+                {t("settings.tourDescription")}
               </p>
             </div>
             <Button variant="outline" size="sm" onClick={() => startOnboardingTour()}>
-              Replay tour
+              {t("settings.replayTour")}
             </Button>
           </div>
         </Card>

@@ -563,5 +563,18 @@
     "signing": "Lütfen cüzdanınızda imzalayın…",
     "submitting": "Ağa gönderiliyor…",
     "confirming": "Onay bekleniyor…"
+  },
+  "settings": {
+    "title": "Ayarlar",
+    "addressBook": "Adres Defteri",
+    "newAddress": "Yeni Adres",
+    "notificationPreferences": "Bildirim Tercihleri",
+    "label": "Etiket",
+    "stellarAddress": "Stellar Adresi",
+    "address": "Adres",
+    "actions": "İşlemler",
+    "exportJson": "JSON olarak dışa aktar",
+    "importJson": "JSON'dan içe aktar",
+    "searchPlaceholder": "Etiket veya adrese göre ara…"
   }
 }

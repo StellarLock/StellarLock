@@ -563,5 +563,18 @@
     "signing": "Firma en tu billetera…",
     "submitting": "Enviando a la red…",
     "confirming": "Esperando confirmación…"
+  },
+  "settings": {
+    "title": "Configuración",
+    "addressBook": "Libreta de direcciones",
+    "newAddress": "Nueva dirección",
+    "notificationPreferences": "Preferencias de notificaciones",
+    "label": "Etiqueta",
+    "stellarAddress": "Dirección Stellar",
+    "address": "Dirección",
+    "actions": "Acciones",
+    "exportJson": "Exportar como JSON",
+    "importJson": "Importar desde JSON",
+    "searchPlaceholder": "Buscar por etiqueta o dirección…"
   }
 }
