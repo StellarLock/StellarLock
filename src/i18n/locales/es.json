@@ -145,7 +145,9 @@
     "noLocksCreatedDesc": "Crea tu primer bloqueo para demostrar que tus tokens o liquidez están asegurados.",
     "noBeneficiary": "No hay bloqueos donde seas el beneficiario",
     "noBeneficiaryDesc": "Los bloqueos creados para ti por otros aparecerán aquí.",
-    "createLock": "Crear un bloqueo"
+    "createLock": "Crear un bloqueo",
+    "bulkActions": "Acciones masivas",
+    "bulkConfirm": "¿Estás seguro de que deseas aplicar esta acción a {{count}} bloqueos seleccionados?"
   },
   "lockDetail": {
     "notFoundTitle": "Bloqueo no encontrado",

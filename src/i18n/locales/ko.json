@@ -145,7 +145,24 @@
     "noLocksCreatedDesc": "첫 번째 잠금을 생성하여 토큰이나 유동성이 안전함을 증명하세요.",
     "noBeneficiary": "수혜자인 잠금이 없습니다",
     "noBeneficiaryDesc": "다른 사람이 당신을 위해 생성한 잠금이 여기에 표시됩니다.",
-    "createLock": "잠금 생성"
+    "createLock": "잠금 생성",
+    "bulkActions": {
+      "select": "선택",
+      "selectAll": "모두 선택",
+      "clearSelection": "선택 해제",
+      "selectedCount": "{{count}}개 선택됨",
+      "extendSelected": "선택 항목 연장",
+      "withdrawSelected": "선택 항목 인출",
+      "transferSelected": "선택 항목 이전"
+    },
+    "bulkConfirm": {
+      "title": "일괄 작업 확인",
+      "extendMessage": "선택한 잠금 {{count}}개를 {{date}}까지 연장하시겠습니까?",
+      "withdrawMessage": "선택한 잠금 {{count}}개에서 토큰을 인출하시겠습니까?",
+      "transferMessage": "선택한 잠금 {{count}}개의 수혜자를 {{address}}로 이전하시겠습니까?",
+      "confirm": "확인",
+      "cancel": "취소"
+    }
   },
   "lockDetail": {
     "notFoundTitle": "잠금을 찾을 수 없음",

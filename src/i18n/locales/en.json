@@ -145,7 +145,23 @@
     "noLocksCreatedDesc": "Create your first lock to prove your tokens or liquidity are secured.",
     "noBeneficiary": "No locks where you're the beneficiary",
     "noBeneficiaryDesc": "Locks created for you by others will appear here.",
-    "createLock": "Create a Lock"
+    "createLock": "Create a Lock",
+    "bulkActions": {
+      "selectAll": "Select all",
+      "clearSelection": "Clear selection",
+      "selectedCount": "{{count}} selected",
+      "withdrawSelected": "Withdraw selected",
+      "extendSelected": "Extend selected",
+      "exitSelection": "Exit selection mode"
+    },
+    "bulkConfirm": {
+      "withdrawTitle": "Withdraw {{count}} locks?",
+      "withdrawDesc": "This will submit a withdrawal for each selected lock that is ready to withdraw.",
+      "extendTitle": "Extend {{count}} locks?",
+      "extendDesc": "Choose a new unlock date to apply to all selected locks.",
+      "confirm": "Confirm",
+      "cancel": "Cancel"
+    }
   },
   "lockDetail": {
     "notFoundTitle": "Lock not found",

@@ -145,7 +145,22 @@
     "noLocksCreatedDesc": "Tokenlerinizin veya likiditenizin güvende olduğunu kanıtlamak için ilk kildinizi oluşturun.",
     "noBeneficiary": "Yararlanıcı olduğunuz kilit yok",
     "noBeneficiaryDesc": "Başkaları tarafından sizin için oluşturulan kilitler burada görünecektir.",
-    "createLock": "Kilit Oluştur"
+    "createLock": "Kilit Oluştur",
+    "bulkActions": {
+      "selectAll": "Tümünü seç",
+      "selected": "{{count}} seçildi",
+      "extend": "Seçilenleri uzat",
+      "withdraw": "Seçilenleri çek",
+      "clear": "Seçimi temizle"
+    },
+    "bulkConfirm": {
+      "extendTitle": "Seçilen kilitler uzatılsın mı?",
+      "extendDesc": "{{count}} kilit yeni bir kilit açma tarihine uzatılacak. Kilitler yalnızca uzatılabilir, asla kısaltılamaz.",
+      "withdrawTitle": "Seçilen kilitlerden çekilsin mi?",
+      "withdrawDesc": "Kilidi açılmış tokenler {{count}} kilit için çekilecek. Bu işlem geri alınamaz.",
+      "confirm": "Onayla",
+      "cancel": "İptal"
+    }
   },
   "lockDetail": {
     "notFoundTitle": "Kilit bulunamadı",
