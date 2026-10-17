@@ -281,6 +281,47 @@
     "enable": "Enable",
     "enabled": "Enabled",
     "save": "Save",
+    "preferences": {
+      "title": "Notification preferences",
+      "browser": "Browser notifications",
+      "browserEnable": "Enable browser notifications",
+      "webhook": "Webhook URL",
+      "webhookPlaceholder": "https://example.com/webhook",
+      "webhookHint": "We'll POST unlock events to this URL.",
+      "types": "Notification types",
+      "saved": "Notification preferences saved.",
+      "required": "This field is required."
+    },
+    "types": {
+      "lock_created": {
+        "label": "Lock created",
+        "description": "When a new lock is created."
+      },
+      "lock_unlocked": {
+        "label": "Lock unlocked",
+        "description": "When a lock reaches its unlock date."
+      },
+      "lock_withdrawn": {
+        "label": "Lock withdrawn",
+        "description": "When tokens are withdrawn from a lock."
+      },
+      "lock_extended": {
+        "label": "Lock extended",
+        "description": "When a lock's unlock date is extended."
+      },
+      "unlock_reminder": {
+        "label": "Unlock reminder",
+        "description": "A reminder before a lock unlocks."
+      },
+      "beneficiary_transfer": {
+        "label": "Beneficiary transfer",
+        "description": "When a lock's beneficiary is transferred."
+      },
+      "unlock_approaching": {
+        "label": "Unlock approaching",
+        "description": "When a lock is close to unlocking."
+      }
+    },
     "center": {
       "lockCreatedTitle": "Lock created",
       "lockCreatedMessage": "Lock #{{id}} is active and unlocks on {{date}}.",

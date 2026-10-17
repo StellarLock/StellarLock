@@ -256,7 +256,18 @@
     "emailDesc": "잠금 해제 7일 전, 1일 전, 그리고 해제 시 이메일 알림을 받으세요. 지갑 연결이 필요합니다.",
     "emailError": "이메일 구독 저장에 실패했습니다. 다시 시도해 주세요.",
     "emailNeedsWallet": "이메일 알림을 활성화하려면 지갑을 연결하세요.",
-    "emailPlaceholder": "you@example.com"
+    "emailPlaceholder": "you@example.com",
+    "preferences": "알림 설정",
+    "preferencesDesc": "잠금 해제 전 언제, 어떻게 알림을 받을지 선택하세요.",
+    "notify7Days": "7일 전",
+    "notify1Day": "1일 전",
+    "notifyOnUnlock": "잠금 해제 시",
+    "types": {
+      "lockCreated": "잠금 생성됨",
+      "lockExtended": "잠금 연장됨",
+      "beneficiaryTransferred": "수혜자 이전됨",
+      "withdrawn": "인출 확인됨"
+    }
   },
   "lockCard": {
     "lockedAmount": "잠금 수량",
