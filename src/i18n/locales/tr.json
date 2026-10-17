@@ -563,5 +563,24 @@
     "signing": "Lütfen cüzdanınızda imzalayın…",
     "submitting": "Ağa gönderiliyor…",
     "confirming": "Onay bekleniyor…"
+  },
+  "qrCode": {
+    "shareLockViaQr": "Kilidi QR kod ile paylaş",
+    "closeModal": "QR kod penceresini kapat",
+    "copyUrl": "URL'yi panoya kopyala",
+    "downloadPng": "QR kodunu PNG olarak indir"
+  },
+  "keyboardShortcuts": {
+    "title": "Klavye kısayolları",
+    "close": "Kapat"
+  },
+  "health": {
+    "monitoring": "İzleme",
+    "systemHealth": "Sistem sağlığı",
+    "noData": "Henüz görüntülenecek sağlık verisi yok."
+  },
+  "verifiedBadge": {
+    "verifiedTitle": "Doğrulanmış token — StellarLock topluluk izin listesinde yer alıyor",
+    "unverifiedTitle": "Doğrulanmamış token — topluluk izin listesinde değil. Dikkatli ilerleyin."
   }
 }

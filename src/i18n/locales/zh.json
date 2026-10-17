@@ -563,5 +563,24 @@
     "signing": "请在钱包中签名…",
     "submitting": "正在提交到网络…",
     "confirming": "正在等待确认…"
+  },
+  "qrCode": {
+    "shareLockAria": "通过二维码分享锁定",
+    "closeAria": "关闭二维码弹窗",
+    "copyUrlAria": "复制链接到剪贴板",
+    "downloadAria": "下载二维码为 PNG"
+  },
+  "keyboardShortcuts": {
+    "title": "键盘快捷键",
+    "closeAria": "关闭"
+  },
+  "health": {
+    "monitoring": "监控中",
+    "systemHealth": "系统健康",
+    "noData": "暂无健康数据。"
+  },
+  "verifiedBadge": {
+    "verifiedTitle": "已验证代币 — 已列入 StellarLock 社区白名单",
+    "unverifiedTitle": "未验证代币 — 不在社区白名单中。请谨慎操作。"
   }
 }

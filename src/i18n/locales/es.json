@@ -563,5 +563,24 @@
     "signing": "Firma en tu billetera…",
     "submitting": "Enviando a la red…",
     "confirming": "Esperando confirmación…"
+  },
+  "qrCode": {
+    "shareLockAria": "Compartir bloqueo mediante código QR",
+    "closeAria": "Cerrar el modal del código QR",
+    "copyUrlAria": "Copiar URL al portapapeles",
+    "downloadAria": "Descargar código QR como PNG"
+  },
+  "keyboardShortcuts": {
+    "title": "Atajos de teclado",
+    "closeAria": "Cerrar"
+  },
+  "health": {
+    "monitoring": "Monitoreo",
+    "systemHealth": "Estado del sistema",
+    "noData": "No hay datos de estado disponibles."
+  },
+  "verifiedBadge": {
+    "verifiedTitle": "Token verificado — incluido en la lista de permitidos de la comunidad StellarLock",
+    "unverifiedTitle": "Token no verificado — no está en la lista de permitidos de la comunidad. Procede con precaución."
   }
 }

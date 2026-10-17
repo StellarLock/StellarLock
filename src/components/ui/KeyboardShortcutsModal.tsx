@@ -1,4 +1,5 @@
 import { useRef } from "react"
+import { useTranslation } from "react-i18next"
 import { useModalFocusTrap } from "@/lib/modalFocusTrap"
 import { X } from "lucide-react"
 
@@ -11,15 +12,16 @@ const isMac = typeof navigator !== "undefined" && /mac/i.test(navigator.platform
 const mod = isMac ? "⌘" : "Ctrl"
 
 const SHORTCUTS = [
-  { keys: [mod, "K"], action: "Open quick search / Explorer" },
-  { keys: [mod, "N"], action: "Navigate to Create Lock" },
-  { keys: [mod, "L"], action: "Navigate to My Locks" },
-  { keys: [mod, "E"], action: "Navigate to Explorer" },
-  { keys: ["Esc"], action: "Close modals / dialogs" },
-  { keys: ["?"], action: "Show this help" },
+  { keys: [mod, "K"], actionKey: "keyboardShortcuts.actions.openSearch" },
+  { keys: [mod, "N"], actionKey: "keyboardShortcuts.actions.navigateCreateLock" },
+  { keys: [mod, "L"], actionKey: "keyboardShortcuts.actions.navigateMyLocks" },
+  { keys: [mod, "E"], actionKey: "keyboardShortcuts.actions.navigateExplorer" },
+  { keys: ["Esc"], actionKey: "keyboardShortcuts.actions.closeModals" },
+  { keys: ["?"], actionKey: "keyboardShortcuts.actions.showHelp" },
 ]
 
 export function KeyboardShortcutsModal({ open, onClose }: Props) {
+  const { t } = useTranslation()
   const containerRef = useRef<HTMLDivElement>(null)
 
   useModalFocusTrap({ active: open, containerRef, onEscape: onClose })
@@ -30,7 +32,7 @@ export function KeyboardShortcutsModal({ open, onClose }: Props) {
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Keyboard shortcuts"
+      aria-label={t("keyboardShortcuts.title")}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose()
@@ -38,10 +40,10 @@ export function KeyboardShortcutsModal({ open, onClose }: Props) {
     >
       <div ref={containerRef} className="w-full max-w-sm rounded-2xl border border-border bg-card p-6 shadow-xl">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Keyboard shortcuts</h2>
+          <h2 className="text-lg font-semibold">{t("keyboardShortcuts.title")}</h2>
           <button
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t("keyboardShortcuts.closeAria")}
             className="rounded-md p-1 text-muted-foreground transition-colors hover:text-foreground"
           >
             <X className="h-4 w-4" />
@@ -49,9 +51,9 @@ export function KeyboardShortcutsModal({ open, onClose }: Props) {
         </div>
 
         <ul className="flex flex-col gap-3">
-          {SHORTCUTS.map(({ keys, action }) => (
-            <li key={action} className="flex items-center justify-between gap-4 text-sm">
-              <span className="text-muted-foreground">{action}</span>
+          {SHORTCUTS.map(({ keys, actionKey }) => (
+            <li key={actionKey} className="flex items-center justify-between gap-4 text-sm">
+              <span className="text-muted-foreground">{t(actionKey)}</span>
               <span className="flex items-center gap-1">
                 {keys.map((k) => (
                   <kbd

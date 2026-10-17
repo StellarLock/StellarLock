@@ -563,5 +563,53 @@
     "signing": "Please sign in your wallet…",
     "submitting": "Submitting to network…",
     "confirming": "Waiting for confirmation…"
+  },
+  "qrCode": {
+    "shareAria": "Share lock via QR code",
+    "closeAria": "Close QR code modal",
+    "copyUrlAria": "Copy URL to clipboard",
+    "downloadAria": "Download QR code as PNG",
+    "copied": "Copied!",
+    "copyUrl": "Copy URL",
+    "downloadPng": "Download PNG",
+    "scanHint": "Scan to open this lock"
+  },
+  "keyboardShortcuts": {
+    "title": "Keyboard shortcuts",
+    "closeAria": "Close",
+    "actions": {
+      "openShortcuts": "Show keyboard shortcuts",
+      "closeModal": "Close dialog",
+      "search": "Focus search",
+      "createLock": "Create a new lock",
+      "myLocks": "Go to my locks",
+      "explore": "Go to explore",
+      "history": "Go to transaction history",
+      "analytics": "Go to analytics",
+      "toggleTheme": "Toggle theme",
+      "submit": "Submit form",
+      "nextField": "Next field",
+      "previousField": "Previous field"
+    }
+  },
+  "health": {
+    "monitoring": "Monitoring",
+    "systemHealth": "System health",
+    "checkingDependencies": "Checking dependencies…",
+    "statusHealthy": "All systems operational",
+    "statusUnhealthy": "Some systems are degraded",
+    "statusChecking": "Checking…",
+    "environmentLabel": "Environment",
+    "networkLabel": "Network",
+    "healthCheckFailed": "Health check failed",
+    "unreachable": "Unreachable",
+    "extensionAvailable": "Available",
+    "extensionNotDetected": "Not detected"
+  },
+  "verifiedBadge": {
+    "verifiedTooltip": "Verified token — listed on the StellarLock community allowlist",
+    "unverifiedTooltip": "Unverified token — not on the community allowlist. Proceed with caution.",
+    "verified": "Verified",
+    "unverified": "Unverified"
   }
 }

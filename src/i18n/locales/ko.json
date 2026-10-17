@@ -563,5 +563,24 @@
     "signing": "지갑에서 서명해 주세요…",
     "submitting": "네트워크에 제출 중…",
     "confirming": "확인 대기 중…"
+  },
+  "qrCode": {
+    "shareLockAria": "QR 코드로 잠금 공유",
+    "closeAria": "QR 코드 모달 닫기",
+    "copyUrlAria": "URL을 클립보드에 복사",
+    "downloadAria": "QR 코드를 PNG로 다운로드"
+  },
+  "keyboardShortcuts": {
+    "title": "키보드 단축키",
+    "closeAria": "닫기"
+  },
+  "health": {
+    "monitoring": "모니터링",
+    "systemHealth": "시스템 상태",
+    "noData": "아직 표시할 상태 데이터가 없습니다."
+  },
+  "verifiedBadge": {
+    "verifiedTitle": "검증된 토큰 — StellarLock 커뮤니티 허용 목록에 등록됨",
+    "unverifiedTitle": "검증되지 않은 토큰 — 커뮤니티 허용 목록에 없습니다. 주의하세요."
   }
 }
