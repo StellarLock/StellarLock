@@ -145,7 +145,24 @@
     "noLocksCreatedDesc": "Create your first lock to prove your tokens or liquidity are secured.",
     "noBeneficiary": "No locks where you're the beneficiary",
     "noBeneficiaryDesc": "Locks created for you by others will appear here.",
-    "createLock": "Create a Lock"
+    "createLock": "Create a Lock",
+    "viewMode": "View mode",
+    "cardView": "Card view",
+    "tableView": "Table view",
+    "searchPlaceholder": "Search by token symbol or lock ID…",
+    "filterByStatus": "Filter by status",
+    "filterByType": "Filter by type",
+    "sortLocks": "Sort locks",
+    "allStatuses": "All statuses",
+    "statusLocked": "Locked",
+    "statusUnlockable": "Unlockable",
+    "statusWithdrawn": "Withdrawn",
+    "allTypes": "All types",
+    "typeToken": "Token",
+    "typeLp": "LP",
+    "sortUnlockDate": "Sort: Unlock date",
+    "sortAmount": "Sort: Amount",
+    "sortCreated": "Sort: Created"
   },
   "lockDetail": {
     "notFoundTitle": "Lock not found",
@@ -176,7 +193,19 @@
     "viewExplorer": "View token explorer",
     "withdrawSuccess": "Withdrawal confirmed.",
     "extendSuccess": "Lock extended.",
-    "transferSuccess": "Beneficiary transferred."
+    "transferSuccess": "Beneficiary transferred.",
+    "shareViaQr": "Share via QR code",
+    "downloadReport": "Download lock report",
+    "vestingSchedule": "Vesting Schedule",
+    "linear": "Linear",
+    "vestingStart": "Vesting start",
+    "vestingEnd": "Vesting end",
+    "progress": "Progress",
+    "total": "Total",
+    "released": "Released",
+    "claimable": "Claimable",
+    "lockDetails": "Lock Details",
+    "projectLogoAlt": "Project logo"
   },
   "lockStatus": {
     "locked": "Locked",
@@ -563,5 +592,15 @@
     "signing": "Please sign in your wallet…",
     "submitting": "Submitting to network…",
     "confirming": "Waiting for confirmation…"
+  },
+  "onboardingTour": {
+    "tourAriaLabel": "StellarLock onboarding tour",
+    "closeAriaLabel": "Close tour"
+  },
+  "rpcStatus": {
+    "unreachable": "Stellar network is unreachable. Some features may be unavailable…",
+    "slow": "Slow network connection. Responses may take longer than usual.",
+    "unreachableIndicator": "Network unreachable",
+    "slowIndicator": "Slow network"
   }
 }

@@ -133,6 +133,19 @@
     "title": "Kilitlerim",
     "subtitle": "Kilitli pozisyonlarınızı yönetin ve çekin.",
     "newLock": "Yeni Kilit",
+    "viewMode": "Görünüm modu",
+    "cardView": "Kart görünümü",
+    "tableView": "Tablo görünümü",
+    "searchPlaceholder": "Token sembolü veya kilit ID'sine göre arayın…",
+    "filterByStatus": "Duruma göre filtrele",
+    "filterByType": "Türe göre filtrele",
+    "allStatuses": "Tüm durumlar",
+    "allTypes": "Tüm türler",
+    "typeToken": "Token",
+    "typeLp": "LP",
+    "sortUnlockDate": "Sırala: Kilit açma tarihi",
+    "sortAmount": "Sırala: Miktar",
+    "sortCreated": "Sırala: Oluşturulma",
     "locksCreated": "Oluşturulan Kilitler",
     "totalValueLocked": "Toplam Kilitli Değer",
     "readyToWithdraw": "Çekilmeye Hazır",
@@ -176,7 +189,19 @@
     "viewExplorer": "Token gezginini görüntüle",
     "withdrawSuccess": "Çekim onaylandı.",
     "extendSuccess": "Kilit uzatıldı.",
-    "transferSuccess": "Yararlanıcı aktarıldı."
+    "transferSuccess": "Yararlanıcı aktarıldı.",
+    "shareViaQr": "QR kod ile paylaş",
+    "downloadReport": "Kilit raporunu indir",
+    "vestingSchedule": "Hakediş Planı",
+    "vestingLinear": "Doğrusal",
+    "vestingStart": "Hakediş başlangıcı",
+    "vestingEnd": "Hakediş bitişi",
+    "vestingProgress": "İlerleme",
+    "vestingTotal": "Toplam",
+    "vestingReleased": "Serbest bırakılan",
+    "vestingClaimable": "Talep edilebilir",
+    "lockDetails": "Kilit Ayrıntıları",
+    "projectLogoAlt": "Proje logosu"
   },
   "explorer": {
     "backToSearch": "Aramaya dön",
@@ -563,5 +588,13 @@
     "signing": "Lütfen cüzdanınızda imzalayın…",
     "submitting": "Ağa gönderiliyor…",
     "confirming": "Onay bekleniyor…"
+  },
+  "onboardingTour": {
+    "ariaLabel": "StellarLock tanıtım turu",
+    "close": "Turu kapat"
+  },
+  "rpcStatus": {
+    "unreachable": "Stellar ağına ulaşılamıyor. Bazı özellikler kullanılamayabilir…",
+    "slow": "Yavaş ağ bağlantısı. Yanıtlar normalden uzun sürebilir."
   }
 }

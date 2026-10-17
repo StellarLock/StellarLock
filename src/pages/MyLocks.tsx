@@ -316,15 +316,15 @@ export function MyLocks() {
           {/* Card / Table toggle */}
           <div
             role="group"
-            aria-label="View mode"
+            aria-label={t("myLocks.viewMode")}
             className="ml-auto flex items-center rounded-lg border border-border bg-card p-1 gap-1"
           >
             <button
               type="button"
               onClick={() => handleViewMode("card")}
               aria-pressed={viewMode === "card"}
-              aria-label="Card view"
-              title="Card view"
+              aria-label={t("myLocks.cardView")}
+              title={t("myLocks.cardView")}
               className={cn(
                 "inline-flex items-center justify-center rounded-md p-1.5 transition-colors cursor-pointer",
                 viewMode === "card" ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground",
@@ -336,8 +336,8 @@ export function MyLocks() {
               type="button"
               onClick={() => handleViewMode("table")}
               aria-pressed={viewMode === "table"}
-              aria-label="Table view"
-              title="Table view"
+              aria-label={t("myLocks.tableView")}
+              title={t("myLocks.tableView")}
               className={cn(
                 "inline-flex items-center justify-center rounded-md p-1.5 transition-colors cursor-pointer",
                 viewMode === "table" ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground",
@@ -359,7 +359,7 @@ export function MyLocks() {
                 setSearch(e.target.value)
                 setPage(1)
               }}
-              placeholder="Search by token symbol or lock ID…"
+              placeholder={t("myLocks.searchPlaceholder")}
               className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
             />
           </div>
@@ -371,12 +371,12 @@ export function MyLocks() {
               setPage(1)
             }}
             className="rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 cursor-pointer"
-            aria-label="Filter by status"
+            aria-label={t("myLocks.filterByStatus")}
           >
-            <option value="all">All statuses</option>
-            <option value="locked">Locked</option>
-            <option value="unlockable">Unlockable</option>
-            <option value="withdrawn">Withdrawn</option>
+            <option value="all">{t("myLocks.allStatuses")}</option>
+            <option value="locked">{t("myLocks.statusLocked")}</option>
+            <option value="unlockable">{t("myLocks.statusUnlockable")}</option>
+            <option value="withdrawn">{t("myLocks.statusWithdrawn")}</option>
           </select>
 
           <select
@@ -386,22 +386,22 @@ export function MyLocks() {
               setPage(1)
             }}
             className="rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 cursor-pointer"
-            aria-label="Filter by type"
+            aria-label={t("myLocks.filterByType")}
           >
-            <option value="all">All types</option>
-            <option value="token">Token</option>
-            <option value="lp">LP</option>
+            <option value="all">{t("myLocks.allTypes")}</option>
+            <option value="token">{t("myLocks.typeToken")}</option>
+            <option value="lp">{t("myLocks.typeLp")}</option>
           </select>
 
           <select
             value={sortKey}
             onChange={(e) => setSortKey(e.target.value as SortKey)}
             className="rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 cursor-pointer"
-            aria-label="Sort locks"
+            aria-label={t("myLocks.sortLocks")}
           >
-            <option value="unlockAt">Sort: Unlock date</option>
-            <option value="amount">Sort: Amount</option>
-            <option value="createdAt">Sort: Created</option>
+            <option value="unlockAt">{t("myLocks.sortUnlockDate")}</option>
+            <option value="amount">{t("myLocks.sortAmount")}</option>
+            <option value="createdAt">{t("myLocks.sortCreated")}</option>
           </select>
         </div>
 

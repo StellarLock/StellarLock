@@ -326,13 +326,13 @@ function LockDetailView({ lock: sourceLock, onChange }: { lock: Lock; onChange: 
           <div className="flex flex-col items-end gap-2">
             <StatusBadge status={lock.status} />
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => setQrOpen(true)} title="Share via QR code">
+              <Button variant="outline" size="sm" onClick={() => setQrOpen(true)} title={t("lockDetail.shareViaQr")}>
                 <QrCode className="h-4 w-4" />
-                Share QR
+                {t("lockDetail.shareQr")}
               </Button>
-              <Button variant="outline" size="sm" onClick={() => downloadLockReport(lock)} title="Download lock report">
+              <Button variant="outline" size="sm" onClick={() => downloadLockReport(lock)} title={t("lockDetail.downloadReport")}>
                 <FileDown className="h-4 w-4" />
-                Download Report
+                {t("lockDetail.downloadReportButton")}
               </Button>
             </div>
           </div>
@@ -394,22 +394,22 @@ function LockDetailView({ lock: sourceLock, onChange }: { lock: Lock; onChange: 
         {lock.vesting && (
           <div className="border-t border-border p-6">
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Vesting Schedule</h3>
-              <Badge variant="outline">Linear</Badge>
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">{t("lockDetail.vestingSchedule")}</h3>
+              <Badge variant="outline">{t("lockDetail.linear")}</Badge>
             </div>
             <div className="mb-4 grid gap-3 sm:grid-cols-2">
               <div className="rounded-lg bg-secondary/40 p-3">
-                <p className="text-xs text-muted-foreground">Vesting start</p>
+                <p className="text-xs text-muted-foreground">{t("lockDetail.vestingStart")}</p>
                 <p className="font-medium">{formatDateTime(lock.vesting.start)}</p>
               </div>
               <div className="rounded-lg bg-secondary/40 p-3">
-                <p className="text-xs text-muted-foreground">Vesting end</p>
+                <p className="text-xs text-muted-foreground">{t("lockDetail.vestingEnd")}</p>
                 <p className="font-medium">{formatDateTime(lock.vesting.end)}</p>
               </div>
             </div>
             <div className="mb-3">
               <div className="mb-2 flex justify-between text-sm">
-                <span className="text-muted-foreground">Progress</span>
+                <span className="text-muted-foreground">{t("lockDetail.progress")}</span>
                 <span className="font-medium tabular-nums">
                   {Math.min(
                     100,
@@ -432,19 +432,19 @@ function LockDetailView({ lock: sourceLock, onChange }: { lock: Lock; onChange: 
             </div>
             <div className="mt-4 grid gap-3 sm:grid-cols-3">
               <div className="rounded-lg bg-secondary/30 p-3 text-center">
-                <p className="text-xs text-muted-foreground">Total</p>
+                <p className="text-xs text-muted-foreground">{t("lockDetail.total")}</p>
                 <p className="font-semibold tabular-nums">
                   {formatAmount(lock.amount)} {lock.token.symbol}
                 </p>
               </div>
               <div className="rounded-lg bg-secondary/30 p-3 text-center">
-                <p className="text-xs text-muted-foreground">Released</p>
+                <p className="text-xs text-muted-foreground">{t("lockDetail.released")}</p>
                 <p className="font-semibold tabular-nums text-success">
                   {formatAmount(lock.vesting.released)} {lock.token.symbol}
                 </p>
               </div>
               <div className="rounded-lg bg-secondary/30 p-3 text-center">
-                <p className="text-xs text-muted-foreground">Claimable</p>
+                <p className="text-xs text-muted-foreground">{t("lockDetail.claimable")}</p>
                 <p className="font-semibold tabular-nums text-primary">
                   {formatAmount(vestingClaimable)} {lock.token.symbol}
                 </p>
@@ -454,12 +454,12 @@ function LockDetailView({ lock: sourceLock, onChange }: { lock: Lock; onChange: 
         )}
         {lock.metadata && (lock.metadata.description || lock.metadata.projectUrl || lock.metadata.logoUrl) && (
           <div className="border-t border-border p-6">
-            <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">Lock Details</h3>
+            <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">{t("lockDetail.lockDetails")}</h3>
             <div className="flex flex-col gap-3">
               {lock.metadata.logoUrl && (
                 <img
                   src={lock.metadata.logoUrl}
-                  alt="Project logo"
+                  alt={t("lockDetail.projectLogoAlt")}
                   className="h-10 w-10 rounded-full border border-border object-cover"
                   onError={(e) => {
                     e.currentTarget.style.display = "none"
@@ -620,10 +620,7 @@ function LockDetailView({ lock: sourceLock, onChange }: { lock: Lock; onChange: 
       {verified === false && (
         <div className="mt-4 flex items-start gap-3 rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-4 text-sm text-yellow-700 dark:text-yellow-400">
           <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0" />
-          <p>
-            This token is <strong>not on the StellarLock verified allowlist</strong>. Anyone can lock any token — always
-            verify the token contract address independently before trusting this lock.
-          </p>
+          <p>{t("lockDetail.unverifiedWarning")}</p>
         </div>
       )}
     </div>

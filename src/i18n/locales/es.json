@@ -145,7 +145,20 @@
     "noLocksCreatedDesc": "Crea tu primer bloqueo para demostrar que tus tokens o liquidez están asegurados.",
     "noBeneficiary": "No hay bloqueos donde seas el beneficiario",
     "noBeneficiaryDesc": "Los bloqueos creados para ti por otros aparecerán aquí.",
-    "createLock": "Crear un bloqueo"
+    "createLock": "Crear un bloqueo",
+    "viewMode": "Modo de vista",
+    "cardView": "Vista de tarjetas",
+    "tableView": "Vista de tabla",
+    "searchPlaceholder": "Buscar por símbolo de token o ID de bloqueo…",
+    "filterByStatus": "Filtrar por estado",
+    "filterByType": "Filtrar por tipo",
+    "allStatuses": "Todos los estados",
+    "allTypes": "Todos los tipos",
+    "typeToken": "Token",
+    "typeLp": "LP",
+    "sortUnlockDate": "Ordenar: Fecha de desbloqueo",
+    "sortAmount": "Ordenar: Cantidad",
+    "sortCreated": "Ordenar: Creado"
   },
   "lockDetail": {
     "notFoundTitle": "Bloqueo no encontrado",
@@ -176,7 +189,19 @@
     "viewExplorer": "Ver explorador de tokens",
     "extendSuccess": "Bloqueo extendido.",
     "transferSuccess": "Beneficiario transferido.",
-    "withdrawSuccess": "Retiro confirmado."
+    "withdrawSuccess": "Retiro confirmado.",
+    "shareViaQr": "Compartir mediante código QR",
+    "downloadReport": "Descargar informe del bloqueo",
+    "vestingSchedule": "Calendario de vesting",
+    "vestingLinear": "Lineal",
+    "vestingStart": "Inicio del vesting",
+    "vestingEnd": "Fin del vesting",
+    "vestingProgress": "Progreso",
+    "vestingTotal": "Total",
+    "vestingReleased": "Liberado",
+    "vestingClaimable": "Reclamable",
+    "lockDetails": "Detalles del bloqueo",
+    "projectLogoAlt": "Logo del proyecto"
   },
   "explorer": {
     "backToSearch": "Volver a la búsqueda",
@@ -563,5 +588,13 @@
     "signing": "Firma en tu billetera…",
     "submitting": "Enviando a la red…",
     "confirming": "Esperando confirmación…"
+  },
+  "onboardingTour": {
+    "ariaLabel": "Tour de introducción de StellarLock",
+    "close": "Cerrar tour"
+  },
+  "rpcStatus": {
+    "unreachable": "La red Stellar no está disponible. Algunas funciones pueden no estar disponibles…",
+    "slow": "Conexión de red lenta. Las respuestas pueden tardar más de lo habitual."
   }
 }

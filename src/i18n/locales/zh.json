@@ -145,7 +145,23 @@
     "noLocksCreatedDesc": "创建你的第一个锁定，证明你的代币或流动性是安全的。",
     "noBeneficiary": "没有你作为受益人的锁定",
     "noBeneficiaryDesc": "其他人为你创建的锁定将显示在这里。",
-    "createLock": "创建锁定"
+    "createLock": "创建锁定",
+    "viewMode": "视图模式",
+    "cardView": "卡片视图",
+    "tableView": "表格视图",
+    "searchPlaceholder": "按代币符号或锁定 ID 搜索…",
+    "filterByStatus": "按状态筛选",
+    "filterByType": "按类型筛选",
+    "allStatuses": "所有状态",
+    "statusLocked": "已锁定",
+    "statusUnlockable": "可解锁",
+    "statusWithdrawn": "已提取",
+    "allTypes": "所有类型",
+    "typeToken": "代币",
+    "typeLp": "LP",
+    "sortUnlockDate": "排序：解锁日期",
+    "sortAmount": "排序：数量",
+    "sortCreated": "排序：创建时间"
   },
   "lockDetail": {
     "notFoundTitle": "锁定未找到",
@@ -176,7 +192,19 @@
     "viewExplorer": "查看代币浏览器",
     "extendSuccess": "锁定已延长。",
     "transferSuccess": "受益人已转移。",
-    "withdrawSuccess": "提取已确认。"
+    "withdrawSuccess": "提取已确认。",
+    "shareViaQr": "通过二维码分享",
+    "downloadReport": "下载锁定报告",
+    "vestingSchedule": "归属计划",
+    "vestingLinear": "线性",
+    "vestingStart": "归属开始",
+    "vestingEnd": "归属结束",
+    "vestingProgress": "进度",
+    "vestingTotal": "总计",
+    "vestingReleased": "已释放",
+    "vestingClaimable": "可领取",
+    "lockDetails": "锁定详情",
+    "projectLogoAlt": "项目 Logo"
   },
   "explorer": {
     "backToSearch": "返回搜索",
@@ -563,5 +591,13 @@
     "signing": "请在钱包中签名…",
     "submitting": "正在提交到网络…",
     "confirming": "正在等待确认…"
+  },
+  "onboardingTour": {
+    "ariaLabel": "StellarLock 新手引导",
+    "close": "关闭引导"
+  },
+  "rpcStatus": {
+    "unreachable": "Stellar 网络无法访问。部分功能可能不可用…",
+    "slow": "网络连接缓慢。响应时间可能比平时更长。"
   }
 }

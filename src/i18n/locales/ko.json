@@ -145,7 +145,20 @@
     "noLocksCreatedDesc": "첫 번째 잠금을 생성하여 토큰이나 유동성이 안전함을 증명하세요.",
     "noBeneficiary": "수혜자인 잠금이 없습니다",
     "noBeneficiaryDesc": "다른 사람이 당신을 위해 생성한 잠금이 여기에 표시됩니다.",
-    "createLock": "잠금 생성"
+    "createLock": "잠금 생성",
+    "viewMode": "보기 모드",
+    "cardView": "카드 보기",
+    "tableView": "테이블 보기",
+    "searchPlaceholder": "토큰 심볼 또는 잠금 ID로 검색…",
+    "filterByStatus": "상태별 필터",
+    "filterByType": "유형별 필터",
+    "allStatuses": "모든 상태",
+    "allTypes": "모든 유형",
+    "typeToken": "토큰",
+    "typeLp": "LP",
+    "sortUnlockDate": "정렬: 잠금 해제 날짜",
+    "sortAmount": "정렬: 수량",
+    "sortCreated": "정렬: 생성일"
   },
   "lockDetail": {
     "notFoundTitle": "잠금을 찾을 수 없음",
@@ -176,7 +189,19 @@
     "viewExplorer": "토큰 탐색기 보기",
     "extendSuccess": "잠금이 연장되었습니다.",
     "transferSuccess": "수혜자가 이전되었습니다.",
-    "withdrawSuccess": "인출이 확인되었습니다."
+    "withdrawSuccess": "인출이 확인되었습니다.",
+    "shareViaQr": "QR 코드로 공유",
+    "downloadReport": "잠금 보고서 다운로드",
+    "vestingSchedule": "베스팅 일정",
+    "vestingLinear": "선형",
+    "vestingStart": "베스팅 시작",
+    "vestingEnd": "베스팅 종료",
+    "vestingProgress": "진행률",
+    "vestingTotal": "합계",
+    "vestingReleased": "릴리스됨",
+    "vestingClaimable": "청구 가능",
+    "lockDetails": "잠금 상세",
+    "projectLogoAlt": "프로젝트 로고"
   },
   "explorer": {
     "backToSearch": "검색으로 돌아가기",
@@ -563,5 +588,13 @@
     "signing": "지갑에서 서명해 주세요…",
     "submitting": "네트워크에 제출 중…",
     "confirming": "확인 대기 중…"
+  },
+  "onboarding": {
+    "tourLabel": "StellarLock 온보딩 투어",
+    "closeTour": "투어 닫기"
+  },
+  "rpcStatus": {
+    "unreachable": "Stellar 네트워크에 연결할 수 없습니다. 일부 기능을 사용하지 못할 수 있습니다…",
+    "slow": "네트워크 연결이 느립니다. 응답이 평소보다 오래 걸릴 수 있습니다."
   }
 }
