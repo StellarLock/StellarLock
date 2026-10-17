@@ -563,5 +563,37 @@
     "signing": "Firma en tu billetera…",
     "submitting": "Enviando a la red…",
     "confirming": "Esperando confirmación…"
+  },
+  "addressBook": {
+    "title": "Libreta de direcciones",
+    "close": "Cerrar libreta de direcciones",
+    "searchPlaceholder": "Buscar direcciones…",
+    "export": "Exportar libreta de direcciones",
+    "import": "Importar libreta de direcciones",
+    "add": "Agregar dirección",
+    "label": "Etiqueta",
+    "stellarAddress": "Dirección Stellar",
+    "address": "Dirección"
+  },
+  "tokenLockList": {
+    "amount": "Cantidad",
+    "beneficiary": "Beneficiario",
+    "unlockDate": "Fecha de desbloqueo",
+    "unlocksIn": "Se desbloquea en",
+    "status": "Estado",
+    "empty": "No se encontraron bloqueos para este token"
+  },
+  "notificationCenter": {
+    "title": "Notificaciones",
+    "markAllAsRead": "Marcar todo como leído",
+    "clearAll": "Borrar todo",
+    "empty": "Aún no hay notificaciones"
+  },
+  "confirmLockModal": {
+    "review": "Revisa los detalles antes de firmar.",
+    "invalidUnlockDate": "Fecha de desbloqueo inválida.",
+    "linearVestingEnabled": "Vesting lineal activado",
+    "insufficientBalance": "Saldo insuficiente.",
+    "approvalRequired": "Aprobación requerida"
   }
 }

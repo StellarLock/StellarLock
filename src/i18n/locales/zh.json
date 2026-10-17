@@ -563,5 +563,37 @@
     "signing": "请在钱包中签名…",
     "submitting": "正在提交到网络…",
     "confirming": "正在等待确认…"
+  },
+  "addressBook": {
+    "title": "地址簿",
+    "close": "关闭地址簿",
+    "searchPlaceholder": "搜索地址…",
+    "export": "导出地址簿",
+    "import": "导入地址簿",
+    "add": "添加地址",
+    "label": "标签",
+    "stellarAddress": "Stellar 地址",
+    "address": "地址"
+  },
+  "tokenLockList": {
+    "amount": "数量",
+    "beneficiary": "受益人",
+    "unlockDate": "解锁日期",
+    "unlocksIn": "解锁倒计时",
+    "status": "状态",
+    "empty": "未找到此代币的锁定"
+  },
+  "notificationCenter": {
+    "title": "通知",
+    "markAllAsRead": "全部标记为已读",
+    "clearAll": "清除全部",
+    "empty": "暂无通知"
+  },
+  "confirmLockModal": {
+    "reviewText": "签名前请核对详情。",
+    "invalidUnlockDate": "解锁日期无效。",
+    "linearVestingEnabled": "已启用线性归属",
+    "insufficientBalance": "余额不足。",
+    "approvalRequired": "需要授权"
   }
 }

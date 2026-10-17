@@ -4,8 +4,10 @@ import { useNotificationCenter, type Notification } from "@/hooks/useNotificatio
 import { cn } from "@/lib/utils"
 import { formatDateTime } from "@/lib/utils"
 import { useNavigate } from "react-router-dom"
+import { useTranslation } from "react-i18next"
 
 export function NotificationCenter() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { notifications, markAsRead, markAllAsRead, clearHistory, unreadCount } = useNotificationCenter()
   const [isOpen, setIsOpen] = useState(false)
@@ -47,7 +49,7 @@ export function NotificationCenter() {
         ref={buttonRef}
         onClick={() => setIsOpen(!isOpen)}
         className="relative inline-flex items-center justify-center rounded-lg border border-border bg-secondary p-2 transition-colors hover:bg-secondary/80"
-        aria-label="Notifications"
+        aria-label={t("notificationCenter.title")}
       >
         <Bell className="h-4 w-4" />
         {unreadCount > 0 && (
@@ -63,15 +65,15 @@ export function NotificationCenter() {
           className="absolute end-0 top-12 z-50 w-96 rounded-lg border border-border bg-card shadow-lg"
         >
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
-            <h2 className="font-semibold">Notifications</h2>
+            <h2 className="font-semibold">{t("notificationCenter.title")}</h2>
             <div className="flex gap-2">
               {unreadCount > 0 && (
-                <button onClick={markAllAsRead} className="rounded p-1 hover:bg-secondary" aria-label="Mark all as read">
+                <button onClick={markAllAsRead} className="rounded p-1 hover:bg-secondary" aria-label={t("notificationCenter.markAllRead")}>
                   <CheckCheck className="h-4 w-4" />
                 </button>
               )}
               {notifications.length > 0 && (
-                <button onClick={clearHistory} className="rounded p-1 hover:bg-secondary" aria-label="Clear all">
+                <button onClick={clearHistory} className="rounded p-1 hover:bg-secondary" aria-label={t("notificationCenter.clearAll")}>
                   <Trash2 className="h-4 w-4" />
                 </button>
               )}
@@ -80,7 +82,7 @@ export function NotificationCenter() {
 
           <div className="max-h-96 overflow-y-auto divide-y divide-border">
             {notifications.length === 0 ? (
-              <div className="px-4 py-8 text-center text-sm text-muted-foreground">No notifications yet</div>
+              <div className="px-4 py-8 text-center text-sm text-muted-foreground">{t("notificationCenter.empty")}</div>
             ) : (
               notifications.map((notif) => (
                 <button

@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom"
+import { useTranslation } from "react-i18next"
 import { ExternalLink, Inbox } from "lucide-react"
 import type { Lock } from "@/types/lock"
 import { Card } from "@/components/ui/Card"
@@ -10,23 +11,24 @@ import { formatAmount, formatDate, formatUsdValue, shortAddress } from "@/lib/ut
 import { CopyButton } from "@/components/ui/CopyButton"
 
 export function TokenLockList({ locks }: { locks: Lock[] }) {
+  const { t } = useTranslation()
   const sorted = [...locks].sort((a, b) => a.unlockAt - b.unlockAt)
 
   return (
     <Card className="overflow-hidden">
       {/* header row (desktop) */}
       <div className="hidden grid-cols-12 gap-4 border-b border-border px-5 py-3 text-xs font-medium uppercase tracking-wider text-muted-foreground md:grid">
-        <span className="col-span-3">Amount</span>
-        <span className="col-span-3">Beneficiary</span>
-        <span className="col-span-2">Unlock date</span>
-        <span className="col-span-2">Unlocks in</span>
-        <span className="col-span-2 text-right">Status</span>
+        <span className="col-span-3">{t("tokenLockList.amount")}</span>
+        <span className="col-span-3">{t("tokenLockList.beneficiary")}</span>
+        <span className="col-span-2">{t("tokenLockList.unlockDate")}</span>
+        <span className="col-span-2">{t("tokenLockList.unlocksIn")}</span>
+        <span className="col-span-2 text-right">{t("tokenLockList.status")}</span>
       </div>
 
       {locks.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-3 py-16 text-muted-foreground">
           <Inbox className="h-10 w-10 opacity-40" />
-          <p className="text-sm">No locks found for this token</p>
+          <p className="text-sm">{t("tokenLockList.empty")}</p>
         </div>
       ) : (
         <ul>
@@ -40,7 +42,11 @@ export function TokenLockList({ locks }: { locks: Lock[] }) {
                 <span className="flex items-center gap-2 text-xs text-muted-foreground">
                   {formatUsdValue(lock.token.address, lock.usdValue)}
                   {lock.kind === "lp" && lock.dex && <DexBadge dex={lock.dex} />}
-                  {lock.extendedCount > 0 && <Badge variant="outline">{lock.extendedCount}x extended</Badge>}
+                  {lock.extendedCount > 0 && (
+                    <Badge variant="outline">
+                      {t("tokenLockList.extended", { count: lock.extendedCount })}
+                    </Badge>
+                  )}
                 </span>
                 {lock.metadata?.description && (
                   <span className="text-xs text-muted-foreground line-clamp-1">{lock.metadata.description}</span>
@@ -48,13 +54,13 @@ export function TokenLockList({ locks }: { locks: Lock[] }) {
               </div>
 
               <div className="col-span-3 flex items-center gap-1 font-mono text-sm">
-                <span className="md:hidden text-xs text-muted-foreground">Beneficiary: </span>
+                <span className="md:hidden text-xs text-muted-foreground">{t("tokenLockList.beneficiaryLabel")}</span>
                 {shortAddress(lock.beneficiary, 6, 6)}
                 <CopyButton text={lock.beneficiary} />
               </div>
 
               <div className="col-span-2 text-sm text-muted-foreground">
-                <span className="md:hidden text-xs">Unlock: </span>
+                <span className="md:hidden text-xs">{t("tokenLockList.unlockLabel")}</span>
                 {formatDate(lock.unlockAt)}
               </div>
 
@@ -67,7 +73,7 @@ export function TokenLockList({ locks }: { locks: Lock[] }) {
                 <Link
                   to={`/app/lock/${lock.kind ?? "token"}/${lock.id}`}
                   className="text-muted-foreground transition-colors hover:text-primary"
-                  aria-label={`View lock ${lock.id}`}
+                  aria-label={t("tokenLockList.viewLock", { id: lock.id })}
                 >
                   <ExternalLink className="h-4 w-4" />
                 </Link>

@@ -563,5 +563,50 @@
     "signing": "Please sign in your wallet…",
     "submitting": "Submitting to network…",
     "confirming": "Waiting for confirmation…"
+  },
+  "addressBook": {
+    "title": "Address Book",
+    "close": "Close address book",
+    "searchPlaceholder": "Search addresses…",
+    "export": "Export address book",
+    "import": "Import address book",
+    "add": "Add address",
+    "label": "Label",
+    "stellarAddress": "Stellar Address",
+    "address": "Address",
+    "empty": "No saved addresses yet",
+    "noResults": "No matching addresses",
+    "save": "Save address",
+    "cancel": "Cancel",
+    "delete": "Delete address",
+    "invalidAddress": "Enter a valid Stellar address.",
+    "labelRequired": "Enter a label for this address.",
+    "importError": "Could not import the address book file.",
+    "exportSuccess": "Address book exported.",
+    "importSuccess": "Address book imported."
+  },
+  "tokenLockList": {
+    "amount": "Amount",
+    "beneficiary": "Beneficiary",
+    "unlockDate": "Unlock date",
+    "unlocksIn": "Unlocks in",
+    "status": "Status",
+    "empty": "No locks found for this token"
+  },
+  "notificationCenter": {
+    "title": "Notifications",
+    "markAllRead": "Mark all as read",
+    "clearAll": "Clear all",
+    "empty": "No notifications yet"
+  },
+  "confirmLockModal": {
+    "review": "Review the details before signing.",
+    "invalidUnlockDate": "Invalid unlock date.",
+    "linearVesting": "Linear vesting enabled",
+    "insufficientBalance": "Insufficient balance.",
+    "approvalRequired": "Approval required",
+    "title": "Confirm lock",
+    "confirm": "Confirm",
+    "cancel": "Cancel"
   }
 }

@@ -563,5 +563,37 @@
     "signing": "Lütfen cüzdanınızda imzalayın…",
     "submitting": "Ağa gönderiliyor…",
     "confirming": "Onay bekleniyor…"
+  },
+  "addressBook": {
+    "title": "Adres Defteri",
+    "close": "Adres defterini kapat",
+    "searchPlaceholder": "Adres ara…",
+    "export": "Adres defterini dışa aktar",
+    "import": "Adres defterini içe aktar",
+    "add": "Adres ekle",
+    "label": "Etiket",
+    "stellarAddress": "Stellar Adresi",
+    "address": "Adres"
+  },
+  "tokenLockList": {
+    "amount": "Miktar",
+    "beneficiary": "Yararlanıcı",
+    "unlockDate": "Kilit açma tarihi",
+    "unlocksIn": "Açılma süresi",
+    "status": "Durum",
+    "noLocks": "Bu token için kilit bulunamadı"
+  },
+  "notificationCenter": {
+    "title": "Bildirimler",
+    "markAllAsRead": "Tümünü okundu olarak işaretle",
+    "clearAll": "Tümünü temizle",
+    "empty": "Henüz bildirim yok"
+  },
+  "confirmLockModal": {
+    "review": "İmzalamadan önce ayrıntıları inceleyin.",
+    "invalidUnlockDate": "Geçersiz kilit açma tarihi.",
+    "linearVestingEnabled": "Doğrusal hakediş etkin",
+    "insufficientBalance": "Yetersiz bakiye.",
+    "approvalRequired": "Onay gerekli"
   }
 }
