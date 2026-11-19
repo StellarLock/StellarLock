@@ -3,7 +3,7 @@ import type { Lock, LockMetadata, TokenLockSummary } from "@/types/lock"
 import { CONTRACTS, simulateCall, submitCallWithHash, type TxPhase } from "@/lib/stellar"
 import { getOnChainTokenMeta, type OnChainTokenMeta } from "@/lib/token-metadata"
 
-export interface CreateTokenLockArgs {
+interface CreateTokenLockArgs {
   tokenAddress: string
   amount: number
   beneficiary: string

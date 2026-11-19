@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 import { renderHook, render, act } from "@testing-library/react"
-import { AnnouncerProvider, useAnnouncer } from "@/hooks/useAnnouncer"
+import { AnnouncerProvider } from "@/hooks/AnnouncerProvider"
+import { useAnnouncer } from "@/hooks/useAnnouncer"
 import type { ReactNode } from "react"
 
 function wrapper({ children }: { children: ReactNode }) {

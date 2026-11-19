@@ -1,16 +1,16 @@
 import type { Lock } from "@/types/lock"
 
-export interface TvlPoint {
+interface TvlPoint {
   date: string
   tvl: number
 }
 
-export interface VolumePoint {
+interface VolumePoint {
   date: string
   count: number
 }
 
-export interface DistributionSlice {
+interface DistributionSlice {
   symbol: string
   value: number
 }

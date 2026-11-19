@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react"
 import { I18nextProvider } from "react-i18next"
 import { BrowserRouter } from "react-router-dom"
 import i18n from "@/i18n"
-import { WalletProvider } from "@/hooks/useWallet"
+import { WalletProvider } from "@/hooks/WalletProvider"
 import { WalletAlerts } from "./WalletAlerts"
 
 const meta = {

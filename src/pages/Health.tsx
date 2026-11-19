@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { Activity, CheckCircle2, AlertCircle, WifiOff } from "lucide-react"
 import { NETWORK } from "@/lib/stellar"
 
@@ -11,6 +12,7 @@ interface HealthStatus {
 const HEALTH_TIMEOUT_MS = 5000
 
 export function HealthPage() {
+  const { t } = useTranslation()
   const [statuses, setStatuses] = useState<HealthStatus[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -22,9 +24,9 @@ export function HealthPage() {
       setLoading(true)
       setError(null)
       const checks: Array<Promise<HealthStatus>> = [
-        checkUrl("Soroban RPC", NETWORK.rpcUrl, "/health"),
-        checkUrl("Horizon API", NETWORK.horizonUrl, "/"),
-        checkBrowserExtension(),
+        checkUrl("Soroban RPC", NETWORK.rpcUrl, "/health", t("health.unreachable")),
+        checkUrl("Horizon API", NETWORK.horizonUrl, "/", t("health.unreachable")),
+        checkBrowserExtension(t("health.extensionAvailable"), t("health.notDetected")),
       ]
 
       try {
@@ -36,7 +38,7 @@ export function HealthPage() {
         if (active) {
           const sanitized = import.meta.env.DEV && err instanceof Error
             ? err.message
-            : "Health check failed"
+            : t("health.checkFailed")
           setError(sanitized)
         }
       } finally {
@@ -50,7 +52,7 @@ export function HealthPage() {
     return () => {
       active = false
     }
-  }, [])
+  }, [t])
 
   const overall = useMemo(() => {
     if (statuses.length === 0) return "checking"
@@ -67,16 +69,16 @@ export function HealthPage() {
             <Activity className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-sm font-medium uppercase tracking-[0.2em] text-muted-foreground">Monitoring</p>
-            <h1 className="text-2xl font-semibold">System health</h1>
+            <p className="text-sm font-medium uppercase tracking-[0.2em] text-muted-foreground">{t("health.monitoring")}</p>
+            <h1 className="text-2xl font-semibold">{t("health.systemHealth")}</h1>
           </div>
         </div>
         <div className="mt-6 flex flex-wrap items-center gap-3">
           <span className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-medium ${overall === "ok" ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" : overall === "down" ? "bg-rose-500/15 text-rose-600 dark:text-rose-400" : "bg-amber-500/15 text-amber-600 dark:text-amber-400"}`}>
-            {overall === "ok" ? "Healthy" : overall === "down" ? "Unhealthy" : "Checking"}
+            {overall === "ok" ? t("health.healthy") : overall === "down" ? t("health.unhealthy") : t("health.checking")}
           </span>
-          <span className="text-sm text-muted-foreground">Environment: {import.meta.env.MODE}</span>
-          <span className="text-sm text-muted-foreground">Network: {NETWORK.displayName}</span>
+          <span className="text-sm text-muted-foreground">{t("health.environment")}: {import.meta.env.MODE}</span>
+          <span className="text-sm text-muted-foreground">{t("health.network")}: {NETWORK.displayName}</span>
         </div>
       </div>
 
@@ -88,7 +90,7 @@ export function HealthPage() {
 
       <div className="grid gap-4 md:grid-cols-3">
         {loading && !statuses.length ? (
-          <div className="col-span-full rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">Checking dependencies…</div>
+          <div className="col-span-full rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">{t("health.checkingDependencies")}</div>
         ) : (
           statuses.map((item) => (
             <div key={item.name} className="rounded-xl border border-border bg-card p-5">
@@ -113,7 +115,7 @@ export function HealthPage() {
   )
 }
 
-async function checkUrl(name: string, baseUrl: string, path: string): Promise<HealthStatus> {
+async function checkUrl(name: string, baseUrl: string, path: string, unreachableLabel: string): Promise<HealthStatus> {
   const controller = new AbortController()
   const timeout = window.setTimeout(() => controller.abort(), HEALTH_TIMEOUT_MS)
 
@@ -130,16 +132,16 @@ async function checkUrl(name: string, baseUrl: string, path: string): Promise<He
     return {
       name,
       status: "down",
-      detail: "Unreachable",
+      detail: unreachableLabel,
     }
   }
 }
 
-function checkBrowserExtension(): Promise<HealthStatus> {
+function checkBrowserExtension(availableLabel: string, notDetectedLabel: string): Promise<HealthStatus> {
   const hasFreighter = typeof window !== "undefined" && Boolean((window as Window & { freighter?: unknown }).freighter)
   return Promise.resolve({
     name: "Freighter extension",
     status: hasFreighter ? "ok" : "degraded",
-    detail: hasFreighter ? "Extension available" : "Not detected in browser",
+    detail: hasFreighter ? availableLabel : notDetectedLabel,
   })
 }

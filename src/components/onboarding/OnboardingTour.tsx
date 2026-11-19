@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { Wallet, Lock, TrendingUp, Compass, X } from "lucide-react"
 import { Button } from "@/components/ui/Button"
 import { cn } from "@/lib/utils"
+import { START_EVENT } from "./startOnboardingTour"
 
 const STORAGE_KEY = "stellarlock:onboarding_tour_completed"
-const START_EVENT = "stellarlock:start-onboarding-tour"
 const AUTO_OPEN_DELAY_MS = 600
 
 interface TourStep {
@@ -40,12 +41,6 @@ const STEPS: TourStep[] = [
   },
 ]
 
-/** Trigger the onboarding tour from anywhere in the app (e.g. a "Replay tour" button in Settings). */
-export function startOnboardingTour() {
-  if (typeof window === "undefined") return
-  window.dispatchEvent(new Event(START_EVENT))
-}
-
 function hasCompletedTour(): boolean {
   try {
     return localStorage.getItem(STORAGE_KEY) === "1"
@@ -76,6 +71,7 @@ function markTourCompleted() {
  * re-triggered at any time via {@link startOnboardingTour}.
  */
 export function OnboardingTour() {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [stepIndex, setStepIndex] = useState(0)
 
@@ -124,7 +120,7 @@ export function OnboardingTour() {
     <div
       role="dialog"
       aria-modal="false"
-      aria-label="StellarLock onboarding tour"
+      aria-label={t("onboardingTour.tourAriaLabel")}
       className="fixed inset-x-4 bottom-4 z-50 flex justify-center sm:inset-x-auto sm:end-6 sm:bottom-6 sm:justify-end"
     >
       <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-5 shadow-xl">
@@ -137,7 +133,7 @@ export function OnboardingTour() {
           </div>
           <button
             onClick={close}
-            aria-label="Close tour"
+            aria-label={t("onboardingTour.closeAriaLabel")}
             className="rounded-md p-1 text-muted-foreground transition-colors hover:text-foreground"
           >
             <X className="h-4 w-4" />

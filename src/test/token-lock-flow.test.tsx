@@ -12,6 +12,9 @@ import { resetNotificationStore } from "@/hooks/useNotifications"
 // Mock the wallet context
 vi.mock("@/hooks/useWallet", () => ({
   useWallet: () => mockWallet,
+}))
+
+vi.mock("@/hooks/WalletProvider", () => ({
   WalletProvider: ({ children }: { children: ReactNode }) => children,
 }))
 

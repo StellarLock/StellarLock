@@ -18,7 +18,7 @@ export interface FieldValidationIssue {
   guidance?: string
 }
 
-export interface LockFormValidationResult {
+interface LockFormValidationResult {
   isValid: boolean
   issues: FieldValidationIssue[]
 }

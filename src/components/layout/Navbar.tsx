@@ -47,7 +47,7 @@ export function Navbar() {
           </span>
         </Link>
 
-        <nav aria-label="Main navigation" className="hidden items-center gap-1 md:flex">
+        <nav aria-label={t("nav.mainNavigation")} className="hidden items-center gap-1 md:flex">
           {navLinks.map((link) => (
             <NavLink
               key={link.to}
@@ -133,7 +133,7 @@ export function Navbar() {
       {/* Mobile drawer */}
       {menuOpen && (
         <div id="mobile-nav" className="border-t border-border bg-background md:hidden">
-          <nav aria-label="Mobile navigation" className="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-3">
+          <nav aria-label={t("nav.mobileNavigation")} className="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-3">
             {navLinks.map((link) => (
               <NavLink
                 key={link.to}

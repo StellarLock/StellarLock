@@ -169,8 +169,8 @@ function getClient(): RpcClient {
   return _client
 }
 
-// Keep backward-compat export used elsewhere in the codebase
-export function getRpc(): SorobanRpc.Server {
+// Shared RPC server instance used by the read/write helpers below
+function getRpc(): SorobanRpc.Server {
   return getClient().getServer()
 }
 
@@ -450,8 +450,4 @@ export async function submitTokenApproval(
 
 export function explorerLink(address: string): string {
   return `https://stellar.expert/explorer/${NETWORK.networkName}/contract/${address}`
-}
-
-export function txExplorerLink(hash: string): string {
-  return `https://stellar.expert/explorer/${NETWORK.networkName}/tx/${hash}`
 }

@@ -6,7 +6,7 @@ import { HelmetProvider } from "react-helmet-async"
 import { I18nextProvider } from "react-i18next"
 import { MemoryRouter, Routes, Route } from "react-router-dom"
 import i18n from "@/i18n"
-import { AnnouncerProvider } from "@/hooks/useAnnouncer"
+import { AnnouncerProvider } from "@/hooks/AnnouncerProvider"
 import { LockDetail } from "@/pages/LockDetail"
 import { resetNotificationStore } from "@/hooks/useNotifications"
 import { mockLock, mockWallet, VALID_PUBLIC_KEY } from "./mocks"
@@ -16,6 +16,9 @@ const unlockedLock = { ...mockLock, unlockAt: Date.now() - 60_000, metadata: {} 
 
 vi.mock("@/hooks/useWallet", () => ({
   useWallet: () => mockWallet,
+}))
+
+vi.mock("@/hooks/WalletProvider", () => ({
   WalletProvider: ({ children }: { children: ReactNode }) => children,
 }))
 

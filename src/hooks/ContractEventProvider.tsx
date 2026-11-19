@@ -1,13 +1,6 @@
-import { createContext, useContext, useCallback, useRef, useState, type ReactNode } from "react"
+import { useCallback, useRef, useState, type ReactNode } from "react"
 import { useContractEvents, type ContractEvent } from "@/hooks/useContractEvents"
-
-interface ContractEventContextValue {
-  events: ContractEvent[]
-  addListener: (callback: (event: ContractEvent) => void) => void
-  removeListener: (callback: (event: ContractEvent) => void) => void
-}
-
-const ContractEventContext = createContext<ContractEventContextValue | null>(null)
+import { ContractEventContext, type ContractEventContextValue } from "@/hooks/useContractEventContext"
 
 export function ContractEventProvider({ children }: { children: ReactNode }) {
   const [events, setEvents] = useState<ContractEvent[]>([])
@@ -35,12 +28,4 @@ export function ContractEventProvider({ children }: { children: ReactNode }) {
   }
 
   return <ContractEventContext.Provider value={value}>{children}</ContractEventContext.Provider>
-}
-
-export type { ContractEvent }
-
-export function useContractEventContext(): ContractEventContextValue {
-  const ctx = useContext(ContractEventContext)
-  if (!ctx) throw new Error("useContractEventContext must be used within a ContractEventProvider")
-  return ctx
 }

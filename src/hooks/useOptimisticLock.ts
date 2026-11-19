@@ -6,11 +6,11 @@ import type { Lock } from "@/types/lock"
  * Fields a caller is allowed to update optimistically. Identity and provenance
  * (`id`, `creator`, `token`, `createdAt`) are never predicted locally.
  */
-export type OptimisticLockPatch = Partial<
+type OptimisticLockPatch = Partial<
   Pick<Lock, "status" | "unlockAt" | "beneficiary" | "amount" | "extendedCount">
 >
 
-export interface UseOptimisticLock {
+interface UseOptimisticLock {
   /** The lock with any in-flight optimistic patch applied. */
   lock: Lock | null
   /** True while an optimistic patch is applied and unconfirmed. */

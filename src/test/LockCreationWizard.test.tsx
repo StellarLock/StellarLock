@@ -15,6 +15,9 @@ vi.mock("react-router-dom", async (importOriginal) => {
 
 vi.mock("@/hooks/useWallet", () => ({
   useWallet: () => mockWallet,
+}))
+
+vi.mock("@/hooks/WalletProvider", () => ({
   WalletProvider: ({ children }: { children: ReactNode }) => children,
 }))
 

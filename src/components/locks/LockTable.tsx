@@ -132,13 +132,14 @@ interface LockTableProps {
 }
 
 export function LockTable({ locks, selectable = false, selectedIds = new Set(), onSelect = () => {} }: LockTableProps) {
+  const { t } = useTranslation()
   return (
     <Card className="overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-left" role="table">
           <thead>
             <tr className="border-b border-border bg-secondary/30">
-              {selectable && <th className="w-10 px-4 py-3" scope="col" aria-label="Select" />}
+              {selectable && <th className="w-10 px-4 py-3" scope="col" aria-label={t("lockTable.select")} />}
               <th
                 className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground"
                 scope="col"
@@ -175,7 +176,7 @@ export function LockTable({ locks, selectable = false, selectedIds = new Set(), 
               >
                 Status
               </th>
-              {!selectable && <th className="pr-4 py-3" scope="col" aria-label="Actions" />}
+              {!selectable && <th className="pr-4 py-3" scope="col" aria-label={t("lockTable.actions")} />}
             </tr>
           </thead>
           <tbody>

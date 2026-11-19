@@ -23,7 +23,9 @@
     "openMenu": "Open menu",
     "closeMenu": "Close menu",
     "history": "History",
-    "analytics": "Analytics"
+    "analytics": "Analytics",
+    "mainNavigation": "Main navigation",
+    "mobileNavigation": "Mobile navigation"
   },
   "landing": {
     "badge": "Built on Stellar · Soroban smart contracts",
@@ -96,13 +98,14 @@
     "metadataTitle": "Project info (optional)",
     "metadataDesc": "Shown on the lock's detail and explorer pages so your community can verify who locked this.",
     "description": "Description",
-    "descriptionPlaceholder": "What is this lock for?",
+    "descriptionPlaceholder": "Why is this lock being created? (e.g. Team tokens locked for 2 years)",
     "projectUrl": "Project URL",
     "logoUrl": "Logo URL",
     "insufficientBalance": "Insufficient balance. You have {{balance}} but need {{amount}}.",
     "needsApproval": "You need to approve the contract to transfer your tokens before locking.",
     "approveAndContinue": "Approve & Continue",
-    "approving": "Approving…"
+    "approving": "Approving…",
+    "openAddressBook": "Open address book"
   },
   "lpForm": {
     "dex": "DEX",
@@ -127,7 +130,13 @@
     "insufficientBalance": "Insufficient balance. You have {{balance}} but need {{amount}}.",
     "needsApproval": "You need to approve the contract to transfer your LP tokens before locking.",
     "approveAndContinue": "Approve & Continue",
-    "approving": "Approving…"
+    "approving": "Approving…",
+    "openAddressBook": "Open address book",
+    "beneficiaryHint": "Leave blank to use your connected wallet as beneficiary.",
+    "description": "Description",
+    "descriptionPlaceholder": "Why is this lock being created? (e.g. Liquidity locked for 2 years)",
+    "projectUrl": "Project URL",
+    "logoUrl": "Logo URL"
   },
   "myLocks": {
     "title": "My Locks",
@@ -161,7 +170,24 @@
       "extendDesc": "Choose a new unlock date to apply to all selected locks.",
       "confirm": "Confirm",
       "cancel": "Cancel"
-    }
+    },
+    "viewMode": "View mode",
+    "cardView": "Card view",
+    "tableView": "Table view",
+    "searchPlaceholder": "Search by token symbol or lock ID…",
+    "filterByStatus": "Filter by status",
+    "filterByType": "Filter by type",
+    "sortLocks": "Sort locks",
+    "allStatuses": "All statuses",
+    "statusLocked": "Locked",
+    "statusUnlockable": "Unlockable",
+    "statusWithdrawn": "Withdrawn",
+    "allTypes": "All types",
+    "typeToken": "Token",
+    "typeLp": "LP",
+    "sortUnlockDate": "Sort: Unlock date",
+    "sortAmount": "Sort: Amount",
+    "sortCreated": "Sort: Created"
   },
   "lockDetail": {
     "notFoundTitle": "Lock not found",
@@ -190,9 +216,22 @@
     "confirmTransfer": "Confirm transfer",
     "securityNotice": "These tokens are secured by the StellarLock contract until the unlock date. Neither the creator nor StellarLock can move them early.",
     "viewExplorer": "View token explorer",
+    "unverifiedWarning": "Unverified token — not on the community allowlist. Proceed with caution.",
     "withdrawSuccess": "Withdrawal confirmed.",
     "extendSuccess": "Lock extended.",
-    "transferSuccess": "Beneficiary transferred."
+    "transferSuccess": "Beneficiary transferred.",
+    "shareViaQr": "Share via QR code",
+    "downloadReport": "Download lock report",
+    "vestingSchedule": "Vesting Schedule",
+    "linear": "Linear",
+    "vestingStart": "Vesting start",
+    "vestingEnd": "Vesting end",
+    "progress": "Progress",
+    "total": "Total",
+    "released": "Released",
+    "claimable": "Claimable",
+    "lockDetails": "Lock Details",
+    "projectLogoAlt": "Project logo"
   },
   "lockStatus": {
     "locked": "Locked",
@@ -579,5 +618,115 @@
     "signing": "Please sign in your wallet…",
     "submitting": "Submitting to network…",
     "confirming": "Waiting for confirmation…"
+  },
+  "onboardingTour": {
+    "tourAriaLabel": "StellarLock onboarding tour",
+    "closeAriaLabel": "Close tour"
+  },
+  "rpcStatus": {
+    "unreachable": "Stellar network is unreachable. Some features may be unavailable…",
+    "slow": "Slow network connection. Responses may take longer than usual.",
+    "unreachableIndicator": "Network unreachable",
+    "slowIndicator": "Slow network"
+  },
+  "qrCode": {
+    "shareAria": "Share lock via QR code",
+    "closeAria": "Close QR code modal",
+    "copyUrlAria": "Copy URL to clipboard",
+    "downloadAria": "Download QR code as PNG",
+    "copied": "Copied!",
+    "copyUrl": "Copy URL",
+    "downloadPng": "Download PNG",
+    "scanHint": "Scan to open this lock"
+  },
+  "keyboardShortcuts": {
+    "title": "Keyboard shortcuts",
+    "closeAria": "Close",
+    "actions": {
+      "openShortcuts": "Show keyboard shortcuts",
+      "closeModal": "Close dialog",
+      "search": "Focus search",
+      "createLock": "Create a new lock",
+      "myLocks": "Go to my locks",
+      "explore": "Go to explore",
+      "history": "Go to transaction history",
+      "analytics": "Go to analytics",
+      "toggleTheme": "Toggle theme",
+      "submit": "Submit form",
+      "nextField": "Next field",
+      "previousField": "Previous field"
+    }
+  },
+  "health": {
+    "monitoring": "Monitoring",
+    "systemHealth": "System health",
+    "checkingDependencies": "Checking dependencies…",
+    "statusHealthy": "All systems operational",
+    "statusUnhealthy": "Some systems are degraded",
+    "statusChecking": "Checking…",
+    "environmentLabel": "Environment",
+    "networkLabel": "Network",
+    "healthCheckFailed": "Health check failed",
+    "unreachable": "Unreachable",
+    "extensionAvailable": "Available",
+    "extensionNotDetected": "Not detected"
+  },
+  "verifiedBadge": {
+    "verifiedTooltip": "Verified token — listed on the StellarLock community allowlist",
+    "unverifiedTooltip": "Unverified token — not on the community allowlist. Proceed with caution.",
+    "verified": "Verified",
+    "unverified": "Unverified"
+  },
+  "addressBook": {
+    "title": "Address Book",
+    "close": "Close address book",
+    "searchPlaceholder": "Search addresses…",
+    "export": "Export address book",
+    "import": "Import address book",
+    "add": "Add address",
+    "label": "Label",
+    "stellarAddress": "Stellar Address",
+    "address": "Address",
+    "empty": "No saved addresses yet",
+    "noResults": "No matching addresses",
+    "save": "Save address",
+    "cancel": "Cancel",
+    "delete": "Delete address",
+    "invalidAddress": "Enter a valid Stellar address.",
+    "labelRequired": "Enter a label for this address.",
+    "importError": "Could not import the address book file.",
+    "exportSuccess": "Address book exported.",
+    "importSuccess": "Address book imported."
+  },
+  "tokenLockList": {
+    "amount": "Amount",
+    "beneficiary": "Beneficiary",
+    "unlockDate": "Unlock date",
+    "unlocksIn": "Unlocks in",
+    "status": "Status",
+    "empty": "No locks found for this token"
+  },
+  "notificationCenter": {
+    "title": "Notifications",
+    "markAllRead": "Mark all as read",
+    "clearAll": "Clear all",
+    "empty": "No notifications yet"
+  },
+  "confirmLockModal": {
+    "review": "Review the details before signing.",
+    "invalidUnlockDate": "Invalid unlock date.",
+    "linearVesting": "Linear vesting enabled",
+    "insufficientBalance": "Insufficient balance.",
+    "approvalRequired": "Approval required",
+    "title": "Confirm lock",
+    "confirm": "Confirm",
+    "cancel": "Cancel"
+  },
+  "breadcrumb": {
+    "ariaLabel": "Breadcrumb"
+  },
+  "lockTable": {
+    "select": "Select",
+    "actions": "Actions"
   }
 }

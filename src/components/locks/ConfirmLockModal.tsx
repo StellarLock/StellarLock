@@ -1,4 +1,5 @@
 import { useRef } from "react"
+import { useTranslation } from "react-i18next"
 import { useModalFocusTrap } from "@/lib/modalFocusTrap"
 import { AlertTriangle, Lock, CheckCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/Button"
@@ -28,6 +29,7 @@ interface ConfirmLockModalProps {
 }
 
 export function ConfirmLockModal({ data, onConfirm, onApprove, onCancel, loading, approving }: ConfirmLockModalProps) {
+  const { t } = useTranslation()
   const unlockTs = new Date(data.unlockDate).getTime()
   const isInvalidDate = Number.isNaN(unlockTs)
   const amount = Number(data.amount)
@@ -54,9 +56,11 @@ export function ConfirmLockModal({ data, onConfirm, onApprove, onCancel, loading
       <div className="w-full max-w-md rounded-2xl border border-border bg-card shadow-xl">
         <div className="border-b border-border p-5">
           <h2 id="confirm-lock-title" className="text-lg font-semibold">
-            {data.isLp ? "Confirm LP Lock" : "Confirm Token Lock"}
+            {data.isLp
+              ? t("confirmLockModal.titleLp")
+              : t("confirmLockModal.titleToken")}
           </h2>
-          <p className="mt-1 text-sm text-muted-foreground">Review the details before signing.</p>
+          <p className="mt-1 text-sm text-muted-foreground">{t("confirmLockModal.review")}</p>
         </div>
 
         {isInvalidDate ? (
@@ -64,7 +68,8 @@ export function ConfirmLockModal({ data, onConfirm, onApprove, onCancel, loading
             <div className="flex items-start gap-2">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
               <span>
-                <strong>Invalid unlock date.</strong> The unlock date is malformed or missing. Please close this modal and try again.
+                <strong>{t("confirmLockModal.invalidDateTitle")}</strong>{" "}
+                {t("confirmLockModal.invalidDateDescription")}
               </span>
             </div>
           </div>
@@ -73,24 +78,32 @@ export function ConfirmLockModal({ data, onConfirm, onApprove, onCancel, loading
             {data.isLp ? (
               <>
                 <Row
-                  label="Pool share address"
+                  label={t("confirmLockModal.poolShareAddress")}
                   value={<span className="font-mono">{shortAddress(data.poolShareAddress ?? "", 8, 8)}</span>}
                 />
-                <Row label="DEX" value={<span className="capitalize">{data.dex}</span>} />
+                <Row label={t("confirmLockModal.dex")} value={<span className="capitalize">{data.dex}</span>} />
               </>
             ) : (
               <Row
-                label="Token address"
+                label={t("confirmLockModal.tokenAddress")}
                 value={<span className="font-mono">{shortAddress(data.tokenAddress, 8, 8)}</span>}
               />
             )}
-            <Row label="Amount" value={<span className="font-semibold">{data.amount}</span>} />
-            <Row label="Beneficiary" value={<span className="font-mono">{shortAddress(data.beneficiary, 8, 8)}</span>} />
-            <Row label="Unlock date" value={<span className="font-medium">{formatDate(unlockTs)}</span>} />
-            {data.vesting && <Row label="Vesting" value={<span className="text-primary">Linear vesting enabled</span>} />}
+            <Row label={t("confirmLockModal.amount")} value={<span className="font-semibold">{data.amount}</span>} />
+            <Row
+              label={t("confirmLockModal.beneficiary")}
+              value={<span className="font-mono">{shortAddress(data.beneficiary, 8, 8)}</span>}
+            />
+            <Row label={t("confirmLockModal.unlockDate")} value={<span className="font-medium">{formatDate(unlockTs)}</span>} />
+            {data.vesting && (
+              <Row
+                label={t("confirmLockModal.vesting")}
+                value={<span className="text-primary">{t("confirmLockModal.vestingEnabled")}</span>}
+              />
+            )}
             {data.balance != null && (
               <Row
-                label="Your balance"
+                label={t("confirmLockModal.yourBalance")}
                 value={
                   <span className={hasInsufficientBalance ? "text-destructive" : "text-foreground"}>
                     {data.balance.toLocaleString(undefined, { maximumFractionDigits: 7 })}
@@ -100,7 +113,7 @@ export function ConfirmLockModal({ data, onConfirm, onApprove, onCancel, loading
             )}
             {data.allowance != null && (
               <Row
-                label="Current allowance"
+                label={t("confirmLockModal.currentAllowance")}
                 value={
                   <span className={needsApproval ? "text-destructive" : "text-foreground"}>
                     {data.allowance.toLocaleString(undefined, { maximumFractionDigits: 7 })}
@@ -116,12 +129,11 @@ export function ConfirmLockModal({ data, onConfirm, onApprove, onCancel, loading
             <div className="flex items-start gap-2">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
               <span>
-                <strong>Insufficient balance.</strong> You have{" "}
-                <span className="font-medium">
-                  {data.balance?.toLocaleString(undefined, { maximumFractionDigits: 7 })}
-                </span>{" "}
-                but are trying to lock{" "}
-                <span className="font-medium">{amount.toLocaleString(undefined, { maximumFractionDigits: 7 })}</span>.
+                <strong>{t("confirmLockModal.insufficientBalanceTitle")}</strong>{" "}
+                {t("confirmLockModal.insufficientBalanceDescription", {
+                  balance: data.balance?.toLocaleString(undefined, { maximumFractionDigits: 7 }),
+                  amount: amount.toLocaleString(undefined, { maximumFractionDigits: 7 }),
+                })}
               </span>
             </div>
           </div>
@@ -132,10 +144,9 @@ export function ConfirmLockModal({ data, onConfirm, onApprove, onCancel, loading
             <div className="flex items-start gap-2">
               <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
               <div className="flex-1">
-                <p className="font-medium text-foreground">Approval required</p>
+                <p className="font-medium text-foreground">{t("confirmLockModal.approvalRequired")}</p>
                 <p className="mt-1 text-muted-foreground">
-                  You need to approve the contract to transfer your tokens before locking. This is a one-time setup per
-                  token.
+                  {t("confirmLockModal.approvalRequiredDescription")}
                 </p>
               </div>
             </div>
@@ -145,32 +156,33 @@ export function ConfirmLockModal({ data, onConfirm, onApprove, onCancel, loading
         <div className="flex items-start gap-2 mx-5 mb-5 rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm text-warning-foreground">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
           <span className="text-muted-foreground">
-            Locks are <strong className="text-foreground">immutable</strong>. The unlock date can only be extended,
-            never shortened. Funds cannot be recovered early.
+            {t("confirmLockModal.immutableWarningPrefix")}{" "}
+            <strong className="text-foreground">{t("confirmLockModal.immutableWarningEmphasis")}</strong>
+            {t("confirmLockModal.immutableWarningSuffix")}
           </span>
         </div>
 
         <div className="flex gap-3 border-t border-border p-5">
           <Button variant="outline" className="flex-1" onClick={onCancel} disabled={loading || approving}>
-            Cancel
+            {t("confirmLockModal.cancel")}
           </Button>
           {isInvalidDate ? (
             <Button className="flex-1" disabled>
-              Invalid Date
+              {t("confirmLockModal.invalidDateButton")}
             </Button>
           ) : hasInsufficientBalance ? (
             <Button className="flex-1" disabled>
-              Insufficient Balance
+              {t("confirmLockModal.insufficientBalanceButton")}
             </Button>
           ) : needsApproval && onApprove ? (
             <Button className="flex-1" onClick={onApprove} loading={approving}>
               <CheckCircle2 className="h-4 w-4" />
-              {approving ? "Approving..." : "Approve & Continue"}
+              {approving ? t("confirmLockModal.approving") : t("confirmLockModal.approveAndContinue")}
             </Button>
           ) : (
             <Button className="flex-1" onClick={onConfirm} loading={loading}>
               <Lock className="h-4 w-4" />
-              Confirm & Lock
+              {t("confirmLockModal.confirmAndLock")}
             </Button>
           )}
         </div>

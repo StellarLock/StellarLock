@@ -1,13 +1,15 @@
 import { useRpcHealth } from '@/hooks/useRpcHealth'
 import { AlertCircle, Wifi, WifiOff } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 export function RpcStatusIndicator() {
   const { status } = useRpcHealth()
+  const { t } = useTranslation()
 
   const config = {
-    connected: { color: 'bg-success', icon: Wifi, label: 'Connected' },
-    slow: { color: 'bg-warning', icon: AlertCircle, label: 'Slow' },
-    disconnected: { color: 'bg-destructive', icon: WifiOff, label: 'Disconnected' },
+    connected: { color: 'bg-success', icon: Wifi, label: t('rpcStatus.connected') },
+    slow: { color: 'bg-warning', icon: AlertCircle, label: t('rpcStatus.slowLabel') },
+    disconnected: { color: 'bg-destructive', icon: WifiOff, label: t('rpcStatus.disconnected') },
   }[status]
 
   const Icon = config.icon
@@ -22,6 +24,7 @@ export function RpcStatusIndicator() {
 
 export function RpcStatusBanner() {
   const { status } = useRpcHealth()
+  const { t } = useTranslation()
 
   if (status === 'connected') {
     return null
@@ -38,13 +41,9 @@ export function RpcStatusBanner() {
       }`}
     >
       {status === 'disconnected' ? (
-        <>
-          <strong>Stellar network is unreachable.</strong> Some features may be unavailable. Please check your connection.
-        </>
+        <>{t('rpcStatus.unreachable')}</>
       ) : (
-        <>
-          <strong>Slow network connection.</strong> Responses may take longer than usual.
-        </>
+        <>{t('rpcStatus.slow')}</>
       )}
     </div>
   )

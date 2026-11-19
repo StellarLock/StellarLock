@@ -6,6 +6,9 @@ import { BulkActionsToolbar } from "@/components/locks/BulkActionsToolbar"
 
 vi.mock("@/hooks/useWallet", () => ({
   useWallet: vi.fn(() => ({ isConnected: false, connecting: false, connect: vi.fn() })),
+}))
+
+vi.mock("@/hooks/WalletProvider", () => ({
   WalletProvider: ({ children }: { children: React.ReactNode }) => children,
 }))
 

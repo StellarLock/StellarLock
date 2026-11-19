@@ -1,34 +1,18 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { StellarWalletsKit, WalletNetwork, allowAllModules } from "@creit.tech/stellar-wallets-kit"
 import { trackEvent } from "@/lib/analytics"
 import { NETWORK } from "@/lib/stellar"
 import { notify } from "../lib/utils"
 import { createLogger } from "@/lib/logger"
+import { getConnectHelp, getFriendlyError } from "@/lib/wallet-errors"
 import { useSessionRecovery } from "@/hooks/useSessionRecovery"
+import { WalletContext, type WalletContextValue } from "@/hooks/useWallet"
 
 const log = createLogger("useWallet")
 
 const STORAGE_KEY = "stellarlock:wallet"
 const WALLET_ID_KEY = "stellarlock:wallet-id"
 const CONNECTION_CHECK_INTERVAL = 10_000
-
-interface WalletContextValue {
-  address: string | null
-  isConnected: boolean
-  connecting: boolean
-  connectState: "idle" | "connecting" | "retrying" | "failed" | "success"
-  connectError: string | null
-  connectHelp: string | null
-  disconnected: boolean
-  networkChanged: boolean
-  connect: () => Promise<void>
-  disconnect: () => void
-  dismissDisconnectAlert: () => void
-  dismissNetworkAlert: () => void
-  signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>
-}
-
-const WalletContext = createContext<WalletContextValue | null>(null)
 
 const walletNetwork = NETWORK.id === "mainnet" ? WalletNetwork.PUBLIC : WalletNetwork.TESTNET
 
@@ -277,31 +261,4 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 function SessionRecoveryBridge() {
   useSessionRecovery()
   return null
-}
-
-function getFriendlyError(message: string): string {
-  const normalized = message.toLowerCase()
-  if (normalized.includes("cancel") || normalized.includes("rejected"))
-    return "Connection was rejected. Please approve the prompt in Freighter."
-  if (normalized.includes("network"))
-    return "The wallet is on the wrong network. Switch Freighter to the app network and try again."
-  if (normalized.includes("freighter") || normalized.includes("extension"))
-    return "Freighter was not detected. Install or unlock the extension and retry."
-  return message
-}
-
-function getConnectHelp(message: string): string {
-  const normalized = message.toLowerCase()
-  if (normalized.includes("cancel") || normalized.includes("rejected"))
-    return "Approve the connection popup in Freighter to continue."
-  if (normalized.includes("network")) return "Switch Freighter to Testnet or Mainnet to match the app and try again."
-  if (normalized.includes("freighter") || normalized.includes("extension"))
-    return "Install the Freighter extension or unlock it, then try again."
-  return "Check your browser extension and network connection, then retry."
-}
-
-export function useWallet(): WalletContextValue {
-  const ctx = useContext(WalletContext)
-  if (!ctx) throw new Error("useWallet must be used within a WalletProvider")
-  return ctx
 }

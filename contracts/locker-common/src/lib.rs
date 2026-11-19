@@ -263,6 +263,32 @@ mod tests {
     }
 
     #[test]
+    fn vested_zero_duration_returns_full_amount() {
+        assert_eq!(calculate_vested(1_000, 100, 100, 100), 1_000);
+        assert_eq!(calculate_vested(1_000, 100, 100, 200), 1_000);
+    }
+
+    #[test]
+    fn vested_zero_amount_is_zero() {
+        assert_eq!(calculate_vested(0, 0, 1_000, 500), 0);
+    }
+
+    #[test]
+    fn vested_negative_amount_is_zero() {
+        assert_eq!(calculate_vested(-500, 0, 1_000, 500), 0);
+    }
+
+    #[test]
+    fn vested_at_start_is_zero() {
+        assert_eq!(calculate_vested(1_000, 100, 200, 100), 0);
+    }
+
+    #[test]
+    fn vested_at_end_is_full_amount() {
+        assert_eq!(calculate_vested(1_000, 100, 200, 200), 1_000);
+    }
+
+    #[test]
     fn next_id_increments() {
         let env = Env::default();
         let contract_id = env.register(DummyContract, ());
@@ -284,6 +310,23 @@ mod tests {
             assert_eq!(ids.len(), 2);
             assert!(ids.contains(42u64));
             assert!(ids.contains(99u64));
+        });
+    }
+
+    #[test]
+    fn remove_from_index_missing_id_leaves_index_unchanged() {
+        let env = Env::default();
+        let contract_id = env.register(DummyContract, ());
+        env.as_contract(&contract_id, || {
+            push_index(&env, TestKey::Index(3), 10, false);
+            push_index(&env, TestKey::Index(3), 20, false);
+            push_index(&env, TestKey::Index(3), 30, false);
+            remove_from_index(&env, TestKey::Index(3), 99);
+            let ids = get_index(&env, TestKey::Index(3));
+            assert_eq!(ids.len(), 3);
+            assert!(ids.contains(10u64));
+            assert!(ids.contains(20u64));
+            assert!(ids.contains(30u64));
         });
     }
 
@@ -319,6 +362,38 @@ mod tests {
             assert_eq!(page1.len(), 2);
             let empty: Vec<u64> = collect_paginated(&env, ids, 10, 3, TestKey::Lock);
             assert_eq!(empty.len(), 0);
+        });
+    }
+
+    #[test]
+    fn collect_paginated_offset_past_end_is_empty() {
+        let env = Env::default();
+        let contract_id = env.register(DummyContract, ());
+        env.as_contract(&contract_id, || {
+            for i in 0u64..3 {
+                env.storage()
+                    .persistent()
+                    .set(&TestKey::Lock(i), &(i * 10u64));
+            }
+            let ids = soroban_sdk::vec![&env, 0u64, 1u64, 2u64];
+            let out: Vec<u64> = collect_paginated(&env, ids, 10, 5, TestKey::Lock);
+            assert_eq!(out.len(), 0);
+        });
+    }
+
+    #[test]
+    fn collect_paginated_zero_limit_is_empty() {
+        let env = Env::default();
+        let contract_id = env.register(DummyContract, ());
+        env.as_contract(&contract_id, || {
+            for i in 0u64..3 {
+                env.storage()
+                    .persistent()
+                    .set(&TestKey::Lock(i), &(i * 10u64));
+            }
+            let ids = soroban_sdk::vec![&env, 0u64, 1u64, 2u64];
+            let out: Vec<u64> = collect_paginated(&env, ids, 0, 0, TestKey::Lock);
+            assert_eq!(out.len(), 0);
         });
     }
 
