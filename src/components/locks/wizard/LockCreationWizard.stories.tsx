@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import { BrowserRouter } from "react-router-dom"
-import { WalletProvider } from "@/hooks/useWallet"
+import { WalletProvider } from "@/hooks/WalletProvider"
 import { LockCreationWizard } from "./LockCreationWizard"
 
 const meta = {

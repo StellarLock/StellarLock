@@ -27,6 +27,7 @@ export function NotificationSettings({ lockId, unlockAt, address }: Props) {
   const { permission, requestPermission } = useBrowserNotifications()
   const [webhookInput, setWebhookInput] = useState(prefs.webhookUrl ?? "")
   const [webhookSaved, setWebhookSaved] = useState(false)
+  const [webhookError, setWebhookError] = useState<string | null>(null)
 
   // Email state
   const [emailInput, setEmailInput] = useState(prefs.email ?? "")

@@ -75,7 +75,7 @@ export function useMyLocks(address: string | null, offset = 0, limit = 50) {
  * pagination. Fetches the full set so that "Total Value Locked" and
  * "Ready to withdraw" are always accurate regardless of which page is shown.
  */
-export interface MyLocksStats {
+interface MyLocksStats {
   totalValue: number
   unlockable: number
 }
@@ -93,6 +93,30 @@ export function useMyLocksStats(address: string | null) {
   }, [address])
 }
 
+/** Fetch a user's balance for a specific SEP-41 token contract. */
+export function useTokenBalance(tokenAddress: string | undefined, owner: string | null) {
+  return useAsync(
+    () => (tokenAddress && owner ? getTokenBalance(tokenAddress, owner) : Promise.resolve(null)),
+    [tokenAddress, owner],
+  )
+}
+
+/** Fetch a user's allowance for a specific token contract and spender. */
+export function useTokenAllowance(tokenAddress: string | undefined, owner: string | null, spender: string | undefined) {
+  return useAsync(
+    () => (tokenAddress && owner && spender ? getTokenAllowance(tokenAddress, owner, spender) : Promise.resolve(null)),
+    [tokenAddress, owner, spender],
+  )
+}
+
+interface DiscoverTokenGroup {
+  token: TokenMeta
+  count: number
+  totalValue: number
+}
+
+interface DiscoverStats {
+  /** Which backend actually served this data — surfaced for debugging/telemetry, not shown to users. */
 // Re-export DiscoverStats-related types under the names pages currently import.
 export type DiscoverTokenGroup = TokenGroup
 

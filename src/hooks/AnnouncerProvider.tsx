@@ -1,14 +1,5 @@
-import { createContext, useContext, useState, useCallback, useEffect, useRef, ReactNode } from "react"
-
-interface AnnouncerContextValue {
-  message: string
-  announce: (msg: string, priority?: "polite" | "assertive") => void
-}
-
-const AnnouncerContext = createContext<AnnouncerContextValue>({
-  message: "",
-  announce: () => {},
-})
+import { useState, useCallback, useEffect, useRef, type ReactNode } from "react"
+import { AnnouncerContext } from "@/hooks/useAnnouncer"
 
 export function AnnouncerProvider({ children }: { children: ReactNode }) {
   const [polite, setPolite] = useState("")
@@ -68,8 +59,4 @@ export function AnnouncerProvider({ children }: { children: ReactNode }) {
       </div>
     </AnnouncerContext.Provider>
   )
-}
-
-export function useAnnouncer() {
-  return useContext(AnnouncerContext)
 }

@@ -9,6 +9,9 @@ import type { Lock } from "@/types/lock"
 
 vi.mock("@/hooks/useWallet", () => ({
   useWallet: vi.fn(),
+}))
+
+vi.mock("@/hooks/WalletProvider", () => ({
   WalletProvider: ({ children }: { children: ReactNode }) => children,
 }))
 

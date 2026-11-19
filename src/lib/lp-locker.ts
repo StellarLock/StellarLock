@@ -3,7 +3,7 @@ import type { Dex, Lock, LockMetadata } from "@/types/lock"
 import { CONTRACTS, simulateCall, submitCall, submitCallWithHash, type TxPhase } from "@/lib/stellar"
 import { getOnChainTokenMeta } from "@/lib/token-metadata"
 
-export interface CreateLpLockArgs {
+interface CreateLpLockArgs {
   poolShareAddress: string
   dex: Dex
   tokenA: string

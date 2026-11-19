@@ -44,7 +44,7 @@ export interface NotificationPrefs {
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? ""
 
-export interface SubscribeParams {
+interface SubscribeParams {
   lockId: string
   address: string
   email?: string
@@ -217,6 +217,7 @@ export function scheduleUnlockReminder(lockId: string, unlockAt: number) {
   }
 }
 
+interface WebhookPayload {
 /**
  * Re-arm unlock reminder timers for every lock that has browser notifications
  * enabled in stored prefs. Call once on app bootstrap so reminders survive
@@ -312,15 +313,15 @@ export function addNotification(notif: Omit<Notification, "id" | "timestamp" | "
   return created
 }
 
-export function markNotificationAsRead(id: string) {
+function markNotificationAsRead(id: string) {
   setNotificationStore(notificationStore.map((n) => (n.id === id ? { ...n, read: true } : n)))
 }
 
-export function markAllNotificationsAsRead() {
+function markAllNotificationsAsRead() {
   setNotificationStore(notificationStore.map((n) => ({ ...n, read: true })))
 }
 
-export function clearNotificationHistory() {
+function clearNotificationHistory() {
   setNotificationStore([])
 }
 

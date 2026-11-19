@@ -6,7 +6,7 @@ const log = createLogger("useDraftStorage")
 const DRAFT_KEY_TOKEN = "stellarlock:draft:token-lock"
 const DRAFT_KEY_LP = "stellarlock:draft:lp-lock"
 
-export type DraftType = "token" | "lp"
+type DraftType = "token" | "lp"
 
 export function getDraftKey(type: DraftType): string {
   return type === "token" ? DRAFT_KEY_TOKEN : DRAFT_KEY_LP

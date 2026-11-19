@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-export type Theme = 'light' | 'dark';
+type Theme = 'light' | 'dark';
 
 export const useTheme = () => {
   // 1. Initialize state by checking localStorage or fallback to system preference

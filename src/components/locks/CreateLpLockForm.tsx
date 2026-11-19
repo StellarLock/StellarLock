@@ -358,7 +358,7 @@ export function CreateLpLockForm() {
               type="button"
               onClick={() => setAddressBookOpen(true)}
               className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-              title="Open address book"
+              title={t("lpForm.openAddressBook")}
             >
               <BookUser className="h-3.5 w-3.5" />
               Address Book
@@ -371,7 +371,7 @@ export function CreateLpLockForm() {
             onChange={(e) => setBeneficiaryOverride(e.target.value)}
             className={beneficiaryOverride && !isValidStellarAddress(beneficiaryOverride) ? "border-destructive" : ""}
           />
-          <p className="text-xs text-muted-foreground">Leave blank to use your connected wallet as beneficiary.</p>
+          <p className="text-xs text-muted-foreground">{t("lpForm.beneficiaryHint")}</p>
         </div>
         {addressBookOpen && (
           <AddressBookModal
@@ -424,12 +424,12 @@ export function CreateLpLockForm() {
           {metaOpen && (
             <div className="flex flex-col gap-4 border-t border-border px-4 pb-4 pt-3">
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="lp-meta-desc">Description</Label>
+                <Label htmlFor="lp-meta-desc">{t("lpForm.description")}</Label>
                 <textarea
                   id="lp-meta-desc"
                   rows={3}
                   maxLength={280}
-                  placeholder="Why is this lock being created? (e.g. Liquidity locked for 2 years)"
+                  placeholder={t("lpForm.descriptionPlaceholder")}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
@@ -437,7 +437,7 @@ export function CreateLpLockForm() {
                 <p className="text-end text-xs text-muted-foreground">{description.length}/280</p>
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="lp-meta-url">Project URL</Label>
+                <Label htmlFor="lp-meta-url">{t("lpForm.projectUrl")}</Label>
                 <Input
                   id="lp-meta-url"
                   type="url"
@@ -447,7 +447,7 @@ export function CreateLpLockForm() {
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="lp-meta-logo">Logo URL</Label>
+                <Label htmlFor="lp-meta-logo">{t("lpForm.logoUrl")}</Label>
                 <Input
                   id="lp-meta-logo"
                   type="url"

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 
 export type RpcStatus = "connected" | "slow" | "disconnected"
 
-export interface RpcHealthState {
+interface RpcHealthState {
   status: RpcStatus
   lastChecked: Date | null
 }

@@ -1,9 +1,48 @@
 use soroban_sdk::{
+    contract, contractimpl,
     testutils::{Address as _, Events, Ledger},
     token, Address, Env, IntoVal, Symbol, TryFromVal,
 };
 
-use crate::{ContractError, Dex, LockMetadata, LpLocker, LpLockerClient, Vesting};
+use crate::{verify_pool_tokens, ContractError, Dex, LockMetadata, LpLocker, LpLockerClient, Vesting};
+
+// ── Mock pool contract (Issue #905) ────────────────────────────────────────────
+//
+// `verify_pool_tokens` in lib.rs performs a best-effort cross-contract check
+// against a pool contract's `token_a()`/`token_b()` getters (Aquarius /
+// Soroswap standard). `setup_env`'s `pool_share_id` is a plain Stellar Asset
+// Contract, which doesn't expose those getters, so it only ever exercises the
+// "getters absent -> skip the check" branch. This mock pool exposes the two
+// getters so the match / swapped-order / mismatch branches can be tested too.
+
+#[contract]
+pub struct MockPool;
+
+#[contractimpl]
+impl MockPool {
+    pub fn __constructor(env: Env, token_a: Address, token_b: Address) {
+        env.storage().instance().set(&Symbol::new(&env, "token_a"), &token_a);
+        env.storage().instance().set(&Symbol::new(&env, "token_b"), &token_b);
+    }
+
+    pub fn token_a(env: Env) -> Address {
+        env.storage()
+            .instance()
+            .get(&Symbol::new(&env, "token_a"))
+            .expect("token_a not set")
+    }
+
+    pub fn token_b(env: Env) -> Address {
+        env.storage()
+            .instance()
+            .get(&Symbol::new(&env, "token_b"))
+            .expect("token_b not set")
+    }
+}
+
+fn register_mock_pool(env: &Env, token_a: &Address, token_b: &Address) -> Address {
+    env.register(MockPool, (token_a.clone(), token_b.clone()))
+}
 
 // ── Test setup ────────────────────────────────────────────────────────────────
 
@@ -1962,4 +2001,1093 @@ fn create_split_lock_emits_an_lp_lock_created_event_per_child() {
         })
         .count();
     assert_eq!(child_events, 2);
+}
+
+// ── Issue #911: Test bump_lock_ttl extends the lock entry TTL ─────────────────
+
+#[test]
+fn bump_lock_ttl_extends_ttl_for_active_lock() {
+    let (env, contract_id, pool_share_id, token_a, token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    mint(&env, &pool_share_id, &creator, 1_000);
+
+    let unlock_at = env.ledger().timestamp() + 100_000;
+    let lock_id = client.create_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &500_i128,
+        &beneficiary,
+        &unlock_at,
+        &None,
+        &empty_metadata(&env),
+    );
+
+    // Bump the TTL
+    client.bump_lock_ttl(&lock_id);
+
+    // Lock should still be retrievable after TTL extension
+    let lock = client.get_lock(&lock_id).expect("lock exists after bump");
+    assert_eq!(lock.amount, 500_i128);
+    assert!(!lock.withdrawn);
+}
+
+#[test]
+fn bump_lock_ttl_extends_ttl_for_withdrawn_lock() {
+    let (env, contract_id, pool_share_id, token_a, token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    mint(&env, &pool_share_id, &creator, 1_000);
+
+    let unlock_at = env.ledger().timestamp() + 100_000;
+    let lock_id = client.create_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &500_i128,
+        &beneficiary,
+        &unlock_at,
+        &None,
+        &empty_metadata(&env),
+    );
+
+    advance_time(&env, 200_000);
+    client.withdraw(&lock_id);
+
+    // Bump TTL on withdrawn lock
+    client.bump_lock_ttl(&lock_id);
+
+    // Withdrawn lock should still be retrievable after bump
+    let lock = client.get_lock(&lock_id).expect("withdrawn lock exists after bump");
+    assert!(lock.withdrawn);
+}
+
+// ── Issue #914: Test the upgrade lifecycle (propose / execute / cancel) ───────
+
+#[test]
+fn propose_upgrade_fails_when_not_initialized() {
+    let (env, contract_id, _pool_share_id, _token_a, _token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let wasm_hash = BytesN::from_array(&env, &[0u8; 32]);
+    let result = client.try_propose_upgrade(&wasm_hash);
+    assert_eq!(result, Err(Ok(ContractError::NotInitialized)));
+}
+
+#[test]
+fn execute_upgrade_fails_when_not_initialized() {
+    let (env, contract_id, _pool_share_id, _token_a, _token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let result = client.try_execute_upgrade();
+    assert_eq!(result, Err(Ok(ContractError::NotInitialized)));
+}
+
+#[test]
+fn cancel_upgrade_fails_when_not_initialized() {
+    let (env, contract_id, _pool_share_id, _token_a, _token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let result = client.try_cancel_upgrade();
+    assert_eq!(result, Err(Ok(ContractError::NotInitialized)));
+}
+
+#[test]
+fn execute_upgrade_fails_when_no_pending_upgrade() {
+    let (env, contract_id, _pool_share_id, _token_a, _token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    client.init(&admin);
+
+    let result = client.try_execute_upgrade();
+    assert_eq!(result, Err(Ok(ContractError::NoPendingUpgrade)));
+}
+
+#[test]
+fn execute_upgrade_fails_before_timelock_elapses() {
+    let (env, contract_id, _pool_share_id, _token_a, _token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    client.init(&admin);
+
+    let wasm_hash = BytesN::from_array(&env, &[1u8; 32]);
+    client.propose_upgrade(&wasm_hash);
+
+    // Advance time by less than the 7-day timelock (UPGRADE_DELAY = 7 * 24 * 3600)
+    advance_time(&env, 6 * 24 * 3600);
+
+    let result = client.try_execute_upgrade();
+    assert_eq!(result, Err(Ok(ContractError::TimelockNotElapsed)));
+}
+
+#[test]
+fn execute_upgrade_succeeds_exactly_at_timelock() {
+    let (env, contract_id, _pool_share_id, _token_a, _token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    client.init(&admin);
+
+    let wasm_hash = BytesN::from_array(&env, &[1u8; 32]);
+    client.propose_upgrade(&wasm_hash);
+
+    // Advance time exactly to the 7-day timelock
+    advance_time(&env, 7 * 24 * 3600);
+
+    // execute_upgrade should succeed
+    assert!(client.try_execute_upgrade().is_ok());
+}
+
+#[test]
+fn propose_upgrade_succeeds_after_init() {
+    let (env, contract_id, _pool_share_id, _token_a, _token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    client.init(&admin);
+
+    let wasm_hash = BytesN::from_array(&env, &[2u8; 32]);
+    assert!(client.try_propose_upgrade(&wasm_hash).is_ok());
+}
+
+#[test]
+fn cancel_upgrade_clears_pending_proposal() {
+    let (env, contract_id, _pool_share_id, _token_a, _token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    client.init(&admin);
+
+    let wasm_hash = BytesN::from_array(&env, &[3u8; 32]);
+    client.propose_upgrade(&wasm_hash);
+
+    // Cancel the proposal
+    client.cancel_upgrade();
+
+    // After cancellation there is no pending upgrade, so execute must fail with NoPendingUpgrade
+    advance_time(&env, 8 * 24 * 3600);
+    let result = client.try_execute_upgrade();
+    assert_eq!(result, Err(Ok(ContractError::NoPendingUpgrade)));
+}
+
+#[test]
+fn non_admin_cannot_propose_upgrade() {
+    let env = Env::default();
+    let contract_id = env.register(LpLocker, ());
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    let non_admin = Address::generate(&env);
+
+    env.mock_auths(&[soroban_sdk::testutils::MockAuth {
+        address: &admin,
+        invoke: &soroban_sdk::testutils::MockAuthInvoke {
+            contract: &contract_id,
+            fn_name: "init",
+            args: soroban_sdk::vec![&env, admin.into_val(&env)],
+            sub_invokes: &[],
+        },
+    }]);
+    client.init(&admin);
+
+    let wasm_hash = BytesN::from_array(&env, &[4u8; 32]);
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        let env2 = env.clone();
+        let c2 = LpLockerClient::new(&env2, &contract_id);
+        let _ = &non_admin;
+        c2.propose_upgrade(&wasm_hash)
+    }));
+    assert!(result.is_err(), "propose_upgrade by non-admin must panic");
+}
+
+// ── Issue #913: Test create_split_lock remainder allocation ───────────────────
+
+#[test]
+fn create_split_lock_uneven_amounts_sum_exactly_to_total() {
+    let (env, contract_id, pool_share_id, token_a, token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let b1 = Address::generate(&env);
+    let b2 = Address::generate(&env);
+    let b3 = Address::generate(&env);
+    mint(&env, &pool_share_id, &creator, 10_000);
+
+    let unlock_at = env.ledger().timestamp() + 100_000;
+    // Total amount 1000 does not divide evenly by 3
+    let group_id = client.create_split_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &1_000_i128,
+        &soroban_sdk::vec![
+            &env,
+            (b1.clone(), 3_333_u64), // 33.33%
+            (b2.clone(), 3_333_u64), // 33.33%
+            (b3.clone(), 3_334_u64), // 33.34%
+        ],
+        &unlock_at,
+        &None,
+    );
+
+    let group = client.get_split_group(&group_id).unwrap();
+    let lock0 = client.get_lock(&group_id).unwrap();
+    let lock1 = client.get_lock(&group.lock_ids.get(1).unwrap()).unwrap();
+    let lock2 = client.get_lock(&group.lock_ids.get(2).unwrap()).unwrap();
+
+    // The amounts should sum exactly to 1000
+    let total = lock0.amount + lock1.amount + lock2.amount;
+    assert_eq!(total, 1_000_i128, "per-beneficiary amounts must sum exactly to the total");
+    
+    // Verify individual allocations (first two get floor, last gets remainder)
+    assert_eq!(lock0.amount, 333_i128);
+    assert_eq!(lock1.amount, 333_i128);
+    assert_eq!(lock2.amount, 334_i128); // Last beneficiary gets the remainder
+}
+
+#[test]
+fn create_split_lock_with_prime_amount_allocates_correctly() {
+    let (env, contract_id, pool_share_id, token_a, token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let b1 = Address::generate(&env);
+    let b2 = Address::generate(&env);
+    mint(&env, &pool_share_id, &creator, 10_000);
+
+    let unlock_at = env.ledger().timestamp() + 100_000;
+    // Use a prime number that doesn't divide evenly
+    let group_id = client.create_split_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Aquarius,
+        &token_a,
+        &token_b,
+        &997_i128, // Prime number
+        &soroban_sdk::vec![&env, (b1.clone(), 5_000_u64), (b2.clone(), 5_000_u64)],
+        &unlock_at,
+        &None,
+    );
+
+    let group = client.get_split_group(&group_id).unwrap();
+    let lock0 = client.get_lock(&group_id).unwrap();
+    let lock1 = client.get_lock(&group.lock_ids.get(1).unwrap()).unwrap();
+
+    // Verify exact sum
+    let total = lock0.amount + lock1.amount;
+    assert_eq!(total, 997_i128, "amounts must sum exactly even with prime total");
+    
+    // First gets floor(997 * 5000 / 10000) = 498
+    // Second gets remainder: 997 - 498 = 499
+    assert_eq!(lock0.amount, 498_i128);
+    assert_eq!(lock1.amount, 499_i128);
+}
+
+// ── Issue #912: Test create_split_lock duration, rate-limit and beneficiary boundaries ───
+
+#[test]
+fn create_split_lock_rejects_duration_too_short() {
+    let (env, contract_id, pool_share_id, token_a, token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let b1 = Address::generate(&env);
+    let b2 = Address::generate(&env);
+    mint(&env, &pool_share_id, &creator, 1_000);
+
+    let now = env.ledger().timestamp();
+    // MIN_LOCK_DURATION = 86_400 (24 hours)
+    let unlock_at = now + 86_399; // One second short of minimum
+
+    let result = client.try_create_split_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &1_000_i128,
+        &soroban_sdk::vec![&env, (b1.clone(), 5_000_u64), (b2.clone(), 5_000_u64)],
+        &unlock_at,
+        &None,
+    );
+    assert_eq!(result, Err(Ok(ContractError::LockDurationTooShort)));
+}
+
+#[test]
+fn create_split_lock_accepts_duration_at_minimum() {
+    let (env, contract_id, pool_share_id, token_a, token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let b1 = Address::generate(&env);
+    let b2 = Address::generate(&env);
+    mint(&env, &pool_share_id, &creator, 1_000);
+
+    let now = env.ledger().timestamp();
+    // MIN_LOCK_DURATION = 86_400 (24 hours)
+    let unlock_at = now + 86_400; // Exactly at minimum
+
+    let group_id = client.create_split_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &1_000_i128,
+        &soroban_sdk::vec![&env, (b1.clone(), 5_000_u64), (b2.clone(), 5_000_u64)],
+        &unlock_at,
+        &None,
+    );
+
+    let group = client.get_split_group(&group_id);
+    assert!(group.is_some(), "lock at minimum duration should succeed");
+}
+
+#[test]
+fn create_split_lock_rejects_duration_too_long() {
+    let (env, contract_id, pool_share_id, token_a, token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let b1 = Address::generate(&env);
+    let b2 = Address::generate(&env);
+    mint(&env, &pool_share_id, &creator, 1_000);
+
+    let now = env.ledger().timestamp();
+    // MAX_LOCK_DURATION = 315_360_000 (10 years)
+    let unlock_at = now + 315_360_001; // One second over maximum
+
+    let result = client.try_create_split_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &1_000_i128,
+        &soroban_sdk::vec![&env, (b1.clone(), 5_000_u64), (b2.clone(), 5_000_u64)],
+        &unlock_at,
+        &None,
+    );
+    assert_eq!(result, Err(Ok(ContractError::LockDurationTooLong)));
+}
+
+#[test]
+fn create_split_lock_accepts_duration_at_maximum() {
+    let (env, contract_id, pool_share_id, token_a, token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let b1 = Address::generate(&env);
+    let b2 = Address::generate(&env);
+    mint(&env, &pool_share_id, &creator, 1_000);
+
+    let now = env.ledger().timestamp();
+    // MAX_LOCK_DURATION = 315_360_000 (10 years)
+    let unlock_at = now + 315_360_000; // Exactly at maximum
+
+    let group_id = client.create_split_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &1_000_i128,
+        &soroban_sdk::vec![&env, (b1.clone(), 5_000_u64), (b2.clone(), 5_000_u64)],
+        &unlock_at,
+        &None,
+    );
+
+    let group = client.get_split_group(&group_id);
+    assert!(group.is_some(), "lock at maximum duration should succeed");
+}
+
+#[test]
+fn create_split_lock_rate_limit_rejects_rapid_second_call() {
+    let (env, contract_id, pool_share_id, token_a, token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let b1 = Address::generate(&env);
+    let b2 = Address::generate(&env);
+    mint(&env, &pool_share_id, &creator, 5_000);
+
+    let unlock_at = env.ledger().timestamp() + 100_000;
+
+    // First call must succeed
+    client.create_split_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &1_000_i128,
+        &soroban_sdk::vec![&env, (b1.clone(), 5_000_u64), (b2.clone(), 5_000_u64)],
+        &unlock_at,
+        &None,
+    );
+
+    // Immediate second call from the same creator must be rejected
+    let result = client.try_create_split_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &1_000_i128,
+        &soroban_sdk::vec![&env, (b1.clone(), 5_000_u64), (b2.clone(), 5_000_u64)],
+        &(env.ledger().timestamp() + 100_000),
+        &None,
+    );
+    assert_eq!(
+        result,
+        Err(Ok(ContractError::RateLimitExceeded)),
+        "expected RateLimitExceeded on rapid second create_split_lock"
+    );
+}
+
+#[test]
+fn create_split_lock_rate_limit_succeeds_after_cooldown() {
+    let (env, contract_id, pool_share_id, token_a, token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let b1 = Address::generate(&env);
+    let b2 = Address::generate(&env);
+    mint(&env, &pool_share_id, &creator, 5_000);
+
+    let unlock_at = env.ledger().timestamp() + 100_000;
+
+    // First call
+    client.create_split_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &1_000_i128,
+        &soroban_sdk::vec![&env, (b1.clone(), 5_000_u64), (b2.clone(), 5_000_u64)],
+        &unlock_at,
+        &None,
+    );
+
+    // Advance time by exactly the cooldown period (RATE_LIMIT_COOLDOWN = 60s)
+    advance_time(&env, 60);
+
+    // This call should still fail because we need to be AFTER the cooldown
+    let result = client.try_create_split_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &1_000_i128,
+        &soroban_sdk::vec![&env, (b1.clone(), 5_000_u64), (b2.clone(), 5_000_u64)],
+        &(env.ledger().timestamp() + 100_000),
+        &None,
+    );
+    assert_eq!(result, Err(Ok(ContractError::RateLimitExceeded)));
+
+    // Advance one more second to be after the cooldown
+    advance_time(&env, 1);
+
+    // This call should succeed
+    let group_id = client.create_split_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &1_000_i128,
+        &soroban_sdk::vec![&env, (b1.clone(), 5_000_u64), (b2.clone(), 5_000_u64)],
+        &(env.ledger().timestamp() + 100_000),
+        &None,
+    );
+    assert!(client.get_split_group(&group_id).is_some());
+}
+
+#[test]
+fn create_split_lock_rejects_more_than_max_beneficiaries() {
+    let (env, contract_id, pool_share_id, token_a, token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    mint(&env, &pool_share_id, &creator, 11_000);
+
+    // Create 11 beneficiaries (max is 10)
+    let mut beneficiaries = soroban_sdk::vec![&env];
+    for _ in 0..11 {
+        beneficiaries.push_back((Address::generate(&env), 909_u64)); // 909 * 11 = 9999, close to 10000
+    }
+    // Adjust last one to sum to 10000
+    beneficiaries.set(10, (Address::generate(&env), 910_u64));
+
+    let result = client.try_create_split_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &11_000_i128,
+        &beneficiaries,
+        &(env.ledger().timestamp() + 100_000),
+        &None,
+    );
+    assert_eq!(result, Err(Ok(ContractError::TooManyBeneficiaries)));
+}
+
+#[test]
+fn create_split_lock_accepts_exactly_max_beneficiaries() {
+    let (env, contract_id, pool_share_id, token_a, token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    mint(&env, &pool_share_id, &creator, 10_000);
+
+    // Create exactly 10 beneficiaries (the maximum)
+    let mut beneficiaries = soroban_sdk::vec![&env];
+    for _ in 0..10 {
+        beneficiaries.push_back((Address::generate(&env), 1_000_u64)); // Each gets 10%
+    }
+
+    let group_id = client.create_split_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &10_000_i128,
+        &beneficiaries,
+        &(env.ledger().timestamp() + 100_000),
+        &None,
+    );
+
+    let group = client.get_split_group(&group_id);
+    assert!(group.is_some(), "lock with exactly 10 beneficiaries should succeed");
+    assert_eq!(group.unwrap().lock_ids.len(), 10);
+}
+
+// ── verify_pool_tokens (Issue #905) ────────────────────────────────────────────
+
+#[test]
+fn verify_pool_tokens_accepts_matching_tokens() {
+    let env = Env::default();
+    let token_a = Address::generate(&env);
+    let token_b = Address::generate(&env);
+    let pool = register_mock_pool(&env, &token_a, &token_b);
+
+    assert_eq!(verify_pool_tokens(&env, &pool, &token_a, &token_b), Ok(()));
+}
+
+#[test]
+fn verify_pool_tokens_accepts_swapped_order() {
+    let env = Env::default();
+    let token_a = Address::generate(&env);
+    let token_b = Address::generate(&env);
+    // Pool reports (token_a, token_b) but the caller supplies them as (B, A) —
+    // pool contracts don't guarantee a canonical ordering, so this must pass.
+    let pool = register_mock_pool(&env, &token_a, &token_b);
+
+    assert_eq!(verify_pool_tokens(&env, &pool, &token_b, &token_a), Ok(()));
+}
+
+#[test]
+fn verify_pool_tokens_rejects_mismatched_token() {
+    let env = Env::default();
+    let token_a = Address::generate(&env);
+    let token_b = Address::generate(&env);
+    let unrelated = Address::generate(&env);
+    let pool = register_mock_pool(&env, &token_a, &token_b);
+
+    assert_eq!(
+        verify_pool_tokens(&env, &pool, &token_a, &unrelated),
+        Err(ContractError::InvalidPoolTokens)
+    );
+    assert_eq!(
+        verify_pool_tokens(&env, &pool, &unrelated, &token_b),
+        Err(ContractError::InvalidPoolTokens)
+    );
+}
+
+#[test]
+fn verify_pool_tokens_accepts_pool_without_getters() {
+    // `setup_env`'s pool_share_id is a plain Stellar Asset Contract, which has
+    // no token_a()/token_b() getters — the check must be skipped, not fail.
+    let (env, _contract_id, pool_share_id, token_a, token_b) = setup_env();
+
+    assert_eq!(
+        verify_pool_tokens(&env, &pool_share_id, &token_a, &token_b),
+        Ok(())
+    );
+// ── extend MAX_EXTENSIONS boundary (#910) ────────────────────────────────────
+
+#[test]
+fn extend_respects_max_extensions_boundary() {
+// ── Issue #908: create_lock duration and rate-limit boundaries ────────────────
+
+#[test]
+fn create_lock_rejects_duration_one_second_short_of_minimum() {
+    let (env, contract_id, pool_share_id, token_a, token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    mint(&env, &pool_share_id, &creator, 1_000);
+
+    let mut unlock_at = env.ledger().timestamp() + 100_000;
+    let lock_id = client.create_lock(
+    let now = env.ledger().timestamp();
+    // MIN_LOCK_DURATION = 86_400 (24 hours)
+    let unlock_at = now + 86_399; // One second short of minimum
+
+    let result = client.try_create_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &100_i128,
+        &beneficiary,
+        &unlock_at,
+        &None,
+        &empty_metadata(&env),
+    );
+
+    // MAX_EXTENSIONS is 52 — exhaust every allowed extension.
+    for _ in 0..52 {
+        unlock_at += 1_000;
+        client.extend(&lock_id, &unlock_at);
+    }
+
+    let lock = client.get_lock(&lock_id).unwrap();
+    assert_eq!(lock.extended_count, 52);
+    assert_eq!(lock.unlock_at, unlock_at);
+
+    // The 53rd extension must be rejected even though it would otherwise be valid.
+    unlock_at += 1_000;
+    let result = client.try_extend(&lock_id, &unlock_at);
+    assert_eq!(result, Err(Ok(ContractError::ExtensionLimitExceeded)));
+
+    // The lock must be untouched by the rejected attempt.
+    let lock = client.get_lock(&lock_id).unwrap();
+    assert_eq!(lock.extended_count, 52);
+}
+
+// ── TotalLocked decrease on withdraw (#909) ───────────────────────────────────
+
+#[test]
+fn withdraw_decreases_total_locked_by_exact_amount() {
+    let (env, contract_id, pool_share_id, token_a, token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    mint(&env, &pool_share_id, &creator, 1_000);
+
+    let unlock_at = env.ledger().timestamp() + 100_000;
+    assert_eq!(result, Err(Ok(ContractError::LockDurationTooShort)));
+}
+
+#[test]
+fn create_lock_accepts_duration_at_minimum() {
+    let (env, contract_id, pool_share_id, token_a, token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    mint(&env, &pool_share_id, &creator, 1_000);
+
+    let now = env.ledger().timestamp();
+    // MIN_LOCK_DURATION = 86_400 (24 hours)
+    let unlock_at = now + 86_400; // Exactly at minimum
+
+    let lock_id = client.create_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &100_i128,
+        &beneficiary,
+        &unlock_at,
+        &None,
+        &empty_metadata(&env),
+    );
+
+    assert!(client.get_lock(&lock_id).is_some(), "lock at minimum duration should succeed");
+}
+
+#[test]
+fn create_lock_rejects_duration_one_second_over_maximum() {
+    let (env, contract_id, pool_share_id, token_a, token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    mint(&env, &pool_share_id, &creator, 1_000);
+
+    let now = env.ledger().timestamp();
+    // MAX_LOCK_DURATION = 315_360_000 (10 years)
+    let unlock_at = now + 315_360_001; // One second over maximum
+
+// ── Issue #906: Emergency pause / unpause ──────────────────────────────────────
+
+#[test]
+fn pause_blocks_create_lock_with_contract_paused_error() {
+    let (env, contract_id, pool_share_id, token_a, token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    let creator = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    client.init(&admin);
+    mint(&env, &pool_share_id, &creator, 1_000);
+
+    client.pause();
+
+    let unlock_at = env.ledger().timestamp() + 100_000;
+    let result = client.try_create_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &100_i128,
+        &500_i128,
+        &beneficiary,
+        &unlock_at,
+        &None,
+        &empty_metadata(&env),
+    );
+    assert_eq!(result, Err(Ok(ContractError::LockDurationTooLong)));
+}
+
+#[test]
+fn create_lock_accepts_duration_at_maximum() {
+    let (env, contract_id, pool_share_id, token_a, token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    mint(&env, &pool_share_id, &creator, 1_000);
+
+    let now = env.ledger().timestamp();
+    // MAX_LOCK_DURATION = 315_360_000 (10 years)
+    let unlock_at = now + 315_360_000; // Exactly at maximum
+
+    let lock_id = client.create_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &700_i128,
+        &100_i128,
+        &beneficiary,
+        &unlock_at,
+        &None,
+        &empty_metadata(&env),
+    );
+
+    let before = client.get_total_locked(&pool_share_id);
+    assert_eq!(before, 700_i128);
+
+    advance_time(&env, 200_000);
+    client.withdraw(&lock_id);
+
+    let after = client.get_total_locked(&pool_share_id);
+    assert_eq!(
+        before - after,
+        700_i128,
+        "TotalLocked must decrease by exactly the withdrawn amount"
+    );
+    assert_eq!(after, 0_i128);
+}
+
+// ── Re-entrancy guard (#904) ──────────────────────────────────────────────────
+
+#[test]
+fn withdraw_rejects_reentrant_call_via_guard() {
+    let (env, contract_id, pool_share_id, token_a, token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    mint(&env, &pool_share_id, &creator, 1_000);
+
+    assert!(client.get_lock(&lock_id).is_some(), "lock at maximum duration should succeed");
+}
+
+#[test]
+fn create_lock_rate_limit_rejects_one_second_before_cooldown_elapses() {
+    let (env, contract_id, pool_share_id, token_a, token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    mint(&env, &pool_share_id, &creator, 5_000);
+
+    let unlock_at = env.ledger().timestamp() + 100_000;
+
+    client.create_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &100_i128,
+        &beneficiary,
+        &unlock_at,
+        &None,
+        &empty_metadata(&env),
+    );
+
+    // RATE_LIMIT_COOLDOWN = 60s — one second short of the cooldown must still
+    // be rejected.
+    advance_time(&env, 59);
+    let result = client.try_create_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &100_i128,
+        &beneficiary,
+        &(env.ledger().timestamp() + 100_000),
+        &None,
+        &empty_metadata(&env),
+    );
+    assert_eq!(result, Err(Ok(ContractError::RateLimitExceeded)));
+}
+
+#[test]
+fn create_lock_rate_limit_accepts_exactly_at_cooldown() {
+    let (env, contract_id, pool_share_id, token_a, token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    mint(&env, &pool_share_id, &creator, 5_000);
+
+    let unlock_at = env.ledger().timestamp() + 100_000;
+
+    client.create_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &100_i128,
+        &beneficiary,
+        &unlock_at,
+        &None,
+        &empty_metadata(&env),
+    );
+
+    // Exactly RATE_LIMIT_COOLDOWN (60s) after the first call must succeed.
+    advance_time(&env, 60);
+    assert_eq!(result, Err(Ok(ContractError::ContractPaused)));
+}
+
+#[test]
+fn unpause_restores_create_lock() {
+    let (env, contract_id, pool_share_id, token_a, token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    let creator = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    client.init(&admin);
+    mint(&env, &pool_share_id, &creator, 1_000);
+
+    client.pause();
+    client.unpause();
+
+    let unlock_at = env.ledger().timestamp() + 100_000;
+    let lock_id = client.create_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &100_i128,
+        &beneficiary,
+        &(env.ledger().timestamp() + 100_000),
+        &None,
+        &empty_metadata(&env),
+    );
+    assert!(
+        client.get_lock(&lock_id).is_some(),
+        "lock exactly at the cooldown boundary should succeed"
+    );
+}
+
+// ── Issue #907: validate_vesting_bounds edge cases ─────────────────────────────
+
+#[test]
+fn create_lock_accepts_vesting_start_exactly_at_created_at() {
+    let (env, contract_id, pool_share_id, token_a, token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    mint(&env, &pool_share_id, &creator, 1_000);
+
+    let now = env.ledger().timestamp();
+    let unlock_at = now + 100_000;
+    let vesting = Vesting {
+        start: now, // exactly at created_at — must be allowed
+        end: now + 1,
+        released: 0,
+    };
+
+    let lock_id = client.create_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Aquarius,
+        &token_a,
+        &token_b,
+        &100_i128,
+        &beneficiary,
+        &unlock_at,
+        &Some(vesting),
+        &empty_metadata(&env),
+    );
+    assert!(
+        client.get_lock(&lock_id).is_some(),
+        "vesting start exactly at created_at should be allowed"
+    );
+}
+
+#[test]
+fn create_lock_rejects_vesting_start_one_second_before_created_at() {
+    let (env, contract_id, pool_share_id, token_a, token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    mint(&env, &pool_share_id, &creator, 1_000);
+
+    let now = env.ledger().timestamp();
+    let unlock_at = now + 100_000;
+    let vesting = Vesting {
+        start: now - 1, // one second before created_at — must be rejected
+        end: now + 1,
+        released: 0,
+    };
+
+    let result = client.try_create_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Aquarius,
+        &token_a,
+        &token_b,
+        &100_i128,
+        &beneficiary,
+        &unlock_at,
+        &Some(vesting),
+        &empty_metadata(&env),
+    );
+    assert_eq!(result, Err(Ok(ContractError::VestingOutsideLockBounds)));
+}
+
+#[test]
+fn create_lock_accepts_vesting_start_exactly_at_unlock_at() {
+    let (env, contract_id, pool_share_id, token_a, token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    mint(&env, &pool_share_id, &creator, 1_000);
+
+    let now = env.ledger().timestamp();
+    let unlock_at = now + 100_000;
+    let vesting = Vesting {
+        start: unlock_at, // exactly at unlock_at — must be allowed
+        end: unlock_at + 1,
+        released: 0,
+    };
+
+    let lock_id = client.create_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Aquarius,
+        &token_a,
+        &token_b,
+        &100_i128,
+        &beneficiary,
+        &unlock_at,
+        &Some(vesting),
+        &empty_metadata(&env),
+    );
+    assert!(
+        client.get_lock(&lock_id).is_some(),
+        "vesting start exactly at unlock_at should be allowed"
+    );
+        &500_i128,
+        &beneficiary,
+        &unlock_at,
+        &None,
+        &empty_metadata(&env),
+    );
+
+    advance_time(&env, 200_000);
+
+    // Simulate re-entrancy by holding the guard before invoking a guarded entry point.
+    env.as_contract(&contract_id, || {
+        env.storage()
+            .temporary()
+            .set(&crate::DataKey::ReentrancyGuard, &true);
+    });
+
+    let result = client.try_withdraw(&lock_id);
+    assert_eq!(result, Err(Ok(ContractError::ReentrancyDetected)));
+
+    // The lock must remain untouched: the guard rejected the call before any state change.
+    let lock = client.get_lock(&lock_id).unwrap();
+    assert!(!lock.withdrawn);
+    let lock = client.get_lock(&lock_id).expect("lock exists after unpause");
+    assert_eq!(lock.amount, 500_i128);
+}
+
+#[test]
+fn non_admin_cannot_pause() {
+    let env = Env::default();
+    let contract_id = env.register(LpLocker, ());
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+
+    env.mock_auths(&[soroban_sdk::testutils::MockAuth {
+        address: &admin,
+        invoke: &soroban_sdk::testutils::MockAuthInvoke {
+            contract: &contract_id,
+            fn_name: "init",
+            args: soroban_sdk::vec![&env, admin.into_val(&env)],
+            sub_invokes: &[],
+        },
+    }]);
+    client.init(&admin);
+
+    // No auths are mocked for this call, so the real admin's require_auth()
+    // inside `pause` cannot be satisfied and the call must panic rather than
+    // silently succeed for whoever happens to invoke it.
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        let env2 = env.clone();
+        let c2 = LpLockerClient::new(&env2, &contract_id);
+        c2.pause()
+    }));
+    assert!(result.is_err(), "pause without admin auth must panic");
 }

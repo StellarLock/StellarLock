@@ -8,6 +8,9 @@ import { mockWallet, VALID_CONTRACT_ADDRESS } from "./mocks"
 
 vi.mock("@/hooks/useWallet", () => ({
   useWallet: () => mockWallet,
+}))
+
+vi.mock("@/hooks/WalletProvider", () => ({
   WalletProvider: ({ children }: { children: ReactNode }) => children,
 }))
 

@@ -15,7 +15,7 @@ export const NETWORK_URLS = {
 
 const CHECK_TIMEOUT_MS = 5000
 
-export interface DependencyStatus {
+interface DependencyStatus {
   status: "ok" | "degraded" | "down"
   detail: string
 }

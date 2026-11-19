@@ -349,7 +349,7 @@ export function getLocksForToken(token: string): IndexedLock[] {
   return rows.map(rowToLock)
 }
 
-export interface LockPage {
+interface LockPage {
   locks: IndexedLock[]
   total: number
 }
@@ -401,7 +401,7 @@ export function getLastIndexed(): number {
 }
 
 /** Minimal surface of the Soroban RPC Server the poller needs (injectable in tests). */
-export interface EventSource {
+interface EventSource {
   getLatestLedger(): Promise<{ sequence: number }>
   getEvents(request: {
     startLedger?: number
@@ -515,7 +515,7 @@ export async function pollOnce(server: EventSource): Promise<number> {
   return processed
 }
 
-export interface PollerHandle {
+interface PollerHandle {
   stop(): void
 }
 

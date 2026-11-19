@@ -1,4 +1,5 @@
 import { useRef } from "react"
+import { useTranslation } from "react-i18next"
 import { useModalFocusTrap } from "@/lib/modalFocusTrap"
 import { BookUser, Plus, Pencil, Trash2, Check, X, Download, Upload, Search } from "lucide-react"
 import { Button } from "@/components/ui/Button"
@@ -16,6 +17,7 @@ interface AddressBookModalProps {
 }
 
 export function AddressBookModal({ onSelect, onClose }: AddressBookModalProps) {
+  const { t } = useTranslation()
   const ui = useAddressBookUI()
   const importRef = useRef<HTMLInputElement>(null)
   const firstFocusRef = useRef<HTMLButtonElement>(null)
@@ -27,7 +29,7 @@ export function AddressBookModal({ onSelect, onClose }: AddressBookModalProps) {
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Address Book"
+      aria-label={t("addressBook.title")}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
@@ -36,7 +38,7 @@ export function AddressBookModal({ onSelect, onClose }: AddressBookModalProps) {
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <div className="flex items-center gap-2">
             <BookUser className="h-5 w-5 text-primary" />
-            <h2 className="text-lg font-semibold">Address Book</h2>
+            <h2 className="text-lg font-semibold">{t("addressBook.title")}</h2>
             <span className="ms-1 rounded-full bg-secondary px-2 py-0.5 text-xs text-muted-foreground">
               {ui.allEntries.length}
             </span>
@@ -44,7 +46,7 @@ export function AddressBookModal({ onSelect, onClose }: AddressBookModalProps) {
           <button
             ref={firstFocusRef}
             onClick={onClose}
-            aria-label="Close address book"
+            aria-label={t("addressBook.closeAria")}
             className="rounded-md p-1 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
           >
             <X className="h-5 w-5" />
@@ -57,16 +59,16 @@ export function AddressBookModal({ onSelect, onClose }: AddressBookModalProps) {
             <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
               type="search"
-              placeholder="Search addresses…"
+              placeholder={t("addressBook.searchPlaceholder")}
               value={ui.search}
               onChange={(e) => ui.setSearch(e.target.value)}
               className="h-9 w-full rounded-md border border-border bg-background ps-9 pe-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
-          <Button variant="outline" size="sm" onClick={ui.handleExport} title="Export address book">
+          <Button variant="outline" size="sm" onClick={ui.handleExport} title={t("addressBook.exportTitle")}>
             <Download className="h-4 w-4" />
           </Button>
-          <Button variant="outline" size="sm" onClick={() => importRef.current?.click()} title="Import address book">
+          <Button variant="outline" size="sm" onClick={() => importRef.current?.click()} title={t("addressBook.importTitle")}>
             <Upload className="h-4 w-4" />
           </Button>
           <input
@@ -79,10 +81,10 @@ export function AddressBookModal({ onSelect, onClose }: AddressBookModalProps) {
           <Button
             size="sm"
             onClick={ui.toggleAddMode}
-            title="Add address"
+            title={t("addressBook.addTitle")}
           >
             <Plus className="h-4 w-4" />
-            Add
+            {t("addressBook.add")}
           </Button>
         </div>
 
@@ -95,20 +97,20 @@ export function AddressBookModal({ onSelect, onClose }: AddressBookModalProps) {
           <div className="mx-6 mb-3 rounded-lg border border-border bg-secondary/30 p-4">
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
-                <Label htmlFor="ab-new-label">Label</Label>
+                <Label htmlFor="ab-new-label">{t("addressBook.label")}</Label>
                 <Input
                   id="ab-new-label"
-                  placeholder="e.g. Team Wallet"
+                  placeholder={t("addressBook.labelPlaceholder")}
                   value={ui.newLabel}
                   onChange={(e) => ui.setNewLabel(e.target.value)}
                   autoFocus
                 />
               </div>
               <div>
-                <Label htmlFor="ab-new-address">Stellar Address</Label>
+                <Label htmlFor="ab-new-address">{t("addressBook.stellarAddress")}</Label>
                 <Input
                   id="ab-new-address"
-                  placeholder="G… or C…"
+                  placeholder={t("addressBook.addressPlaceholder")}
                   value={ui.newAddress}
                   onChange={(e) => ui.setNewAddress(e.target.value)}
                   className={
@@ -124,11 +126,11 @@ export function AddressBookModal({ onSelect, onClose }: AddressBookModalProps) {
                 size="sm"
                 onClick={ui.handleAddCancel}
               >
-                Cancel
+                {t("addressBook.cancel")}
               </Button>
               <Button size="sm" onClick={ui.handleAdd}>
                 <Check className="h-4 w-4" />
-                Save
+                {t("addressBook.save")}
               </Button>
             </div>
           </div>
@@ -139,8 +141,8 @@ export function AddressBookModal({ onSelect, onClose }: AddressBookModalProps) {
           {ui.filtered.length === 0 ? (
             <div className="py-10 text-center text-sm text-muted-foreground">
               {ui.allEntries.length === 0
-                ? "No saved addresses yet. Click Add to save your first address."
-                : "No addresses match your search."}
+                ? t("addressBook.emptyState")
+                : t("addressBook.noMatches")}
             </div>
           ) : (
             <ul className="divide-y divide-border">
@@ -149,7 +151,7 @@ export function AddressBookModal({ onSelect, onClose }: AddressBookModalProps) {
                   {ui.editId === entry.id ? (
                     <div className="grid gap-3 sm:grid-cols-2">
                       <div>
-                        <Label htmlFor={`ab-edit-label-${entry.id}`}>Label</Label>
+                        <Label htmlFor={`ab-edit-label-${entry.id}`}>{t("addressBook.label")}</Label>
                         <Input
                           id={`ab-edit-label-${entry.id}`}
                           value={ui.editLabel}
@@ -158,7 +160,7 @@ export function AddressBookModal({ onSelect, onClose }: AddressBookModalProps) {
                         />
                       </div>
                       <div>
-                        <Label htmlFor={`ab-edit-addr-${entry.id}`}>Address</Label>
+                        <Label htmlFor={`ab-edit-addr-${entry.id}`}>{t("addressBook.address")}</Label>
                         <Input
                           id={`ab-edit-addr-${entry.id}`}
                           value={ui.editAddress}
@@ -173,11 +175,11 @@ export function AddressBookModal({ onSelect, onClose }: AddressBookModalProps) {
                       {ui.error && <p className="col-span-2 text-xs text-destructive">{ui.error}</p>}
                       <div className="col-span-2 flex justify-end gap-2">
                         <Button variant="ghost" size="sm" onClick={ui.handleEditCancel}>
-                          Cancel
+                          {t("addressBook.cancel")}
                         </Button>
                         <Button size="sm" onClick={ui.handleEditSave}>
                           <Check className="h-4 w-4" />
-                          Save
+                          {t("addressBook.save")}
                         </Button>
                       </div>
                     </div>
@@ -197,19 +199,19 @@ export function AddressBookModal({ onSelect, onClose }: AddressBookModalProps) {
                               onClose()
                             }}
                           >
-                            Select
+                            {t("addressBook.select")}
                           </Button>
                         )}
                         <button
                           onClick={() => ui.handleEditStart(entry)}
-                          aria-label={`Edit ${entry.label}`}
+                          aria-label={t("addressBook.editAria", { label: entry.label })}
                           className="rounded p-1 text-muted-foreground transition-colors hover:text-foreground"
                         >
                           <Pencil className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => ui.remove(entry.id)}
-                          aria-label={`Delete ${entry.label}`}
+                          aria-label={t("addressBook.deleteAria", { label: entry.label })}
                           className="rounded p-1 text-muted-foreground transition-colors hover:text-destructive"
                         >
                           <Trash2 className="h-4 w-4" />

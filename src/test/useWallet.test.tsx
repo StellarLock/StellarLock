@@ -1,5 +1,5 @@
 /**
- * Unit tests for src/hooks/useWallet.tsx — #745 & #746
+ * Unit tests for src/hooks/WalletProvider.tsx and src/hooks/useWallet.ts — #745 & #746
  *
  * #746: networkChanged was declared, exposed on WalletContext, and reset by
  * disconnect()/dismissNetworkAlert() — but nothing ever called
@@ -37,7 +37,8 @@ vi.mock("@creit.tech/stellar-wallets-kit", () => ({
   allowAllModules: vi.fn(() => []),
 }))
 
-import { WalletProvider, useWallet } from "@/hooks/useWallet"
+import { WalletProvider } from "@/hooks/WalletProvider"
+import { useWallet } from "@/hooks/useWallet"
 
 const WALLET_ADDRESS = "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF"
 const STORAGE_KEY = "stellarlock:wallet"

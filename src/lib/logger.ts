@@ -13,7 +13,7 @@
 
 export type LogLevel = "debug" | "info" | "warn" | "error"
 
-export interface LogEntry {
+interface LogEntry {
   timestamp: string
   level: LogLevel
   component: string

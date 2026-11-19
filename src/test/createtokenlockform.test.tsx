@@ -19,6 +19,9 @@ vi.mock("@stellar/stellar-sdk", () => ({
 const mockUseWallet = vi.fn()
 vi.mock("@/hooks/useWallet", () => ({
   useWallet: () => mockUseWallet() as unknown as Record<string, unknown>,
+}))
+
+vi.mock("@/hooks/WalletProvider", () => ({
   WalletProvider: ({ children }: { children: ReactNode }) => children,
 }))
 

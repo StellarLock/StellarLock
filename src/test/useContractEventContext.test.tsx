@@ -1,5 +1,5 @@
 /**
- * Unit tests for src/hooks/useContractEventContext.tsx — #467
+ * Unit tests for src/hooks/useContractEventContext.ts and ContractEventProvider.tsx — #467
  *
  * Covers:
  *  - Throws when useContractEventContext is used outside a ContractEventProvider
@@ -17,7 +17,8 @@ vi.mock("@/hooks/useContractEvents", () => ({
 }))
 
 import { useContractEvents, type ContractEvent } from "@/hooks/useContractEvents"
-import { ContractEventProvider, useContractEventContext } from "@/hooks/useContractEventContext"
+import { ContractEventProvider } from "@/hooks/ContractEventProvider"
+import { useContractEventContext } from "@/hooks/useContractEventContext"
 
 const mockUseContractEvents = vi.mocked(useContractEvents)
 

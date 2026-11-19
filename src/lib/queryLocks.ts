@@ -109,7 +109,7 @@ export async function queryLockCountByToken(tokenAddress: string): Promise<numbe
 
 // ── Per-user queries (MyLocks) ─────────────────────────────────────────────────
 
-export interface UserLocks {
+interface UserLocks {
   created: Lock[]
   received: Lock[]
   totalCreated: number
@@ -160,7 +160,7 @@ export async function queryMyLocks(address: string, offset = 0, limit = 50): Pro
 
 // ── Site-wide stats (Landing + Discover) ──────────────────────────────────────
 
-export interface TokenGroup {
+interface TokenGroup {
   token: TokenMeta
   count: number
   totalValue: number

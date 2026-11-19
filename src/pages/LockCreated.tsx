@@ -22,7 +22,7 @@ import { formatDate, formatDateTime, shortAddress } from "@/lib/utils"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-export interface LockCreatedState {
+interface LockCreatedState {
   /** On-chain lock id */
   lockId: string
   /** "token" | "lp" */
