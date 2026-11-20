@@ -15,6 +15,13 @@ import zh from "@/i18n/locales/zh.json"
 
 type LocaleTree = Record<string, Record<string, string>>
 
+/**
+ * Namespaces that are expected to exist in every locale file.
+ * Add new namespaces here as they are introduced so the parity test
+ * fails loudly if a translation bundle is missing them.
+ */
+const REQUIRED_NAMESPACES = ["wizard"] as const
+
 const locales: Record<string, LocaleTree> = {
   es: es as unknown as LocaleTree,
   ko: ko as unknown as LocaleTree,
@@ -42,6 +49,13 @@ const referenceKeys = collectKeys(reference).sort()
 describe("i18n locale key parity", () => {
   describe.each(Object.entries(locales))("%s", (locale, bundle) => {
     const localeKeys = collectKeys(bundle).sort()
+
+    it.each(REQUIRED_NAMESPACES)("contains the '%s' namespace", (namespace) => {
+      expect(
+        Object.prototype.hasOwnProperty.call(bundle, namespace),
+        `Missing namespace '${namespace}' in ${locale}`,
+      ).toBe(true)
+    })
 
     it("contains no missing keys (keys present in en.json but absent in locale)", () => {
       const missing = referenceKeys.filter((k) => !localeKeys.includes(k))

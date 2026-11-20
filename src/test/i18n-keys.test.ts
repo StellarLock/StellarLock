@@ -14,4 +14,14 @@ describe("locale files", () => {
     expect(bundle.common.pause).toBeTruthy()
     expect(bundle.common.resume).toBeTruthy()
   })
+
+  it.each(Object.keys(locales))("%s defines keys referenced by the wizard namespace", (lng) => {
+    const bundle = locales[lng]
+    expect(bundle.wizard).toBeTruthy()
+    expect(bundle.wizard.title).toBeTruthy()
+    expect(bundle.wizard.next).toBeTruthy()
+    expect(bundle.wizard.back).toBeTruthy()
+    expect(bundle.wizard.finish).toBeTruthy()
+    expect(bundle.wizard.cancel).toBeTruthy()
+  })
 })
