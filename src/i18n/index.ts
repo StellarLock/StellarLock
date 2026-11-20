@@ -6,11 +6,12 @@ import es from "./locales/es.json"
 import zh from "./locales/zh.json"
 import ko from "./locales/ko.json"
 import tr from "./locales/tr.json"
+import ar from "./locales/ar.json"
 
-export const SUPPORTED_LOCALES = ["en", "es", "zh", "ko", "tr"] as const
+export const SUPPORTED_LOCALES = ["en", "es", "zh", "ko", "tr", "ar"] as const
 
 // Languages that render right-to-left. Keep in sync with the resources below.
-const RTL_LANGUAGES = new Set(["he", "fa", "ur"])
+const RTL_LANGUAGES = new Set(["ar", "he", "fa", "ur"])
 
 function applyDocumentDirection(lng: string | undefined) {
   if (typeof document === "undefined") return
@@ -31,6 +32,7 @@ void i18n
       zh: { translation: zh },
       ko: { translation: ko },
       tr: { translation: tr },
+      ar: { translation: ar },
     },
     fallbackLng: "en",
     interpolation: {
