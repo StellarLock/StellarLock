@@ -2,6 +2,7 @@ import type { ReactNode } from "react"
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
+import { axe } from "vitest-axe"
 import { render } from "./utils"
 import { LockTable } from "@/components/locks/LockTable"
 import { mockLock, mockLpLock, VALID_PUBLIC_KEY } from "./mocks"
@@ -170,5 +171,56 @@ describe("LockTable", () => {
     const lockB: Lock = { ...secondLock, id: "b", beneficiary: VALID_PUBLIC_KEY }
     render(<LockTable locks={[lockA, lockB]} />)
     expect(screen.getAllByText(/GAAAAA/i).length).toBeGreaterThanOrEqual(2)
+  })
+
+  describe("column sorting", () => {
+    const small: Lock = { ...mockLock, id: "small", amount: 10 }
+    const big: Lock = { ...mockLock, id: "big", amount: 1000 }
+
+    const rowIds = () =>
+      screen
+        .getAllByRole("row")
+        .slice(1)
+        .map((r) => r.querySelector("a")?.getAttribute("aria-label") ?? "")
+
+    it("renders sortable headers as buttons inside th with aria-sort none by default", () => {
+      render(<LockTable locks={[small, big]} />)
+      const th = screen.getByRole("button", { name: /amount/i }).closest("th")
+      expect(th).toHaveAttribute("aria-sort", "none")
+    })
+
+    it("sorts by keyboard and updates aria-sort (ascending, descending, none)", async () => {
+      const user = userEvent.setup()
+      render(<LockTable locks={[big, small]} />)
+      const button = screen.getByRole("button", { name: /amount/i })
+      const th = button.closest("th")!
+
+      await user.tab()
+      button.focus()
+      await user.keyboard("{Enter}")
+      expect(th).toHaveAttribute("aria-sort", "ascending")
+      expect(rowIds()[0]).toContain("small")
+
+      await user.keyboard(" ")
+      expect(th).toHaveAttribute("aria-sort", "descending")
+      expect(rowIds()[0]).toContain("big")
+
+      await user.keyboard("{Enter}")
+      expect(th).toHaveAttribute("aria-sort", "none")
+      expect(rowIds()[0]).toContain("big")
+    })
+
+    it("sets aria-sort only on the active column", async () => {
+      const user = userEvent.setup()
+      render(<LockTable locks={[small, big]} />)
+      await user.click(screen.getByRole("button", { name: /status/i }))
+      expect(screen.getByRole("button", { name: /status/i }).closest("th")).toHaveAttribute("aria-sort", "ascending")
+      expect(screen.getByRole("button", { name: /amount/i }).closest("th")).toHaveAttribute("aria-sort", "none")
+    })
+
+    it("has no axe violations", async () => {
+      const { container } = render(<LockTable locks={[small, big]} />)
+      expect(await axe(container)).toHaveNoViolations()
+    })
   })
 })

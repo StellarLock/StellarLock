@@ -1,5 +1,6 @@
+import { useMemo, useState } from "react"
 import { Link } from "react-router-dom"
-import { ArrowRight, Repeat } from "lucide-react"
+import { ArrowDown, ArrowRight, ArrowUp, ArrowUpDown, Repeat } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import type { Lock } from "@/types/lock"
 import { Card } from "@/components/ui/Card"
@@ -131,56 +132,112 @@ interface LockTableProps {
   onSelect?: (id: string, checked: boolean) => void
 }
 
+type SortKey = "token" | "amount" | "beneficiary" | "unlockAt" | "status"
+type SortDirection = "ascending" | "descending"
+
+const SORT_VALUE: Record<SortKey, (lock: Lock) => string | number> = {
+  token: (l) => l.token.symbol.toLowerCase(),
+  amount: (l) => l.amount,
+  beneficiary: (l) => l.beneficiary,
+  unlockAt: (l) => l.unlockAt,
+  status: (l) => l.status,
+}
+
+interface SortableHeaderProps {
+  label: string
+  sortKey: SortKey
+  sort: { key: SortKey; direction: SortDirection } | null
+  onSort: (key: SortKey) => void
+  className?: string
+}
+
+function SortableHeader({ label, sortKey, sort, onSort, className }: SortableHeaderProps) {
+  const direction = sort?.key === sortKey ? sort.direction : undefined
+  const Icon = direction === "ascending" ? ArrowUp : direction === "descending" ? ArrowDown : ArrowUpDown
+  return (
+    <th
+      className={cn("px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground", className)}
+      scope="col"
+      aria-sort={direction ?? "none"}
+    >
+      <button
+        type="button"
+        onClick={() => onSort(sortKey)}
+        className="inline-flex items-center gap-1 rounded-sm uppercase tracking-wider hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        {label}
+        <Icon className="h-3 w-3" aria-hidden="true" />
+      </button>
+    </th>
+  )
+}
+
 export function LockTable({ locks, selectable = false, selectedIds = new Set(), onSelect = () => {} }: LockTableProps) {
   const { t } = useTranslation()
+  const [sort, setSort] = useState<{ key: SortKey; direction: SortDirection } | null>(null)
+
+  // Cycle: unsorted -> ascending -> descending -> unsorted
+  const handleSort = (key: SortKey) =>
+    setSort((prev) => {
+      if (prev?.key !== key) return { key, direction: "ascending" }
+      if (prev.direction === "ascending") return { key, direction: "descending" }
+      return null
+    })
+
+  const sortedLocks = useMemo(() => {
+    if (!sort) return locks
+    const get = SORT_VALUE[sort.key]
+    const factor = sort.direction === "ascending" ? 1 : -1
+    return [...locks].sort((a, b) => {
+      const va = get(a)
+      const vb = get(b)
+      return (va < vb ? -1 : va > vb ? 1 : 0) * factor
+    })
+  }, [locks, sort])
+
   return (
     <Card className="overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-left" role="table">
           <thead>
             <tr className="border-b border-border bg-secondary/30">
-              {selectable && <th className="w-10 px-4 py-3" scope="col" aria-label={t("lockTable.select")} />}
-              <th
-                className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground"
-                scope="col"
-              >
-                Token
-              </th>
-              <th
-                className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground"
-                scope="col"
-              >
-                Amount
-              </th>
-              <th
-                className="hidden px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:table-cell"
-                scope="col"
-              >
-                Beneficiary
-              </th>
-              <th
-                className="hidden px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground md:table-cell"
-                scope="col"
-              >
-                Unlock date
-              </th>
+              {selectable && (
+                <th className="w-10 px-4 py-3" scope="col">
+                  <span className="sr-only">{t("lockTable.select")}</span>
+                </th>
+              )}
+              <SortableHeader label="Token" sortKey="token" sort={sort} onSort={handleSort} />
+              <SortableHeader label="Amount" sortKey="amount" sort={sort} onSort={handleSort} />
+              <SortableHeader
+                label="Beneficiary"
+                sortKey="beneficiary"
+                sort={sort}
+                onSort={handleSort}
+                className="hidden sm:table-cell"
+              />
+              <SortableHeader
+                label="Unlock date"
+                sortKey="unlockAt"
+                sort={sort}
+                onSort={handleSort}
+                className="hidden md:table-cell"
+              />
               <th
                 className="hidden px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground lg:table-cell"
                 scope="col"
               >
                 Unlocks in
               </th>
-              <th
-                className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground"
-                scope="col"
-              >
-                Status
-              </th>
-              {!selectable && <th className="pr-4 py-3" scope="col" aria-label={t("lockTable.actions")} />}
+              <SortableHeader label="Status" sortKey="status" sort={sort} onSort={handleSort} />
+              {!selectable && (
+                <th className="pr-4 py-3" scope="col">
+                  <span className="sr-only">{t("lockTable.actions")}</span>
+                </th>
+              )}
             </tr>
           </thead>
           <tbody>
-            {locks.map((lock) => (
+            {sortedLocks.map((lock) => (
               <LockTableRow
                 key={lock.id}
                 lock={lock}
