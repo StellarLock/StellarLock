@@ -155,6 +155,8 @@
     "noBeneficiary": "No hay bloqueos donde seas el beneficiario",
     "noBeneficiaryDesc": "Los bloqueos creados para ti por otros aparecerán aquí.",
     "createLock": "Crear un bloqueo",
+    "bulkActions": "Acciones masivas",
+    "bulkConfirm": "¿Estás seguro de que deseas aplicar esta acción a {{count}} bloqueos seleccionados?",
     "viewMode": "Modo de vista",
     "cardView": "Vista de tarjetas",
     "tableView": "Vista de tabla",

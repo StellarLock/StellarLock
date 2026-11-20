@@ -155,6 +155,8 @@
     "noBeneficiary": "没有你作为受益人的锁定",
     "noBeneficiaryDesc": "其他人为你创建的锁定将显示在这里。",
     "createLock": "创建锁定",
+    "bulkActions": "批量操作",
+    "bulkConfirm": "确定要对 {{count}} 个锁定执行此操作吗？",
     "viewMode": "视图模式",
     "cardView": "卡片视图",
     "tableView": "表格视图",

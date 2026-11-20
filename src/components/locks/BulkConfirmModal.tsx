@@ -1,4 +1,5 @@
 import { useRef, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { useModalFocusTrap } from "@/lib/modalFocusTrap"
 import { X, CheckCircle2, XCircle, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/Button"
@@ -25,6 +26,7 @@ interface Props {
 }
 
 export function BulkConfirmModal({ action, locks, onConfirm, onClose }: Props) {
+  const { t } = useTranslation()
   const containerRef = useRef<HTMLDivElement | null>(null)
   const closeBtnRef = useRef<HTMLButtonElement | null>(null)
 
@@ -65,7 +67,10 @@ export function BulkConfirmModal({ action, locks, onConfirm, onClose }: Props) {
       <div className="relative z-10 w-full max-w-lg rounded-t-2xl border border-border bg-card p-6 shadow-xl sm:rounded-2xl">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold">
-            {action === "extend" ? "Bulk Extend" : "Bulk Transfer"} — {locks.length} lock{locks.length !== 1 && "s"}
+            {action === "extend"
+              ? t("myLocks.bulkConfirm.titleExtend")
+              : t("myLocks.bulkConfirm.titleTransfer")}{" "}
+            — {t("myLocks.bulkConfirm.lockCount", { count: locks.length })}
           </h2>
           {!running && (
             <button
@@ -99,34 +104,36 @@ export function BulkConfirmModal({ action, locks, onConfirm, onClose }: Props) {
             <div className="mb-4">
               {action === "extend" ? (
                 <>
-                  <label className="mb-1.5 block text-sm font-medium">New unlock date for all selected locks</label>
+                  <label className="mb-1.5 block text-sm font-medium">
+                    {t("myLocks.bulkConfirm.newUnlockDateLabel")}
+                  </label>
                   <Input type="date" min={minDate} value={value} onChange={(e) => setValue(e.target.value)} />
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Only locks with a current unlock date earlier than this date will be extended.
-                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">{t("myLocks.bulkConfirm.extendHint")}</p>
                 </>
               ) : (
                 <>
-                  <label className="mb-1.5 block text-sm font-medium">New beneficiary address</label>
+                  <label className="mb-1.5 block text-sm font-medium">
+                    {t("myLocks.bulkConfirm.newBeneficiaryLabel")}
+                  </label>
                   <Input
                     placeholder="G…"
                     value={value}
                     onChange={(e) => setValue(e.target.value)}
                     className="font-mono"
                   />
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Transfer withdrawal rights for all selected locks to this address.
-                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">{t("myLocks.bulkConfirm.transferHint")}</p>
                 </>
               )}
             </div>
 
             <div className="flex gap-3">
               <Button variant="outline" onClick={onClose} className="flex-1" disabled={running}>
-                Cancel
+                {t("myLocks.bulkConfirm.cancel")}
               </Button>
               <Button onClick={() => void handleConfirm()} className="flex-1" loading={running} disabled={!isValid}>
-                Confirm {action === "extend" ? "Extension" : "Transfer"}
+                {action === "extend"
+                  ? t("myLocks.bulkConfirm.confirmExtension")
+                  : t("myLocks.bulkConfirm.confirmTransfer")}
               </Button>
             </div>
           </>
@@ -144,18 +151,18 @@ export function BulkConfirmModal({ action, locks, onConfirm, onClose }: Props) {
                   ) : (
                     <XCircle className="h-4 w-4 text-destructive shrink-0" />
                   )}
-                  <span className="font-medium">Lock #{r.id}</span>
+                  <span className="font-medium">{t("myLocks.bulkConfirm.lockLabel", { id: r.id })}</span>
                   {r.error && <span className="ms-auto text-xs text-destructive truncate">{r.error}</span>}
                 </div>
               ))}
             </div>
             {running ? (
               <Button variant="outline" disabled className="w-full">
-                Cancel
+                {t("myLocks.bulkConfirm.cancel")}
               </Button>
             ) : (
               <Button onClick={onClose} className="w-full">
-                Done
+                {t("myLocks.bulkConfirm.done")}
               </Button>
             )}
           </>

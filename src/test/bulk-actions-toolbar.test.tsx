@@ -24,27 +24,27 @@ const defaultProps = {
 }
 
 describe("BulkActionsToolbar Component", () => {
-  it("shows 'Select all' when nothing is selected", () => {
+  it("shows the select-all label when nothing is selected", () => {
     render(<BulkActionsToolbar {...defaultProps} />)
 
-    expect(screen.getByText("Select all")).toBeInTheDocument()
+    expect(screen.getByText("bulkActions.selectAll")).toBeInTheDocument()
   })
 
   it("shows the selected count when items are selected", () => {
     render(<BulkActionsToolbar {...defaultProps} selectedCount={3} />)
 
-    expect(screen.getByText("3 selected")).toBeInTheDocument()
-    expect(screen.queryByText("Select all")).not.toBeInTheDocument()
+    expect(screen.getByText("bulkActions.selectedCount")).toBeInTheDocument()
+    expect(screen.queryByText("bulkActions.selectAll")).not.toBeInTheDocument()
   })
 
   it("reflects the allSelected state on the checkbox", () => {
     const { rerender } = render(<BulkActionsToolbar {...defaultProps} allSelected={false} />)
 
-    expect(screen.getByRole("checkbox", { name: /select all locks/i })).not.toBeChecked()
+    expect(screen.getByRole("checkbox", { name: /bulkActions\.selectAllLocks/i })).not.toBeChecked()
 
     rerender(<BulkActionsToolbar {...defaultProps} allSelected={true} />)
 
-    expect(screen.getByRole("checkbox", { name: /select all locks/i })).toBeChecked()
+    expect(screen.getByRole("checkbox", { name: /bulkActions\.selectAllLocks/i })).toBeChecked()
   })
 
   it("calls onSelectAll when the checkbox is toggled", async () => {
@@ -53,7 +53,7 @@ describe("BulkActionsToolbar Component", () => {
 
     render(<BulkActionsToolbar {...defaultProps} onSelectAll={onSelectAll} />)
 
-    await user.click(screen.getByRole("checkbox", { name: /select all locks/i }))
+    await user.click(screen.getByRole("checkbox", { name: /bulkActions\.selectAllLocks/i }))
 
     expect(onSelectAll).toHaveBeenCalledOnce()
   })
@@ -64,7 +64,7 @@ describe("BulkActionsToolbar Component", () => {
 
     render(<BulkActionsToolbar {...defaultProps} onClear={onClear} />)
 
-    await user.click(screen.getByRole("button", { name: /cancel selection/i }))
+    await user.click(screen.getByRole("button", { name: /bulkActions\.cancelSelection/i }))
 
     expect(onClear).toHaveBeenCalledOnce()
   })
@@ -72,34 +72,34 @@ describe("BulkActionsToolbar Component", () => {
   it("renders the extend and transfer actions when permitted", () => {
     render(<BulkActionsToolbar {...defaultProps} canExtend={true} canTransfer={true} />)
 
-    expect(screen.getByRole("button", { name: /extend all/i })).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: /transfer all/i })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /bulkActions\.extendAll/i })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /bulkActions\.transferAll/i })).toBeInTheDocument()
   })
 
   it("hides the extend action when canExtend is false", () => {
     render(<BulkActionsToolbar {...defaultProps} canExtend={false} />)
 
-    expect(screen.queryByRole("button", { name: /extend all/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: /bulkActions\.extendAll/i })).not.toBeInTheDocument()
   })
 
   it("hides the transfer action when canTransfer is false", () => {
     render(<BulkActionsToolbar {...defaultProps} canTransfer={false} />)
 
-    expect(screen.queryByRole("button", { name: /transfer all/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: /bulkActions\.transferAll/i })).not.toBeInTheDocument()
   })
 
   it("disables the extend and transfer actions when nothing is selected", () => {
     render(<BulkActionsToolbar {...defaultProps} selectedCount={0} />)
 
-    expect(screen.getByRole("button", { name: /extend all/i })).toBeDisabled()
-    expect(screen.getByRole("button", { name: /transfer all/i })).toBeDisabled()
+    expect(screen.getByRole("button", { name: /bulkActions\.extendAll/i })).toBeDisabled()
+    expect(screen.getByRole("button", { name: /bulkActions\.transferAll/i })).toBeDisabled()
   })
 
   it("enables the extend and transfer actions once items are selected", () => {
     render(<BulkActionsToolbar {...defaultProps} selectedCount={2} />)
 
-    expect(screen.getByRole("button", { name: /extend all/i })).toBeEnabled()
-    expect(screen.getByRole("button", { name: /transfer all/i })).toBeEnabled()
+    expect(screen.getByRole("button", { name: /bulkActions\.extendAll/i })).toBeEnabled()
+    expect(screen.getByRole("button", { name: /bulkActions\.transferAll/i })).toBeEnabled()
   })
 
   it("calls onBulkExtend when the extend action is clicked", async () => {
@@ -108,7 +108,7 @@ describe("BulkActionsToolbar Component", () => {
 
     render(<BulkActionsToolbar {...defaultProps} selectedCount={2} onBulkExtend={onBulkExtend} />)
 
-    await user.click(screen.getByRole("button", { name: /extend all/i }))
+    await user.click(screen.getByRole("button", { name: /bulkActions\.extendAll/i }))
 
     expect(onBulkExtend).toHaveBeenCalledOnce()
   })
@@ -119,7 +119,7 @@ describe("BulkActionsToolbar Component", () => {
 
     render(<BulkActionsToolbar {...defaultProps} selectedCount={2} onBulkTransfer={onBulkTransfer} />)
 
-    await user.click(screen.getByRole("button", { name: /transfer all/i }))
+    await user.click(screen.getByRole("button", { name: /bulkActions\.transferAll/i }))
 
     expect(onBulkTransfer).toHaveBeenCalledOnce()
   })
