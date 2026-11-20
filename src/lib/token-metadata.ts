@@ -159,6 +159,8 @@ export async function getTokenMetadata(contractId: string): Promise<TokenMetadat
  * Fetch SEP-41 token metadata (symbol, name, decimals) directly from the
  * token contract. Results are cached in memory for the lifetime of the page.
  * Falls back to a truncated contract address / 7 decimals on RPC failure.
+ * A result whose decimals came from the fallback is not cached, so a
+ * transient RPC failure can't pin the wrong scale for the rest of the session.
  */
 export async function getOnChainTokenMeta(contractId: string): Promise<OnChainTokenMeta> {
   if (onChainCache.has(contractId)) return onChainCache.get(contractId)!
@@ -169,13 +171,15 @@ export async function getOnChainTokenMeta(contractId: string): Promise<OnChainTo
     simulateCall<number>(contractId, "decimals", []),
   ])
 
+  const decimalsOk = decimalsResult.status === "fulfilled" && decimalsResult.value != null
+
   const meta: OnChainTokenMeta = {
     symbol: symbolResult.status === "fulfilled" && symbolResult.value ? symbolResult.value : contractId.slice(0, 6),
     name: nameResult.status === "fulfilled" && nameResult.value ? nameResult.value : contractId.slice(0, 6),
-    decimals: decimalsResult.status === "fulfilled" && decimalsResult.value != null ? Number(decimalsResult.value) : 7,
+    decimals: decimalsOk ? Number(decimalsResult.value) : 7,
   }
 
-  onChainCache.set(contractId, meta)
+  if (decimalsOk) onChainCache.set(contractId, meta)
   return meta
 }
 
