@@ -34,6 +34,10 @@ Index of the project documentation in `docs/`. Check here before writing a new d
 | [roadmap-notes.md](./roadmap-notes.md) | Internal planning notes on open feature gaps (batch lock creation, Arabic localization) |
 | [bounty-payout-policy-357.md](./bounty-payout-policy-357.md) | Contribution and bounty payout policy (issue #357) |
 | [issue-713-bulk-partial-failure.md](./issue-713-bulk-partial-failure.md) | Analysis of untested partial-failure handling in MyLocks bulk extend/transfer (issue #713) |
+| [issue-1097-split-group-on-lock-detail.md](./issue-1097-split-group-on-lock-detail.md) | `getSplitGroup` bindings, child→group lookup and a "Part of split group" section on LockDetail (issue #1097) |
+| [issue-1098-lp-locks-by-underlying-token.md](./issue-1098-lp-locks-by-underlying-token.md) | Indexing `token_a`/`token_b` and an `?underlying=` API so Explorer lists LP locks containing a token (issue #1098) |
+| [issue-1099-lock-logo-url-privacy.md](./issue-1099-lock-logo-url-privacy.md) | https-only, no-referrer, lazy / click-to-load handling of creator-supplied lock logos (issue #1099) |
+| [issue-1100-csp-connect-src-wildcard.md](./issue-1100-csp-connect-src-wildcard.md) | Removing the bare `https:` from CSP `connect-src`, proxying `stellar.toml`, and how to extend the allowlist (issue #1100) |
 | [issue-1160-dependabot-docker.md](./issue-1160-dependabot-docker.md) | Adding a Dependabot `docker` entry for `Dockerfile.dev` / `Dockerfile.contracts` (issue #1160) |
 | [issue-1161-notification-settings-e2e.md](./issue-1161-notification-settings-e2e.md) | E2E test plan for the LockDetail notification panel's subscribe/unsubscribe requests (issue #1161) |
 | [issue-1163-db-migration-smoke-tests.md](./issue-1163-db-migration-smoke-tests.md) | Fixture-based tests for `initDb()` migrations from each historical schema (issue #1163) |
