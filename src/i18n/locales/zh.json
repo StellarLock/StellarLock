@@ -170,7 +170,16 @@
     "typeLp": "LP",
     "sortUnlockDate": "排序：解锁日期",
     "sortAmount": "排序：数量",
-    "sortCreated": "排序：创建时间"
+    "sortCreated": "排序：创建时间",
+    "clearFilters": "清除筛选",
+    "exportCsv": "导出 CSV",
+    "noResults": "没有符合筛选条件的锁定",
+    "noResultsDesc": "请尝试调整搜索或筛选条件。",
+    "selectedCount": "已选择 {{count}} 项",
+    "bulkWithdraw": "批量提取",
+    "bulkExtend": "批量延长",
+    "selectAll": "全选",
+    "deselectAll": "取消全选"
   },
   "lockDetail": {
     "notFoundTitle": "锁定未找到",
@@ -211,9 +220,24 @@
     "vestingProgress": "进度",
     "vestingTotal": "总计",
     "vestingReleased": "已释放",
-    "vestingClaimable": "可领取",
     "lockDetails": "锁定详情",
-    "projectLogoAlt": "项目 Logo"
+    "projectLogoAlt": "项目 Logo",
+    "copyLockId": "复制锁定 ID",
+    "copyLink": "复制链接",
+    "linkCopied": "链接已复制",
+    "withdrawUnavailable": "尚未到达解锁日期。",
+    "withdrawPending": "正在提取…",
+    "extendPending": "正在延长…",
+    "transferPending": "正在转移…",
+    "vestingNotStarted": "归属尚未开始。",
+    "vestingComplete": "归属已完成。",
+    "viewOnStellarExpert": "在 Stellar Expert 上查看",
+    "transactionHistory": "交易历史",
+    "noTransactions": "此锁定暂无交易。",
+    "lockedBy": "锁定者",
+    "unlockCountdown": "解锁倒计时",
+    "statusLabel": "状态",
+    "typeLabel": "类型"
   },
   "explorer": {
     "backToSearch": "返回搜索",
@@ -602,31 +626,77 @@
     "confirming": "正在等待确认…"
   },
   "onboardingTour": {
-    "ariaLabel": "StellarLock 新手引导",
-    "close": "关闭引导"
+    "tourAriaLabel": "StellarLock 新手引导",
+    "closeAriaLabel": "关闭引导",
+    "next": "下一步",
+    "previous": "上一步",
+    "finish": "完成",
+    "skip": "跳过引导",
+    "stepOf": "第 {{current}} 步，共 {{total}} 步",
+    "welcomeTitle": "欢迎使用 StellarLock",
+    "welcomeDesc": "让我们快速了解一下如何锁定代币和流动性。",
+    "createLockTitle": "创建锁定",
+    "createLockDesc": "选择代币或 LP 仓位，设置金额和解锁日期。",
+    "connectWalletTitle": "连接钱包",
+    "connectWalletDesc": "连接你的 Stellar 钱包以签署交易。",
+    "exploreTitle": "浏览锁定",
+    "exploreDesc": "查看并验证 StellarLock 上的任何公开锁定。",
+    "myLocksTitle": "管理锁定",
+    "myLocksDesc": "在一个地方跟踪、延长和提取你的锁定。"
   },
   "rpcStatus": {
     "unreachable": "Stellar 网络无法访问。部分功能可能不可用…",
-    "slow": "网络连接缓慢。响应时间可能比平时更长。"
+    "slow": "网络连接缓慢。响应时间可能比平时更长。",
+    "unreachableIndicator": "网络不可访问",
+    "slowIndicator": "网络缓慢"
   },
   "qrCode": {
-    "shareLockAria": "通过二维码分享锁定",
+    "shareAria": "通过二维码分享锁定",
     "closeAria": "关闭二维码弹窗",
     "copyUrlAria": "复制链接到剪贴板",
-    "downloadAria": "下载二维码为 PNG"
+    "downloadAria": "下载二维码为 PNG",
+    "copied": "已复制！",
+    "copyUrl": "复制链接",
+    "downloadPng": "下载 PNG",
+    "scanHint": "扫描此二维码以查看锁定。"
   },
   "keyboardShortcuts": {
     "title": "键盘快捷键",
-    "closeAria": "关闭"
+    "closeAria": "关闭",
+    "actions": {
+      "openShortcuts": "打开键盘快捷键",
+      "closeModal": "关闭弹窗",
+      "search": "聚焦搜索",
+      "createLock": "创建锁定",
+      "myLocks": "前往我的锁定",
+      "explore": "前往浏览",
+      "history": "前往历史",
+      "analytics": "前往分析",
+      "settings": "前往设置",
+      "toggleTheme": "切换主题",
+      "nextPage": "下一页",
+      "prevPage": "上一页"
+    }
   },
   "health": {
     "monitoring": "监控中",
     "systemHealth": "系统健康",
-    "noData": "暂无健康数据。"
+    "checkingDependencies": "正在检查依赖…",
+    "statusHealthy": "健康",
+    "statusUnhealthy": "异常",
+    "statusChecking": "检查中",
+    "environmentLabel": "环境",
+    "networkLabel": "网络",
+    "healthCheckFailed": "健康检查失败。",
+    "unreachable": "无法访问",
+    "extensionAvailable": "扩展可用",
+    "extensionNotDetected": "未检测到扩展"
   },
   "verifiedBadge": {
-    "verifiedTitle": "已验证代币 — 已列入 StellarLock 社区白名单",
-    "unverifiedTitle": "未验证代币 — 不在社区白名单中。请谨慎操作。"
+    "verifiedTooltip": "已验证代币 — 已列入 StellarLock 社区白名单",
+    "unverifiedTooltip": "未验证代币 — 不在社区白名单中。请谨慎操作。",
+    "verified": "已验证",
+    "unverified": "未验证"
   },
   "addressBook": {
     "title": "地址簿",
@@ -637,7 +707,17 @@
     "add": "添加地址",
     "label": "标签",
     "stellarAddress": "Stellar 地址",
-    "address": "地址"
+    "address": "地址",
+    "empty": "地址簿中还没有地址。",
+    "noResults": "没有匹配的地址。",
+    "save": "保存",
+    "cancel": "取消",
+    "delete": "删除",
+    "invalidAddress": "请输入有效的 Stellar 地址。",
+    "labelRequired": "请输入标签。",
+    "importError": "导入地址簿失败。请检查文件格式。",
+    "exportSuccess": "地址簿已导出。",
+    "importSuccess": "地址簿已导入。"
   },
   "tokenLockList": {
     "amount": "数量",
@@ -651,14 +731,29 @@
     "title": "通知",
     "markAllAsRead": "全部标记为已读",
     "clearAll": "清除全部",
-    "empty": "暂无通知"
+    "empty": "暂无通知",
+    "emptyDesc": "当你的锁定发生事件时，你会在这里看到通知。",
+    "unreadCount": "{{count}} 条未读",
+    "markAsRead": "标记为已读",
+    "viewAll": "查看全部通知",
+    "filterAll": "全部",
+    "filterUnread": "未读",
+    "filterRead": "已读"
   },
   "confirmLockModal": {
-    "reviewText": "签名前请核对详情。",
+    "review": "签名前请核对详情。",
     "invalidUnlockDate": "解锁日期无效。",
-    "linearVestingEnabled": "已启用线性归属",
     "insufficientBalance": "余额不足。",
-    "approvalRequired": "需要授权"
+    "approvalRequired": "需要授权",
+    "title": "确认锁定",
+    "confirm": "确认并签名",
+    "cancel": "取消",
+    "tokenAmount": "代币数量",
+    "unlockDateLabel": "解锁日期",
+    "beneficiaryLabel": "受益人",
+    "vestingEnabled": "已启用线性归属",
+    "networkFee": "网络费用",
+    "total": "合计"
   },
   "settings": {
     "title": "设置",

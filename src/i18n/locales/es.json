@@ -167,7 +167,16 @@
     "typeLp": "LP",
     "sortUnlockDate": "Ordenar: Fecha de desbloqueo",
     "sortAmount": "Ordenar: Cantidad",
-    "sortCreated": "Ordenar: Creado"
+    "sortCreated": "Ordenar: Creado",
+    "noResults": "Ningún bloqueo coincide con tus filtros.",
+    "clearFilters": "Borrar filtros",
+    "loadMore": "Cargar más",
+    "loadingMore": "Cargando más…",
+    "refreshing": "Actualizando…",
+    "refresh": "Actualizar",
+    "exportCsv": "Exportar CSV",
+    "totalCount": "{{count}} bloqueo",
+    "totalCount_other": "{{count}} bloqueos"
   },
   "lockDetail": {
     "notFoundTitle": "Bloqueo no encontrado",
@@ -208,9 +217,38 @@
     "vestingProgress": "Progreso",
     "vestingTotal": "Total",
     "vestingReleased": "Liberado",
-    "vestingClaimable": "Reclamable",
     "lockDetails": "Detalles del bloqueo",
-    "projectLogoAlt": "Logo del proyecto"
+    "projectLogoAlt": "Logo del proyecto",
+    "vestingClaimed": "Reclamado",
+    "vestingRemaining": "Restante",
+    "claimSuccess": "Tokens adquiridos reclamados.",
+    "claimNothing": "No hay tokens adquiridos para reclamar todavía.",
+    "extendWarning": "Extender el bloqueo retrasa el desbloqueo de todos los tokens restantes.",
+    "transferWarning": "Transferir el beneficiario es irreversible. Verifica la nueva dirección cuidadosamente.",
+    "copyLockId": "Copiar ID del bloqueo",
+    "copied": "¡Copiado!",
+    "viewOnStellarExpert": "Ver en Stellar Expert",
+    "contractAddress": "Dirección del contrato",
+    "tokenContract": "Contrato del token",
+    "poolContract": "Contrato del pool",
+    "createdAt": "Creado el",
+    "lastExtendedAt": "Última extensión",
+    "status": "Estado",
+    "amount": "Cantidad",
+    "unlockDate": "Fecha de desbloqueo",
+    "withdrawable": "Retirable",
+    "notYetUnlocked": "Aún no desbloqueado",
+    "withdrawHint": "Una vez desbloqueado, cualquiera puede retirar los tokens a la dirección del beneficiario.",
+    "connectToWithdraw": "Conecta la billetera del beneficiario para retirar.",
+    "wrongBeneficiary": "Tu billetera conectada no es el beneficiario de este bloqueo.",
+    "extendLockHint": "Elige una nueva fecha de desbloqueo posterior a la actual.",
+    "transferBeneficiaryHint": "Introduce la nueva dirección de beneficiario que podrá retirar los tokens.",
+    "invalidAddress": "Introduce una dirección Stellar válida.",
+    "sameBeneficiary": "La nueva dirección debe ser diferente de la actual.",
+    "transactionPending": "Transacción pendiente…",
+    "waitingForWallet": "Esperando a tu billetera…",
+    "confirmInWallet": "Confirma la transacción en tu billetera.",
+    "viewTransaction": "Ver transacción"
   },
   "explorer": {
     "backToSearch": "Volver a la búsqueda",
@@ -599,31 +637,73 @@
     "confirming": "Esperando confirmación…"
   },
   "onboardingTour": {
-    "ariaLabel": "Tour de introducción de StellarLock",
-    "close": "Cerrar tour"
+    "tourAriaLabel": "Tour de introducción de StellarLock",
+    "closeAriaLabel": "Cerrar tour",
+    "next": "Siguiente",
+    "previous": "Anterior",
+    "skip": "Omitir tour",
+    "finish": "Finalizar",
+    "stepCounter": "Paso {{current}} de {{total}}",
+    "welcomeTitle": "Bienvenido a StellarLock",
+    "welcomeDesc": "Aprende a bloquear tokens y liquidez en unos pocos pasos.",
+    "createTitle": "Crea un bloqueo",
+    "createDesc": "Elige un token o posición LP, establece el monto y la fecha de desbloqueo, y firma.",
+    "shareTitle": "Comparte la prueba",
+    "shareDesc": "Comparte el enlace público del explorador para que tu comunidad verifique el bloqueo.",
+    "doneTitle": "Todo listo",
+    "doneDesc": "Ya sabes lo esencial. ¡Feliz bloqueo!"
   },
   "rpcStatus": {
     "unreachable": "La red Stellar no está disponible. Algunas funciones pueden no estar disponibles…",
-    "slow": "Conexión de red lenta. Las respuestas pueden tardar más de lo habitual."
+    "slow": "Conexión de red lenta. Las respuestas pueden tardar más de lo habitual.",
+    "unreachableIndicator": "RPC no disponible",
+    "slowIndicator": "RPC lento"
   },
   "qrCode": {
-    "shareLockAria": "Compartir bloqueo mediante código QR",
+    "shareAria": "Compartir bloqueo mediante código QR",
     "closeAria": "Cerrar el modal del código QR",
     "copyUrlAria": "Copiar URL al portapapeles",
-    "downloadAria": "Descargar código QR como PNG"
+    "downloadAria": "Descargar código QR como PNG",
+    "copied": "¡URL copiada!",
+    "copyUrl": "Copiar URL",
+    "downloadPng": "Descargar PNG",
+    "scanHint": "Escanea este código para abrir el bloqueo."
   },
   "keyboardShortcuts": {
     "title": "Atajos de teclado",
-    "closeAria": "Cerrar"
+    "closeAria": "Cerrar",
+    "description": "Usa estos atajos para navegar más rápido por StellarLock.",
+    "actions": {
+      "openShortcuts": "Abrir atajos de teclado",
+      "closeModal": "Cerrar el diálogo actual",
+      "focusSearch": "Enfocar la búsqueda",
+      "goHome": "Ir al inicio",
+      "goMyLocks": "Ir a mis bloqueos",
+      "goDiscover": "Ir a explorar",
+      "goCreateLock": "Ir a crear bloqueo",
+      "toggleTheme": "Cambiar tema",
+      "submitForm": "Enviar formulario"
+    }
   },
   "health": {
     "monitoring": "Monitoreo",
     "systemHealth": "Estado del sistema",
-    "noData": "No hay datos de estado disponibles."
+    "checkingDependencies": "Comprobando dependencias…",
+    "statusHealthy": "Saludable",
+    "statusUnhealthy": "No saludable",
+    "statusChecking": "Comprobando",
+    "environmentLabel": "Entorno",
+    "networkLabel": "Red",
+    "healthCheckFailed": "La comprobación de estado falló.",
+    "unreachable": "No se puede acceder al servicio de estado.",
+    "extensionAvailable": "Extensión disponible",
+    "extensionNotDetected": "Extensión no detectada"
   },
   "verifiedBadge": {
-    "verifiedTitle": "Token verificado — incluido en la lista de permitidos de la comunidad StellarLock",
-    "unverifiedTitle": "Token no verificado — no está en la lista de permitidos de la comunidad. Procede con precaución."
+    "verified": "Verificado",
+    "unverified": "No verificado",
+    "verifiedTooltip": "Token verificado — incluido en la lista de permitidos de la comunidad StellarLock",
+    "unverifiedTooltip": "Token no verificado — no está en la lista de permitidos de la comunidad. Procede con precaución."
   },
   "addressBook": {
     "title": "Libreta de direcciones",
@@ -634,7 +714,17 @@
     "add": "Agregar dirección",
     "label": "Etiqueta",
     "stellarAddress": "Dirección Stellar",
-    "address": "Dirección"
+    "address": "Dirección",
+    "empty": "Aún no hay direcciones guardadas.",
+    "noResults": "Ninguna dirección coincide con tu búsqueda.",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "invalidAddress": "Introduce una dirección Stellar válida.",
+    "labelRequired": "La etiqueta es obligatoria.",
+    "importError": "No se pudo importar la libreta de direcciones. Verifica el formato del archivo.",
+    "exportSuccess": "Libreta de direcciones exportada.",
+    "importSuccess": "Libreta de direcciones importada."
   },
   "tokenLockList": {
     "amount": "Cantidad",
@@ -648,14 +738,36 @@
     "title": "Notificaciones",
     "markAllAsRead": "Marcar todo como leído",
     "clearAll": "Borrar todo",
-    "empty": "Aún no hay notificaciones"
+    "empty": "Aún no hay notificaciones",
+    "unreadCount": "{{count}} sin leer",
+    "unreadCount_other": "{{count}} sin leer",
+    "markAsRead": "Marcar como leído",
+    "dismiss": "Descartar",
+    "viewAll": "Ver todas las notificaciones",
+    "closeAria": "Cerrar el centro de notificaciones",
+    "openAria": "Abrir el centro de notificaciones"
   },
   "confirmLockModal": {
+    "title": "Confirmar bloqueo",
     "review": "Revisa los detalles antes de firmar.",
+    "reviewText": "Revisa los detalles a continuación. Esta acción no se puede deshacer.",
     "invalidUnlockDate": "Fecha de desbloqueo inválida.",
-    "linearVestingEnabled": "Vesting lineal activado",
     "insufficientBalance": "Saldo insuficiente.",
-    "approvalRequired": "Aprobación requerida"
+    "approvalRequired": "Aprobación requerida",
+    "confirm": "Confirmar y firmar",
+    "cancel": "Cancelar",
+    "closeAria": "Cerrar el diálogo de confirmación",
+    "tokenLabel": "Token",
+    "amountLabel": "Cantidad",
+    "beneficiaryLabel": "Beneficiario",
+    "unlockDateLabel": "Fecha de desbloqueo",
+    "vestingLabel": "Vesting",
+    "vestingEnabled": "Activado",
+    "vestingDisabled": "Desactivado",
+    "networkFeeLabel": "Comisión de red",
+    "storageFeeLabel": "Depósito de almacenamiento",
+    "totalLabel": "Total",
+    "irreversibleNotice": "Los bloqueos son inmutables y no pueden acortarse una vez creados."
   },
   "settings": {
     "title": "Configuración",

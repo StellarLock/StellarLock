@@ -167,7 +167,16 @@
     "typeLp": "LP",
     "sortUnlockDate": "정렬: 잠금 해제 날짜",
     "sortAmount": "정렬: 수량",
-    "sortCreated": "정렬: 생성일"
+    "sortCreated": "정렬: 생성일",
+    "selectAll": "모두 선택",
+    "deselectAll": "모두 선택 해제",
+    "selectedCount": "{{count}}개 선택됨",
+    "bulkExtend": "선택 항목 연장",
+    "bulkExtendHint": "선택한 모든 잠금에 동일한 새 잠금 해제 날짜를 적용합니다.",
+    "bulkExtendSuccess": "{{count}}개의 잠금이 연장되었습니다.",
+    "bulkExtendPartial": "{{succeeded}}개의 잠금이 연장되었고 {{failed}}개가 실패했습니다.",
+    "bulkExtendNone": "연장할 잠금을 선택하세요.",
+    "clearSelection": "선택 해제"
   },
   "lockDetail": {
     "notFoundTitle": "잠금을 찾을 수 없음",
@@ -208,9 +217,66 @@
     "vestingProgress": "진행률",
     "vestingTotal": "합계",
     "vestingReleased": "릴리스됨",
-    "vestingClaimable": "청구 가능",
     "lockDetails": "잠금 상세",
-    "projectLogoAlt": "프로젝트 로고"
+    "projectLogoAlt": "프로젝트 로고",
+    "vestingClaimable": "청구 가능",
+    "vestingClaimed": "청구됨",
+    "vestingNextRelease": "다음 릴리스",
+    "vestingNoSchedule": "베스팅 일정이 설정되지 않았습니다.",
+    "vestingCliff": "클리프",
+    "vestingCliffReached": "클리프 도달",
+    "vestingCliffPending": "클리프 대기 중",
+    "vestingClaim": "베스팅된 토큰 청구",
+    "vestingClaimSuccess": "베스팅된 토큰이 청구되었습니다.",
+    "vestingNothingToClaim": "현재 청구할 수 있는 토큰이 없습니다.",
+    "vestingClaimableAmount": "청구 가능: {{amount}} {{symbol}}",
+    "vestingReleasedPercent": "{{percent}}% 릴리스됨",
+    "vestingDuration": "기간",
+    "vestingType": "베스팅 유형",
+    "vestingTypeLinear": "선형",
+    "vestingTypeCliff": "클리프 + 선형",
+    "vestingTypeQuarterly": "분기별",
+    "vestingTypeCustom": "맞춤형",
+    "vestingInfo": "베스팅 일정은 불변입니다. 토큰은 일정에 따라 점진적으로 릴리스됩니다.",
+    "vestingClaimedAmount": "청구됨: {{amount}} {{symbol}}",
+    "vestingRemaining": "남은 베스팅",
+    "vestingComplete": "베스팅 완료",
+    "vestingNotStarted": "베스팅이 아직 시작되지 않았습니다.",
+    "vestingStartsOn": "베스팅 시작일: {{date}}",
+    "vestingEndsOn": "베스팅 종료일: {{date}}",
+    "vestingClaimTooltip": "잠금 해제 날짜 전에 베스팅된 토큰을 청구하세요.",
+    "vestingClaimDisabled": "청구할 수 있는 베스팅된 토큰이 없습니다.",
+    "vestingClaimPending": "청구 중…",
+    "vestingClaimError": "베스팅된 토큰 청구에 실패했습니다. 다시 시도해 주세요.",
+    "vestingClaimRequiresWallet": "베스팅된 토큰을 청구하려면 지갑을 연결하세요.",
+    "vestingClaimNotBeneficiary": "수혜자만 베스팅된 토큰을 청구할 수 있습니다.",
+    "vestingClaimNotStarted": "베스팅이 시작되지 않아 청구할 수 없습니다.",
+    "vestingClaimComplete": "모든 토큰이 이미 청구되었습니다.",
+    "vestingClaimAvailable": "청구 가능한 베스팅된 토큰이 있습니다.",
+    "vestingClaimAvailableAmount": "{{amount}} {{symbol}}을(를) 청구할 수 있습니다.",
+    "vestingClaimAvailableTooltip": "베스팅된 토큰을 지금 청구하세요.",
+    "vestingClaimAvailableButton": "청구",
+    "vestingClaimAvailableSuccess": "베스팅된 토큰이 성공적으로 청구되었습니다.",
+    "vestingClaimAvailableError": "청구에 실패했습니다. 다시 시도해 주세요.",
+    "vestingClaimAvailablePending": "청구 중…",
+    "vestingClaimAvailableDisabled": "청구할 수 있는 베스팅된 토큰이 없습니다.",
+    "vestingClaimAvailableRequiresWallet": "청구하려면 지갑을 연결하세요.",
+    "vestingClaimAvailableNotBeneficiary": "수혜자만 청구할 수 있습니다.",
+    "vestingClaimAvailableNotStarted": "베스팅이 시작되지 않았습니다.",
+    "vestingClaimAvailableComplete": "모든 토큰이 청구되었습니다.",
+    "vestingClaimAvailableInfo": "베스팅된 토큰은 잠금 해제 날짜 전에 청구할 수 있습니다.",
+    "vestingClaimAvailableInfoAmount": "{{amount}} {{symbol}}을(를) 청구할 수 있습니다.",
+    "vestingClaimAvailableInfoTooltip": "베스팅된 토큰을 지금 청구하세요.",
+    "vestingClaimAvailableInfoButton": "청구",
+    "vestingClaimAvailableInfoSuccess": "베스팅된 토큰이 성공적으로 청구되었습니다.",
+    "vestingClaimAvailableInfoError": "청구에 실패했습니다. 다시 시도해 주세요.",
+    "vestingClaimAvailableInfoPending": "청구 중…",
+    "vestingClaimAvailableInfoDisabled": "청구할 수 있는 베스팅된 토큰이 없습니다.",
+    "vestingClaimAvailableInfoRequiresWallet": "청구하려면 지갑을 연결하세요.",
+    "vestingClaimAvailableInfoNotBeneficiary": "수혜자만 청구할 수 있습니다.",
+    "vestingClaimAvailableInfoNotStarted": "베스팅이 시작되지 않았습니다.",
+    "vestingClaimAvailableInfoComplete": "모든 토큰이 청구되었습니다.",
+    "vestingClaimAvailableInfoInfo": "베스팅된 토큰은 잠금 해제 날짜 전에 청구할 수 있습니다."
   },
   "explorer": {
     "backToSearch": "검색으로 돌아가기",
@@ -444,237 +510,4 @@
       "title": "잘못된 잠금 해제 날짜"
     },
     "userRejected": {
-      "message": "지갑에서 거래를 취소했습니다.",
-      "recovery": "준비가 되면 버튼을 다시 클릭하세요.",
-      "title": "거래가 취소됨"
-    },
-    "vestingEndBeforeStart": {
-      "message": "베스팅 종료일은 베스팅 시작일 이후여야 합니다.",
-      "recovery": "시작일 이후의 베스팅 종료일을 선택하세요.",
-      "title": "잘못된 베스팅 일정"
-    },
-    "wrongNetwork": {
-      "message": "지갑이 잘못된 네트워크에 연결되어 있습니다.",
-      "recovery": "Freighter 설정에서 올바른 네트워크로 전환하세요.",
-      "title": "잘못된 네트워크"
-    },
-    "extensionLimitReached": {
-      "message": "이 잠금은 이미 허용된 최대 횟수만큼 연장되었습니다.",
-      "recovery": "이 잠금은 더 이상 연장할 수 없습니다.",
-      "title": "연장 한도 도달"
-    },
-    "unlockExceedsMax": {
-      "message": "새 잠금 해제 날짜가 컨트랙트가 허용하는 범위보다 더 미래입니다.",
-      "recovery": "허용된 범위 내에서 더 이른 날짜를 선택하세요.",
-      "title": "연장 기간이 너무 김"
-    },
-    "lockDurationTooShort": {
-      "message": "잠금 해제 날짜가 현재 시간과 너무 가깝습니다. 최소 잠금 기간이 필요합니다.",
-      "recovery": "최소 24시간 이후의 잠금 해제 날짜를 선택하세요.",
-      "title": "잠금 기간이 너무 짧음"
-    },
-    "extensionLimitExceeded": {
-      "message": "이 잠금은 이미 허용된 최대 연장 횟수에 도달했습니다.",
-      "recovery": "이 잠금에 대해서는 더 이상 연장할 수 없습니다.",
-      "title": "연장 한도 초과"
-    },
-    "unlockTooSoon": {
-      "message": "새 잠금 해제 날짜는 연장으로 인정되려면 현재 날짜보다 충분히 늦어야 합니다.",
-      "recovery": "더 나중의 날짜를 선택하세요.",
-      "title": "연장 기간이 너무 짧음"
-    },
-    "amountOverflow": {
-      "title": "Amount Overflow",
-      "message": "The lock amount is too large and caused an arithmetic overflow.",
-      "recovery": "Reduce the amount and try again."
-    },
-    "notAdmin": {
-      "title": "Not Authorised",
-      "message": "This action requires admin privileges.",
-      "recovery": "Only the contract admin can perform this action."
-    },
-    "noPendingAdmin": {
-      "title": "No Pending Admin",
-      "message": "There is no pending admin transfer to accept.",
-      "recovery": "Ask the current admin to propose a transfer first."
-    },
-    "notPendingAdmin": {
-      "title": "Not the Pending Admin",
-      "message": "Only the nominated pending admin can accept this transfer.",
-      "recovery": "Ensure you are using the correct address."
-    },
-    "reentrancyDetected": {
-      "title": "Reentrancy Detected",
-      "message": "A reentrant call was detected and blocked by the contract.",
-      "recovery": "Please try again."
-    },
-    "identicalTokens": {
-      "title": "Identical Tokens",
-      "message": "Token A and Token B must be different addresses.",
-      "recovery": "Choose two distinct token addresses for your LP pair."
-    },
-    "notInitialized": {
-      "title": "컨트랙트 미초기화",
-      "message": "컨트랙트가 아직 관리자로 초기화되지 않았습니다.",
-      "recovery": "배포를 초기화하려면 컨트랙트 운영자에게 문의하세요."
-    },
-    "lockNotFound": {
-      "title": "잠금을 찾을 수 없음",
-      "message": "해당 잠금 ID와 일치하는 잠금 기록을 찾을 수 없습니다.",
-      "recovery": "잠금 ID와 컨트랙트 주소를 확인한 후 다시 시도하세요."
-    },
-    "contractPaused": {
-      "title": "컨트랙트 일시 중단",
-      "message": "유지보수 또는 긴급 상황으로 인해 관리자가 컨트랙트를 일시 중단했습니다.",
-      "recovery": "운영이 재개된 후 다시 시도해 주세요."
-    }
-  },
-  "notfound": {
-    "title": "페이지를 찾을 수 없음",
-    "description": "찾고 있는 페이지가 존재하지 않거나 이동되었을 수 있습니다.",
-    "goHome": "홈으로 돌아가기",
-    "explore": "잠금 탐색",
-    "helpTitle": "도움이 필요하신가요?",
-    "helpDesc": "<explorer>탐색기</explorer>를 확인하여 잠금을 찾거나 <github>GitHub을 방문하세요</github>."
-  },
-  "countdown": {
-    "unlocked": "잠금 해제됨",
-    "days": "일",
-    "hours": "시간",
-    "min": "분",
-    "sec": "초"
-  },
-  "pagination": {
-    "prev": "이전",
-    "next": "다음",
-    "prevAria": "이전 페이지",
-    "nextAria": "다음 페이지",
-    "pageOf": "{{page}} / {{totalPages}} 페이지"
-  },
-  "errorBoundary": {
-    "title": "문제가 발생했습니다",
-    "message": "문제가 발생했습니다. 다시 시도해 주세요.",
-    "tryAgain": "다시 시도"
-  },
-  "lockStatus": {
-    "locked": "잠김",
-    "unlockable": "잠금 해제 가능",
-    "withdrawn": "인출됨"
-  },
-  "lockCreated": {
-    "title": "잠금 생성 완료 | StellarLock",
-    "description": "Stellar에서 잠금이 성공적으로 생성되었습니다.",
-    "heading": "잠금이 성공적으로 생성되었습니다!",
-    "subheading": "토큰이 온체인에 안전하게 잠겼습니다.",
-    "vestingActive": "베스팅 일정이 활성화되었습니다.",
-    "lockSummary": "잠금 요약",
-    "lockId": "잠금 ID",
-    "copyLockId": "잠금 ID 복사",
-    "type": "유형",
-    "lpLock": "LP 잠금",
-    "tokenLock": "토큰 잠금",
-    "token": "토큰",
-    "amount": "수량",
-    "beneficiary": "수혜자",
-    "creator": "생성자",
-    "unlockDate": "잠금 해제일",
-    "vesting": "베스팅",
-    "vestingEnabled": "선형 베스팅 활성화됨",
-    "createdAt": "생성 일시",
-    "transactionDetails": "트랜잭션 세부 정보",
-    "txHash": "TX 해시",
-    "copyTxHash": "트랜잭션 해시 복사",
-    "viewTxStellarExpert": "Stellar Expert에서 트랜잭션 보기",
-    "network": "네트워크",
-    "shareTitle": "이 잠금 공유",
-    "copyShareLink": "공유 링크 복사",
-    "viewLockDetail": "잠금 상세 정보 보기",
-    "createAnother": "새 잠금 생성하기",
-    "copied": "{{label}} 복사됨!"
-  },
-  "txProgress": {
-    "simulating": "트랜잭션 시뮬레이션 중…",
-    "signing": "지갑에서 서명해 주세요…",
-    "submitting": "네트워크로 전송 중…",
-    "confirming": "확인 대기 중…"
-  },
-  "onboarding": {
-    "tourLabel": "StellarLock 온보딩 투어",
-    "closeTour": "투어 닫기"
-  },
-  "rpcStatus": {
-    "unreachable": "Stellar 네트워크에 연결할 수 없습니다. 일부 기능을 사용하지 못할 수 있습니다…",
-    "slow": "네트워크 연결이 느립니다. 응답이 평소보다 오래 걸릴 수 있습니다."
-  },
-  "qrCode": {
-    "shareLockAria": "QR 코드로 잠금 공유",
-    "closeAria": "QR 코드 모달 닫기",
-    "copyUrlAria": "URL을 클립보드에 복사",
-    "downloadAria": "QR 코드를 PNG로 다운로드"
-  },
-  "keyboardShortcuts": {
-    "title": "키보드 단축키",
-    "closeAria": "닫기"
-  },
-  "health": {
-    "monitoring": "모니터링",
-    "systemHealth": "시스템 상태",
-    "noData": "아직 표시할 상태 데이터가 없습니다."
-  },
-  "verifiedBadge": {
-    "verifiedTitle": "검증된 토큰 — StellarLock 커뮤니티 허용 목록에 등록됨",
-    "unverifiedTitle": "검증되지 않은 토큰 — 커뮤니티 허용 목록에 없습니다. 주의하세요."
-  },
-  "addressBook": {
-    "title": "주소록",
-    "close": "주소록 닫기",
-    "searchPlaceholder": "주소 검색…",
-    "export": "주소록 내보내기",
-    "import": "주소록 가져오기",
-    "add": "주소 추가",
-    "label": "라벨",
-    "stellarAddress": "Stellar 주소",
-    "address": "주소"
-  },
-  "tokenLockList": {
-    "amount": "수량",
-    "beneficiary": "수혜자",
-    "unlockDate": "잠금 해제 날짜",
-    "unlocksIn": "잠금 해제까지",
-    "status": "상태",
-    "empty": "이 토큰에 대한 잠금을 찾을 수 없습니다"
-  },
-  "notificationCenter": {
-    "title": "알림",
-    "markAllAsRead": "모두 읽음으로 표시",
-    "clearAll": "모두 지우기",
-    "empty": "아직 알림이 없습니다"
-  },
-  "confirmLockModal": {
-    "review": "서명하기 전에 세부 정보를 검토하세요.",
-    "invalidUnlockDate": "잘못된 잠금 해제 날짜입니다.",
-    "linearVestingEnabled": "선형 베스팅 활성화됨",
-    "insufficientBalance": "잔액이 부족합니다.",
-    "approvalRequired": "승인 필요"
-  },
-  "settings": {
-    "title": "설정",
-    "addressBook": "주소록",
-    "newAddress": "새 주소",
-    "notificationPreferences": "알림 설정",
-    "label": "레이블",
-    "stellarAddress": "Stellar 주소",
-    "address": "주소",
-    "actions": "작업",
-    "exportJson": "JSON으로 내보내기",
-    "importJson": "JSON에서 가져오기",
-    "searchPlaceholder": "레이블 또는 주소로 검색…"
-  },
-  "breadcrumb": {
-    "ariaLabel": "탐색 경로"
-  },
-  "lockTable": {
-    "select": "선택",
-    "actions": "작업"
-  }
-}
+      "message": "지갑에서 거래를
