@@ -166,6 +166,7 @@
     "statusLocked": "Locked",
     "statusUnlockable": "Unlockable",
     "statusWithdrawn": "Withdrawn",
+    "statusArchived": "Archived",
     "allTypes": "All types",
     "typeToken": "Token",
     "typeLp": "LP",
@@ -204,6 +205,11 @@
     "withdrawSuccess": "Withdrawal confirmed.",
     "extendSuccess": "Lock extended.",
     "transferSuccess": "Beneficiary transferred.",
+    "restoreLock": "Restore entry",
+    "restoreSuccess": "Lock entry restored. You can now interact with this lock.",
+    "bumpTtl": "Renew storage",
+    "bumpTtlSuccess": "Storage TTL renewed. This lock is safe from archival for another year.",
+    "archivedNotice": "This lock entry has been archived by the Stellar network because its storage TTL expired. Restore it to regain access — your tokens are still safe inside the contract.",
     "shareViaQr": "Share via QR code",
     "downloadReport": "Download lock report",
     "vestingSchedule": "Vesting Schedule",
@@ -220,7 +226,8 @@
   "lockStatus": {
     "locked": "Locked",
     "unlockable": "Unlockable",
-    "withdrawn": "Withdrawn"
+    "withdrawn": "Withdrawn",
+    "archived": "Archived"
   },
   "lockCreated": {
     "title": "Lock Created | StellarLock",

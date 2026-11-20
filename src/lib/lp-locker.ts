@@ -1,6 +1,6 @@
 import { Address, nativeToScVal, xdr } from "@stellar/stellar-sdk"
 import type { Dex, Lock, LockMetadata } from "@/types/lock"
-import { CONTRACTS, simulateCall, submitCall, submitCallWithHash, type TxPhase } from "@/lib/stellar"
+import { CONTRACTS, simulateCall, submitCall, submitCallWithHash, submitRestoreFootprint, type TxPhase } from "@/lib/stellar"
 import { getOnChainTokenMeta } from "@/lib/token-metadata"
 
 interface CreateLpLockArgs {
@@ -431,4 +431,53 @@ export async function transferLpBeneficiary(
     onProgress,
   )
   return { txHash }
+}
+
+// ── Maintenance methods ───────────────────────────────────────────────────────
+
+/**
+ * Extend the on-chain TTL of an LP lock entry to prevent archival.
+ * Permissionless — anyone can call this on any LP lock id.
+ *
+ * @param id - Numeric lock id (as a decimal string).
+ * @param sourceAddress - Address paying for the transaction.
+ * @param signTransaction - Wallet sign callback.
+ * @param onProgress - Optional phase callback for UI progress steps.
+ * @returns The submission `txHash`.
+ */
+export async function bumpLpLockTtl(
+  id: string,
+  sourceAddress: string,
+  signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>,
+  onProgress?: (phase: TxPhase) => void,
+): Promise<{ txHash: string }> {
+  const { txHash } = await submitCallWithHash<void>(
+    CONTRACTS.lpLocker,
+    "bump_lock_ttl",
+    [idArg(id)],
+    sourceAddress,
+    signTransaction,
+    onProgress,
+  )
+  return { txHash }
+}
+
+/**
+ * Restore an archived LP lock entry via a Soroban `RestoreFootprint`
+ * transaction. After the restore completes the caller should reload the
+ * lock — it will be readable again via `getLpLock`.
+ *
+ * @param id - Numeric lock id (as a decimal string).
+ * @param sourceAddress - Address paying for the restore transaction.
+ * @param signTransaction - Wallet sign callback.
+ * @param onProgress - Optional phase callback for UI progress steps.
+ * @returns The submission `txHash`.
+ */
+export async function restoreLpLock(
+  id: string,
+  sourceAddress: string,
+  signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>,
+  onProgress?: (phase: TxPhase) => void,
+): Promise<{ txHash: string }> {
+  return submitRestoreFootprint(CONTRACTS.lpLocker, id, sourceAddress, signTransaction, onProgress)
 }

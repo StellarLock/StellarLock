@@ -2,6 +2,7 @@ import {
   Address,
   Contract,
   Networks,
+  Operation,
   rpc as SorobanRpc,
   TransactionBuilder,
   BASE_FEE,
@@ -450,4 +451,158 @@ export async function submitTokenApproval(
 
 export function explorerLink(address: string): string {
   return `https://stellar.expert/explorer/${NETWORK.networkName}/contract/${address}`
+}
+
+// ── Archived-entry helpers ────────────────────────────────────────────────────
+
+/**
+ * Returns true when a simulation (or any error thrown by simulateCall) signals
+ * that the target ledger entry has been archived by the Soroban network — i.e.
+ * its persistent-storage TTL expired and the entry now lives in the cold archive
+ * rather than the active ledger.
+ *
+ * The two detection paths:
+ *  1. The RPC returns a SimulateTransactionResponse with a non-empty
+ *     `restorePreamble` field — this is the official SDK signal.
+ *  2. The error message contains the string "ExpirationLedgerSeq" or
+ *     "entry is archived" — a fallback for edge-case error shapes.
+ */
+export function isArchivedError(err: unknown): boolean {
+  if (!err) return false
+
+  // Path 1 — structured simulation response attached to the error
+  if (typeof err === "object" && err !== null) {
+    const r = err as Record<string, unknown>
+    // Some callers re-throw the raw SimulateTransactionResponse as the error
+    if (
+      r.restorePreamble &&
+      typeof r.restorePreamble === "object" &&
+      (r.restorePreamble as Record<string, unknown>).transactionData
+    ) {
+      return true
+    }
+  }
+
+  // Path 2 — string message heuristic
+  const msg = err instanceof Error ? err.message : String(err)
+  return msg.includes("ExpirationLedgerSeq") || msg.includes("entry is archived") || msg.includes("restorePreamble")
+}
+
+/**
+ * Submit a Soroban `RestoreFootprint` transaction for a single contract
+ * persistent-storage entry identified by `contractId` + `DataKey::Lock(id)`.
+ *
+ * How it works:
+ *  1. Attempt a simulation of `get_lock(id)` against the target contract.
+ *  2. The simulation will fail with a `restorePreamble` because the entry is
+ *     archived; we extract that preamble's `transactionData` as the footprint.
+ *  3. Build a transaction containing `Operation.restoreFootprint()` with that
+ *     footprint, assemble resource fees, sign, submit, and poll for confirmation.
+ *
+ * @param contractId - The locker contract whose lock entry needs restoring.
+ * @param id         - Lock id (u64 as decimal string) to restore.
+ * @param sourceAddress - Wallet address submitting + paying for the restore tx.
+ * @param signTransaction - Freighter (or compatible) sign callback.
+ * @param onProgress - Optional phase callback for UI progress steps.
+ * @returns `{ txHash }` on success.
+ * @throws if the entry is not actually archived, or for any RPC/network failure.
+ */
+export async function submitRestoreFootprint(
+  contractId: string,
+  id: string,
+  sourceAddress: string,
+  signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>,
+  onProgress?: (phase: TxPhase) => void,
+): Promise<{ txHash: string }> {
+  const rpc = getRpc()
+
+  // Step 1 — simulate get_lock to obtain the archived footprint
+  onProgress?.("simulating")
+
+  const dummySource = {
+    accountId: () => sourceAddress,
+    sequenceNumber: () => "0",
+    incrementSequenceNumber: () => {},
+  }
+
+  const contract = new Contract(contractId)
+  const probeTx = new TransactionBuilder(dummySource, {
+    fee: BASE_FEE,
+    networkPassphrase: NETWORK.passphrase,
+  })
+    .addOperation(contract.call("get_lock", nativeToScVal(BigInt(id), { type: "u64" })))
+    .setTimeout(30)
+    .build()
+
+  const simResult = await rpc.simulateTransaction(probeTx)
+  log.debug("[submitRestoreFootprint sim]", { simResult })
+
+  // The simulation must come back with a restorePreamble for an archived entry
+  const preamble = (simResult as Record<string, unknown>).restorePreamble as
+    | { transactionData: string | xdr.SorobanTransactionData }
+    | undefined
+
+  if (!preamble?.transactionData) {
+    throw new Error(
+      "Lock entry is not archived — RestoreFootprint is not needed. " +
+        "If the lock simply does not exist, check the lock ID.",
+    )
+  }
+
+  // Step 2 — build the restore transaction from the preamble's footprint
+  const account = await rpc.getAccount(sourceAddress)
+
+  const sorobanData =
+    typeof preamble.transactionData === "string"
+      ? xdr.SorobanTransactionData.fromXDR(preamble.transactionData, "base64")
+      : preamble.transactionData
+
+  const restoreTx = new TransactionBuilder(account, {
+    fee: SOROBAN_FEE,
+    networkPassphrase: NETWORK.passphrase,
+  })
+    .addOperation(Operation.restoreFootprint({}))
+    .setSorobanData(sorobanData)
+    .setTimeout(30)
+    .build()
+
+  // Simulate again to get accurate resource fees for the restore op itself
+  const restoreSim = await rpc.simulateTransaction(restoreTx)
+  if (SorobanRpc.Api.isSimulationError(restoreSim)) {
+    throw new Error(`RestoreFootprint simulation failed: ${simError(restoreSim)}`)
+  }
+
+  const preparedTx = SorobanRpc.assembleTransaction(restoreTx, restoreSim).build()
+
+  // Step 3 — sign + submit
+  onProgress?.("signing")
+  const { signedTxXdr } = await signTransaction(preparedTx.toXDR())
+
+  onProgress?.("submitting")
+  const sendResult = await rpc.sendTransaction(TransactionBuilder.fromXDR(signedTxXdr, NETWORK.passphrase))
+  log.debug("[submitRestoreFootprint send]", { sendResult })
+
+  if (sendResult.status === "ERROR") {
+    throw new Error(`RestoreFootprint send error: ${sendResult.errorResult?.toXDR("base64") ?? "unknown"}`)
+  }
+
+  invalidateRpcCache()
+
+  // Step 4 — poll for confirmation
+  onProgress?.("confirming")
+  const MAX_POLL_ATTEMPTS = 40
+  let getResult = await rpc.getTransaction(sendResult.hash)
+  for (let attempts = 0; getResult.status === SorobanRpc.Api.GetTransactionStatus.NOT_FOUND; attempts++) {
+    if (attempts >= MAX_POLL_ATTEMPTS) {
+      throw new Error(`RestoreFootprint tx ${sendResult.hash} not found after ${MAX_POLL_ATTEMPTS} attempts (~60s)`)
+    }
+    await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS))
+    getResult = await rpc.getTransaction(sendResult.hash)
+  }
+
+  if (getResult.status === SorobanRpc.Api.GetTransactionStatus.FAILED) {
+    throw new Error(`RestoreFootprint tx failed: ${JSON.stringify(getResult)}`)
+  }
+
+  return { txHash: sendResult.hash }
 }

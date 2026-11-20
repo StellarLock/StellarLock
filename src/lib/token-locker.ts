@@ -1,6 +1,6 @@
 import { Address, nativeToScVal, xdr } from "@stellar/stellar-sdk"
 import type { Lock, LockMetadata, TokenLockSummary } from "@/types/lock"
-import { CONTRACTS, simulateCall, submitCallWithHash, type TxPhase } from "@/lib/stellar"
+import { CONTRACTS, simulateCall, submitCall, submitCallWithHash, submitRestoreFootprint, type TxPhase } from "@/lib/stellar"
 import { getOnChainTokenMeta, type OnChainTokenMeta } from "@/lib/token-metadata"
 
 interface CreateTokenLockArgs {
@@ -429,4 +429,60 @@ export async function extendLock(
     onProgress,
   )
   return { txHash }
+}
+
+// ── Maintenance methods ───────────────────────────────────────────────────────
+
+/**
+ * Extend the on-chain TTL of a token lock entry to prevent it from being
+ * archived by the Soroban network. Permissionless — anyone can call this.
+ *
+ * Active locks get a 365-day TTL renewal; withdrawn locks get 30 days
+ * (matching the contract's PERSISTENT_BUMP / WITHDRAWN_BUMP constants).
+ *
+ * @param id - Numeric lock id (as a decimal string).
+ * @param sourceAddress - Address paying for the transaction.
+ * @param signTransaction - Wallet sign callback.
+ * @param onProgress - Optional phase callback for UI progress steps.
+ * @returns The submission `txHash`.
+ */
+export async function bumpTokenLockTtl(
+  id: string,
+  sourceAddress: string,
+  signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>,
+  onProgress?: (phase: TxPhase) => void,
+): Promise<{ txHash: string }> {
+  const { txHash } = await submitCallWithHash<void>(
+    CONTRACTS.tokenLocker,
+    "bump_lock_ttl",
+    [idArg(id)],
+    sourceAddress,
+    signTransaction,
+    onProgress,
+  )
+  return { txHash }
+}
+
+/**
+ * Restore an archived token lock entry via a Soroban `RestoreFootprint`
+ * transaction, then bump its TTL so it stays active. Call this when
+ * `getLock(id)` returns `null` and `isArchivedError` confirms the entry
+ * is in the cold archive rather than simply never existing.
+ *
+ * After the restore completes the caller should reload the lock — it will
+ * be readable again via `getLock`.
+ *
+ * @param id - Numeric lock id (as a decimal string).
+ * @param sourceAddress - Address paying for the restore transaction.
+ * @param signTransaction - Wallet sign callback.
+ * @param onProgress - Optional phase callback for UI progress steps.
+ * @returns The submission `txHash`.
+ */
+export async function restoreTokenLock(
+  id: string,
+  sourceAddress: string,
+  signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>,
+  onProgress?: (phase: TxPhase) => void,
+): Promise<{ txHash: string }> {
+  return submitRestoreFootprint(CONTRACTS.tokenLocker, id, sourceAddress, signTransaction, onProgress)
 }
