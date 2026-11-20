@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next"
 import { Wallet, Lock, TrendingUp, Compass, X } from "lucide-react"
 import { Button } from "@/components/ui/Button"
 import { cn } from "@/lib/utils"
+import { safeStorage } from "@/lib/safe-storage"
 import { START_EVENT } from "./startOnboardingTour"
 
 const STORAGE_KEY = "stellarlock:onboarding_tour_completed"
@@ -42,20 +43,15 @@ const STEPS: TourStep[] = [
 ]
 
 function hasCompletedTour(): boolean {
-  try {
-    return localStorage.getItem(STORAGE_KEY) === "1"
-  } catch {
-    return false
-  }
+  // safeStorage returns null on storage errors (private browsing, quota, etc.),
+  // so the tour simply re-offers itself next visit — a harmless fallback.
+  return safeStorage.getItem(STORAGE_KEY) === "1"
 }
 
 function markTourCompleted() {
-  try {
-    localStorage.setItem(STORAGE_KEY, "1")
-  } catch {
-    // Ignore storage errors (private browsing, quota, etc.) — the tour will
-    // simply re-offer itself next visit, which is a harmless fallback.
-  }
+  // Errors are swallowed by safeStorage; if the write fails the tour will
+  // simply re-offer itself next visit, which is a harmless fallback.
+  safeStorage.setItem(STORAGE_KEY, "1")
 }
 
 /**

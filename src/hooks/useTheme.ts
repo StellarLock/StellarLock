@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
+import { safeStorage } from '../lib/safe-storage';
 
 type Theme = 'light' | 'dark';
 
 export const useTheme = () => {
   // 1. Initialize state by checking localStorage or fallback to system preference
   const [theme, setTheme] = useState<Theme>(() => {
-    const savedTheme = localStorage.getItem('theme') as Theme | null;
+    const savedTheme = safeStorage.getItem('theme') as Theme | null;
     if (savedTheme === 'light' || savedTheme === 'dark') {
       return savedTheme;
     }
@@ -25,7 +26,7 @@ export const useTheme = () => {
       root.classList.remove('dark');
     }
 
-    localStorage.setItem('theme', theme);
+    safeStorage.setItem('theme', theme);
   }, [theme]);
 
   const toggleTheme = () => {

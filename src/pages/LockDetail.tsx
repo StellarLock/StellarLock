@@ -42,6 +42,7 @@ import { VerifiedBadge } from "@/components/ui/VerifiedBadge"
 import { NotificationSettings } from "@/components/locks/NotificationSettings"
 import { addNotification } from "@/hooks/useNotifications"
 import { useVerifiedToken } from "@/hooks/useVerifiedToken"
+import { useVerifiedPool } from "@/hooks/useVerifiedPool"
 import { formatAmount, formatUsd, formatDateTime, shortAddress, notify } from "@/lib/utils"
 import type { Lock } from "@/types/lock"
 import { createLogger } from "@/lib/logger"
@@ -116,6 +117,7 @@ function LockDetailView({ lock: sourceLock, onChange }: { lock: Lock; onChange: 
 
   const isLp = lock.kind === "lp"
   const verified = useVerifiedToken(lock.token.address)
+  const poolVerified = useVerifiedPool(isLp ? lock.token.address : undefined)
 
   const now = Date.now()
   const isBeneficiary = address === lock.beneficiary
@@ -337,6 +339,15 @@ function LockDetailView({ lock: sourceLock, onChange }: { lock: Lock; onChange: 
             </div>
           </div>
         </div>
+
+        {isLp && poolVerified === false && (
+          <div className="border-b border-yellow-500/30 bg-yellow-500/10 px-6 py-3">
+            <div className="flex items-start gap-3 text-sm text-yellow-700 dark:text-yellow-400">
+              <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0" />
+              <p>{t("lockDetail.unverifiedPoolWarning")}</p>
+            </div>
+          </div>
+        )}
 
         {qrOpen && (
           <QrCodeModal
@@ -626,6 +637,13 @@ function LockDetailView({ lock: sourceLock, onChange }: { lock: Lock; onChange: 
         <div className="mt-4 flex items-start gap-3 rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-4 text-sm text-yellow-700 dark:text-yellow-400">
           <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0" />
           <p>{t("lockDetail.unverifiedWarning")}</p>
+        </div>
+      )}
+
+      {isLp && poolVerified === false && (
+        <div className="mt-4 flex items-start gap-3 rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-4 text-sm text-yellow-700 dark:text-yellow-400">
+          <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0" />
+          <p>{t("lockDetail.unverifiedPoolWarning")}</p>
         </div>
       )}
     </div>

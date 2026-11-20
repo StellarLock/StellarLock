@@ -12,7 +12,9 @@
     "stellar": "Stellar",
     "skipToContent": "Ana içeriğe geç",
     "pause": "Duraklat",
-    "resume": "Devam et"
+    "resume": "Devam et",
+    "copy": "Panoya kopyala",
+    "copied": "Kopyalandı!"
   },
   "nav": {
     "createLock": "Kilit Oluştur",
@@ -167,7 +169,19 @@
     "noLocksCreatedDesc": "Tokenlerinizin veya likiditenizin güvende olduğunu kanıtlamak için ilk kildinizi oluşturun.",
     "noBeneficiary": "Yararlanıcı olduğunuz kilit yok",
     "noBeneficiaryDesc": "Başkaları tarafından sizin için oluşturulan kilitler burada görünecektir.",
-    "createLock": "Kilit Oluştur"
+    "createLock": "Kilit Oluştur",
+    "clearFilters": "Filtreleri temizle",
+    "noResults": "Filtrelerinizle eşleşen kilit yok",
+    "noResultsDesc": "Arama veya filtre ölçütlerinizi ayarlamayı deneyin.",
+    "loadMore": "Daha fazla yükle",
+    "loadingMore": "Daha fazla yükleniyor…",
+    "showingCount": "{{shown}} / {{total}} kilit gösteriliyor",
+    "selectAll": "Tümünü seç",
+    "deselectAll": "Seçimi temizle",
+    "selectedCount": "{{count}} seçildi",
+    "batchWithdraw": "Seçilenleri çek",
+    "batchExtend": "Seçilenleri uzat",
+    "batchActions": "Toplu işlemler"
   },
   "lockDetail": {
     "notFoundTitle": "Kilit bulunamadı",
@@ -210,7 +224,30 @@
     "vestingReleased": "Serbest bırakılan",
     "vestingClaimable": "Talep edilebilir",
     "lockDetails": "Kilit Ayrıntıları",
-    "projectLogoAlt": "Proje logosu"
+    "projectLogoAlt": "Proje logosu",
+    "copyLockId": "Kilit ID'sini kopyala",
+    "copyShareLink": "Paylaşım bağlantısını kopyala",
+    "viewOnStellarExpert": "Stellar Expert'te görüntüle",
+    "transactionHash": "İşlem hash'i",
+    "createdAt": "Oluşturulma tarihi",
+    "lastExtended": "Son uzatılma",
+    "extensionCount": "Uzatma sayısı",
+    "withdrawable": "Çekilebilir",
+    "withdrawableHint": "Şu anda çekime hazır token miktarı.",
+    "claimableHint": "Hakediş planından şu anda talep edilebilir token miktarı.",
+    "withdrawConfirmTitle": "Çekimi onayla",
+    "withdrawConfirmDesc": "Kilitli tokenleri yararlanıcı adresine çekmek üzeresiniz. Bu işlem geri alınamaz.",
+    "extendConfirmTitle": "Uzatmayı onayla",
+    "extendConfirmDesc": "Kilit açma tarihini {{date}} olarak değiştirmek üzeresiniz. Bu işlem geri alınamaz.",
+    "transferConfirmTitle": "Devri onayla",
+    "transferConfirmDesc": "Çekim haklarını {{address}} adresine devretmek üzeresiniz. Bu işlem geri alınamaz.",
+    "cancel": "İptal",
+    "confirm": "Onayla",
+    "processing": "İşleniyor…",
+    "vestingNotStarted": "Hakediş henüz başlamadı",
+    "vestingComplete": "Hakediş tamamlandı",
+    "fullyWithdrawn": "Tamamen çekildi",
+    "status": "Durum"
   },
   "explorer": {
     "backToSearch": "Aramaya dön",
@@ -446,235 +483,3 @@
       "title": "Yanlış Ağ",
       "message": "Cüzdanınız yanlış ağa bağlı.",
       "recovery": "Freighter ayarlarında doğru ağa geçin."
-    },
-    "lockDurationTooShort": {
-      "title": "Kilit Süresi Çok Kısa",
-      "message": "Kilit açma tarihi şu anki zamana çok yakın. Minimum kilit süresi gereklidir.",
-      "recovery": "En az 24 saat sonrası için bir kilit açma tarihi seçin."
-    },
-    "extensionLimitExceeded": {
-      "title": "Uzatma Sınırı Aşıldı",
-      "message": "Bu kilit, izin verilen maksimum sayıda zaten uzatıldı.",
-      "recovery": "Bu kilit için başka uzatma yapılamaz."
-    },
-    "unlockTooSoon": {
-      "title": "Uzatma Çok Kısa",
-      "message": "Yeni kilit açma tarihi, bir uzatma sayılabilmesi için mevcut tarihten yeterince ileride olmalıdır.",
-      "recovery": "Daha ileride bir tarih seçin."
-    },
-    "extensionLimitReached": {
-      "title": "Uzatma Sınırına Ulaşıldı",
-      "message": "Bu kilit, izin verilen maksimum sayıda zaten uzatıldı.",
-      "recovery": "Bu kilit için başka uzatma yapılamaz."
-    },
-    "unlockExceedsMax": {
-      "title": "Uzatma Çok Uzun",
-      "message": "Yeni kilit açma tarihi, sözleşmenin izin verdiğinden daha ileride.",
-      "recovery": "İzin verilen aralıkta daha erken bir tarih seçin."
-    },
-    "amountOverflow": {
-      "title": "Amount Overflow",
-      "message": "The lock amount is too large and caused an arithmetic overflow.",
-      "recovery": "Reduce the amount and try again."
-    },
-    "notAdmin": {
-      "title": "Not Authorised",
-      "message": "This action requires admin privileges.",
-      "recovery": "Only the contract admin can perform this action."
-    },
-    "noPendingAdmin": {
-      "title": "No Pending Admin",
-      "message": "There is no pending admin transfer to accept.",
-      "recovery": "Ask the current admin to propose a transfer first."
-    },
-    "notPendingAdmin": {
-      "title": "Not the Pending Admin",
-      "message": "Only the nominated pending admin can accept this transfer.",
-      "recovery": "Ensure you are using the correct address."
-    },
-    "reentrancyDetected": {
-      "title": "Reentrancy Detected",
-      "message": "A reentrant call was detected and blocked by the contract.",
-      "recovery": "Please try again."
-    },
-    "identicalTokens": {
-      "title": "Identical Tokens",
-      "message": "Token A and Token B must be different addresses.",
-      "recovery": "Choose two distinct token addresses for your LP pair."
-    },
-    "notInitialized": {
-      "title": "Sözleşme Başlatılmadı",
-      "message": "Bu sözleşme henüz bir yönetici ile başlatılmamış.",
-      "recovery": "Dağıtımı başlatmak için sözleşme operatörüyle iletişime geçin."
-    },
-    "lockNotFound": {
-      "title": "Kilit Bulunamadı",
-      "message": "Bu kilit kimliğiyle (ID) eşleşen bir kilit kaydı bulunamadı.",
-      "recovery": "Kilit ID'sini ve sözleşme adresini doğrulayıp tekrar deneyin."
-    },
-    "contractPaused": {
-      "title": "Sözleşme Duraklatıldı",
-      "message": "Sözleşme bakım veya acil durum nedeniyle yönetici tarafından duraklatıldı.",
-      "recovery": "İşlemler devam ettiğinde lütfen tekrar deneyin."
-    }
-  },
-  "analytics": {
-    "title": "Analitik",
-    "subtitle": "StellarLock genelinde kilit etkinliği ve toplam kilitli değer.",
-    "totalValueLocked": "Toplam Kilitli Değer",
-    "totalLocks": "Toplam Kilit",
-    "tokensTracked": "Takip Edilen Tokenler",
-    "tvlOverTime": "Zaman İçinde TVL",
-    "lockVolume": "Kilit Oluşturma Hacmi",
-    "tokenDistribution": "Token Dağılımı",
-    "noData": "Henüz görüntülenecek kilit etkinliği yok."
-  },
-  "notfound": {
-    "title": "Sayfa Bulunamadı",
-    "description": "Aradığınız sayfa mevcut değil veya taşınmış olabilir.",
-    "goHome": "Anasayfaya Dön",
-    "explore": "Kilitleri Keşfet",
-    "helpTitle": "Yardıma mı ihtiyacınız var?",
-    "helpDesc": "Kilitleri bulmak için <explorer>gezginimizi</explorer> kontrol edin veya <github>GitHub'ı ziyaret edin</github>."
-  },
-  "countdown": {
-    "unlocked": "Kilit Açıldı",
-    "days": "Gün",
-    "hours": "Saat",
-    "min": "Dak",
-    "sec": "San"
-  },
-  "pagination": {
-    "prev": "Önceki",
-    "next": "Sonraki",
-    "prevAria": "Önceki sayfa",
-    "nextAria": "Sonraki sayfa",
-    "pageOf": "Sayfa {{page}} / {{totalPages}}"
-  },
-  "errorBoundary": {
-    "title": "Bir şeyler ters gitti",
-    "message": "Bir şeyler ters gitti. Lütfen tekrar deneyin.",
-    "tryAgain": "Tekrar deneyin"
-  },
-  "lockStatus": {
-    "locked": "Kilitli",
-    "unlockable": "Kilidi açılabilir",
-    "withdrawn": "Çekildi"
-  },
-  "lockCreated": {
-    "title": "Kilit Oluşturuldu | StellarLock",
-    "description": "Kilidiniz Stellar üzerinde başarıyla oluşturuldu.",
-    "heading": "Kilit Oluşturuldu!",
-    "subheading": "Tokenlarınız artık zincir üzerinde kilitlendi.",
-    "vestingActive": "Hakediş takvimi aktif.",
-    "lockSummary": "Kilit Özeti",
-    "lockId": "Kilit ID",
-    "copyLockId": "Kilit ID'sini kopyala",
-    "type": "Tür",
-    "lpLock": "LP Kilidi",
-    "tokenLock": "Token Kilidi",
-    "token": "Token",
-    "amount": "Miktar",
-    "beneficiary": "Yararlanıcı",
-    "creator": "Oluşturan",
-    "unlockDate": "Kilit açma tarihi",
-    "vesting": "Hakediş",
-    "vestingEnabled": "Doğrusal hakediş etkin",
-    "createdAt": "Oluşturulma tarihi",
-    "transactionDetails": "İşlem Ayrıntıları",
-    "txHash": "TX Hash",
-    "copyTxHash": "İşlem hash'ini kopyala",
-    "viewTxStellarExpert": "İşlemi Stellar Expert'te görüntüle",
-    "network": "Ağ",
-    "shareTitle": "Bu kilidi paylaş",
-    "copyShareLink": "Paylaşım bağlantısını kopyala",
-    "viewLockDetail": "Kilit Ayrıntılarını Görüntüle",
-    "createAnother": "Yeni Kilit Oluştur",
-    "copied": "{{label}} kopyalandı!"
-  },
-  "txProgress": {
-    "simulating": "İşlem simüle ediliyor…",
-    "signing": "Lütfen cüzdanınızda imzalayın…",
-    "submitting": "Ağa gönderiliyor…",
-    "confirming": "Onay bekleniyor…"
-  },
-  "onboardingTour": {
-    "ariaLabel": "StellarLock tanıtım turu",
-    "close": "Turu kapat"
-  },
-  "rpcStatus": {
-    "unreachable": "Stellar ağına ulaşılamıyor. Bazı özellikler kullanılamayabilir…",
-    "slow": "Yavaş ağ bağlantısı. Yanıtlar normalden uzun sürebilir."
-  },
-  "qrCode": {
-    "shareLockViaQr": "Kilidi QR kod ile paylaş",
-    "closeModal": "QR kod penceresini kapat",
-    "copyUrl": "URL'yi panoya kopyala",
-    "downloadPng": "QR kodunu PNG olarak indir"
-  },
-  "keyboardShortcuts": {
-    "title": "Klavye kısayolları",
-    "close": "Kapat"
-  },
-  "health": {
-    "monitoring": "İzleme",
-    "systemHealth": "Sistem sağlığı",
-    "noData": "Henüz görüntülenecek sağlık verisi yok."
-  },
-  "verifiedBadge": {
-    "verifiedTitle": "Doğrulanmış token — StellarLock topluluk izin listesinde yer alıyor",
-    "unverifiedTitle": "Doğrulanmamış token — topluluk izin listesinde değil. Dikkatli ilerleyin."
-  },
-  "addressBook": {
-    "title": "Adres Defteri",
-    "close": "Adres defterini kapat",
-    "searchPlaceholder": "Adres ara…",
-    "export": "Adres defterini dışa aktar",
-    "import": "Adres defterini içe aktar",
-    "add": "Adres ekle",
-    "label": "Etiket",
-    "stellarAddress": "Stellar Adresi",
-    "address": "Adres"
-  },
-  "tokenLockList": {
-    "amount": "Miktar",
-    "beneficiary": "Yararlanıcı",
-    "unlockDate": "Kilit açma tarihi",
-    "unlocksIn": "Açılma süresi",
-    "status": "Durum",
-    "noLocks": "Bu token için kilit bulunamadı"
-  },
-  "notificationCenter": {
-    "title": "Bildirimler",
-    "markAllAsRead": "Tümünü okundu olarak işaretle",
-    "clearAll": "Tümünü temizle",
-    "empty": "Henüz bildirim yok"
-  },
-  "confirmLockModal": {
-    "review": "İmzalamadan önce ayrıntıları inceleyin.",
-    "invalidUnlockDate": "Geçersiz kilit açma tarihi.",
-    "linearVestingEnabled": "Doğrusal hakediş etkin",
-    "insufficientBalance": "Yetersiz bakiye.",
-    "approvalRequired": "Onay gerekli"
-  },
-  "settings": {
-    "title": "Ayarlar",
-    "addressBook": "Adres Defteri",
-    "newAddress": "Yeni Adres",
-    "notificationPreferences": "Bildirim Tercihleri",
-    "label": "Etiket",
-    "stellarAddress": "Stellar Adresi",
-    "address": "Adres",
-    "actions": "İşlemler",
-    "exportJson": "JSON olarak dışa aktar",
-    "importJson": "JSON'dan içe aktar",
-    "searchPlaceholder": "Etiket veya adrese göre ara…"
-  },
-  "breadcrumb": {
-    "ariaLabel": "Gezinme yolu"
-  },
-  "lockTable": {
-    "select": "Seç",
-    "actions": "İşlemler"
-  }
-}

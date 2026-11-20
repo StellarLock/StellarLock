@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { Copy, Check } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { cn } from "@/lib/utils"
 
 interface CopyButtonProps {
@@ -8,6 +9,7 @@ interface CopyButtonProps {
 }
 
 export function CopyButton({ text, className }: CopyButtonProps) {
+  const { t } = useTranslation()
   const [copied, setCopied] = useState(false)
 
   async function handleCopy() {
@@ -24,7 +26,7 @@ export function CopyButton({ text, className }: CopyButtonProps) {
     <button
       type="button"
       onClick={() => void handleCopy()}
-      aria-label={copied ? "Copied!" : "Copy to clipboard"}
+      aria-label={copied ? t("common.copied") : t("common.copy")}
       className={cn(
         "inline-flex items-center justify-center rounded p-1 text-muted-foreground transition-colors hover:text-foreground cursor-pointer",
         className,

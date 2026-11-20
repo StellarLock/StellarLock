@@ -4,6 +4,7 @@ import { trackEvent } from "@/lib/analytics"
 import { NETWORK } from "@/lib/stellar"
 import { notify } from "../lib/utils"
 import { createLogger } from "@/lib/logger"
+import { safeStorage } from "@/lib/safe-storage"
 import { getConnectHelp, getFriendlyError } from "@/lib/wallet-errors"
 import { useSessionRecovery } from "@/hooks/useSessionRecovery"
 import { WalletContext, type WalletContextValue } from "@/hooks/useWallet"
@@ -30,7 +31,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   function getKit(): StellarWalletsKit {
     if (!kitRef.current) {
-      const savedWalletId = localStorage.getItem(WALLET_ID_KEY) ?? ""
+      const savedWalletId = safeStorage.getItem(WALLET_ID_KEY) ?? ""
       kitRef.current = new StellarWalletsKit({
         network: walletNetwork,
         selectedWalletId: savedWalletId,
@@ -42,8 +43,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   // Restore persisted session and verify it's still accessible
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY)
-    const savedWalletId = localStorage.getItem(WALLET_ID_KEY)
+    const saved = safeStorage.getItem(STORAGE_KEY)
+    const savedWalletId = safeStorage.getItem(WALLET_ID_KEY)
     if (!saved || !savedWalletId) return
     const k = getKit()
     k.setWallet(savedWalletId)
@@ -52,13 +53,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         if (publicKey && publicKey === saved) {
           setAddress(saved)
         } else {
-          localStorage.removeItem(STORAGE_KEY)
-          localStorage.removeItem(WALLET_ID_KEY)
+          safeStorage.removeItem(STORAGE_KEY)
+          safeStorage.removeItem(WALLET_ID_KEY)
         }
       })
       .catch(() => {
-        localStorage.removeItem(STORAGE_KEY)
-        localStorage.removeItem(WALLET_ID_KEY)
+        safeStorage.removeItem(STORAGE_KEY)
+        safeStorage.removeItem(WALLET_ID_KEY)
       })
   }, [])
 
@@ -73,8 +74,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         if (!publicKey || publicKey !== address) {
           setDisconnected(true)
           setAddress(null)
-          localStorage.removeItem(STORAGE_KEY)
-          localStorage.removeItem(WALLET_ID_KEY)
+          safeStorage.removeItem(STORAGE_KEY)
+          safeStorage.removeItem(WALLET_ID_KEY)
           return
         }
 
@@ -90,8 +91,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       } catch {
         setDisconnected(true)
         setAddress(null)
-        localStorage.removeItem(STORAGE_KEY)
-        localStorage.removeItem(WALLET_ID_KEY)
+        safeStorage.removeItem(STORAGE_KEY)
+        safeStorage.removeItem(WALLET_ID_KEY)
       }
     }
 
@@ -129,8 +130,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
                       return
                     }
                     setAddress(publicKey)
-                    localStorage.setItem(STORAGE_KEY, publicKey)
-                    localStorage.setItem(WALLET_ID_KEY, option.id)
+                    safeStorage.setItem(STORAGE_KEY, publicKey)
+                    safeStorage.setItem(WALLET_ID_KEY, option.id)
                     trackEvent("wallet_connect")
                     setConnectState("success")
                     resolve()
@@ -186,8 +187,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     setConnectState("idle")
     setConnectError(null)
     setConnectHelp(null)
-    localStorage.removeItem(STORAGE_KEY)
-    localStorage.removeItem(WALLET_ID_KEY)
+    safeStorage.removeItem(STORAGE_KEY)
+    safeStorage.removeItem(WALLET_ID_KEY)
     if (connectionCheckIntervalRef.current) {
       clearInterval(connectionCheckIntervalRef.current)
       connectionCheckIntervalRef.current = null

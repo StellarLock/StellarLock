@@ -1,4 +1,5 @@
 import { useCallback, useState, useSyncExternalStore } from "react"
+import { getJson, setJson, getItem, setItem, removeItem } from "../lib/safe-storage"
 
 const STORAGE_KEY_PREFS = "stellarlock:notification_prefs"
 const STORAGE_KEY_HISTORY = "stellarlock:notification_history"
@@ -58,7 +59,7 @@ interface StoredSession {
 
 function loadSession(address: string): string | null {
   try {
-    const raw = sessionStorage.getItem(STORAGE_KEY_SESSION)
+    const raw = getItem(STORAGE_KEY_SESSION)
     if (!raw) return null
     const session = JSON.parse(raw) as StoredSession
     if (session.address !== address) return null
@@ -70,12 +71,8 @@ function loadSession(address: string): string | null {
 }
 
 function saveSession(session: StoredSession | null) {
-  try {
-    if (session) sessionStorage.setItem(STORAGE_KEY_SESSION, JSON.stringify(session))
-    else sessionStorage.removeItem(STORAGE_KEY_SESSION)
-  } catch {
-    // Storage unavailable — the session just won't be reused.
-  }
+  if (session) setItem(STORAGE_KEY_SESSION, JSON.stringify(session))
+  else removeItem(STORAGE_KEY_SESSION)
 }
 
 /**
@@ -179,27 +176,19 @@ export async function unsubscribeNotifications(
 }
 
 function loadPrefs(): Record<string, NotificationPrefs> {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY_PREFS) ?? "{}") as Record<string, NotificationPrefs>
-  } catch {
-    return {}
-  }
+  return getJson<Record<string, NotificationPrefs>>(STORAGE_KEY_PREFS, {})
 }
 
 function savePrefs(prefs: Record<string, NotificationPrefs>) {
-  localStorage.setItem(STORAGE_KEY_PREFS, JSON.stringify(prefs))
+  setJson(STORAGE_KEY_PREFS, prefs)
 }
 
 function loadNotifications(): Notification[] {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY_HISTORY) ?? "[]") as Notification[]
-  } catch {
-    return []
-  }
+  return getJson<Notification[]>(STORAGE_KEY_HISTORY, [])
 }
 
 function saveNotifications(notifications: Notification[]) {
-  localStorage.setItem(STORAGE_KEY_HISTORY, JSON.stringify(notifications))
+  setJson(STORAGE_KEY_HISTORY, notifications)
 }
 
 export function useNotificationPrefs(lockId?: string) {
