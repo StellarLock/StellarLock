@@ -293,7 +293,17 @@
     "emailDesc": "在解锁前7天、1天以及解锁时收到邮件提醒。需要连接钱包。",
     "emailError": "保存邮件订阅失败，请重试。",
     "emailNeedsWallet": "连接钱包以启用邮件提醒。",
-    "emailPlaceholder": "you@example.com"
+    "emailPlaceholder": "you@example.com",
+    "preferences": "通知偏好",
+    "preferencesDesc": "选择您希望接收哪些解锁通知。",
+    "typeUnlockReminder": "解锁提醒",
+    "typeUnlockReminderDesc": "在锁定解锁前收到提醒。",
+    "typeLockExtended": "锁定已延长",
+    "typeLockExtendedDesc": "当锁定被延长时收到通知。",
+    "typeBeneficiaryTransferred": "受益人已转移",
+    "typeBeneficiaryTransferredDesc": "当锁定受益人变更时收到通知。",
+    "typeWithdrawal": "提取",
+    "typeWithdrawalDesc": "当从锁定中提取代币时收到通知。"
   },
   "lockCard": {
     "lockedAmount": "锁定数量",

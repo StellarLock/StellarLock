@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
-import { render, screen } from "@testing-library/react"
+import { screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { NotificationPreferences } from "@/components/ui/NotificationPreferences"
+import { render } from "@/test/test-utils"
 import type { NotificationPrefs } from "@/hooks/useNotifications"
 
 describe("NotificationPreferences", () => {
