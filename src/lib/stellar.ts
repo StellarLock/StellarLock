@@ -448,6 +448,11 @@ export async function submitTokenApproval(
 
 // ── Utils ─────────────────────────────────────────────────────────────────────
 
+/**
+ * stellar.expert URL for an address: `/account/` for G… accounts, `/contract/`
+ * for C… contracts. Anything else falls back to `/contract/`.
+ */
 export function explorerLink(address: string): string {
-  return `https://stellar.expert/explorer/${NETWORK.networkName}/contract/${address}`
+  const path = address.trim().startsWith("G") ? "account" : "contract"
+  return `https://stellar.expert/explorer/${NETWORK.networkName}/${path}/${address.trim()}`
 }
