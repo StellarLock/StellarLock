@@ -102,6 +102,44 @@ describe("RpcClient (exercised via simulateCall) — caching, dedup, rate limiti
     expect(simulateSpy).toHaveBeenCalledTimes(2)
   })
 
+  // #1077: a simulation started before a mutation must not overwrite the
+  // cache with pre-mutation data once it resolves after invalidateCache().
+  it("does not cache an in-flight result that resolves after invalidateCache()", async () => {
+    const gate = deferred<SorobanRpc.Api.SimulateTransactionResponse>()
+    const PRE_MUTATION_RESULT = { pre: true } as unknown as SorobanRpc.Api.SimulateTransactionResponse
+    const POST_MUTATION_RESULT = { post: true } as unknown as SorobanRpc.Api.SimulateTransactionResponse
+
+    simulateSpy.mockReturnValueOnce(gate.promise)
+
+    // Kick off a read before the mutation; it won't resolve until later.
+    const stalePromise = simulateCall(CONTRACT_ID, "get_lock", [])
+    await vi.advanceTimersByTimeAsync(0)
+    expect(simulateSpy).toHaveBeenCalledTimes(1)
+
+    // Mutation happens and invalidates the cache while the read above is
+    // still in flight.
+    invalidateRpcCache()
+
+    // The stale simulation now resolves with pre-mutation data.
+    gate.resolve(PRE_MUTATION_RESULT)
+    const stale = await stalePromise
+    expect(stale).toBe(PRE_MUTATION_RESULT)
+
+    // A fresh call for the same key must hit the network again (not reuse
+    // the stale in-flight entry, and not serve a cache entry the stale
+    // result might have written).
+    simulateSpy.mockResolvedValueOnce(POST_MUTATION_RESULT)
+    const fresh = await simulateCall(CONTRACT_ID, "get_lock", [])
+    expect(fresh).toBe(POST_MUTATION_RESULT)
+    expect(simulateSpy).toHaveBeenCalledTimes(2)
+
+    // And that fresh result should now be the one served from cache — the
+    // stale result must not have clobbered it.
+    const cachedAgain = await simulateCall(CONTRACT_ID, "get_lock", [])
+    expect(cachedAgain).toBe(POST_MUTATION_RESULT)
+    expect(simulateSpy).toHaveBeenCalledTimes(2)
+  })
+
   it("caps concurrent in-flight requests at 5 and queues the rest", async () => {
     const gates = Array.from({ length: 6 }, () => deferred<SorobanRpc.Api.SimulateTransactionResponse>())
     let callIndex = 0

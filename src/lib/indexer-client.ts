@@ -72,6 +72,35 @@ interface CacheEntry<T> {
   expiry: number
 }
 
+/**
+ * Indexer-backed lock ids are namespaced by kind (e.g. `token:1000`,
+ * `lp:5000`) to stay unique in the indexer's own storage. The frontend's
+ * on-chain `Lock.id` is just the bare numeric id (as returned by RPC), and
+ * Discover/Explorer build detail links as `/app/lock/${kind}/${id}` — so an
+ * un-stripped namespaced id produces a broken `/app/lock/token/token:1000`
+ * link (#1079).
+ */
+function stripKindPrefix(id: string, kind: IndexerLockDTO["kind"]): string {
+  const prefix = `${kind}:`
+  return id.startsWith(prefix) ? id.slice(prefix.length) : id
+}
+
+/**
+ * Remaining (unclaimed) amount for an indexer lock row, in token units:
+ * cumulative on-chain `amount` minus cumulative `released`, clamped to zero.
+ * `released` is dropped by the public `Lock` type (whose optional `vesting`
+ * needs a start/end the indexer doesn't currently serve), so aggregates that
+ * need the vested-aware remaining total must read it straight off the DTO
+ * instead of off the mapped `Lock.amount` (which stays the full original
+ * amount, matching the RPC-sourced `Lock` shape) — see #1080.
+ */
+function remainingAmount(raw: IndexerLockDTO, decimals: number): number {
+  const amount = BigInt(raw.amount)
+  const released = BigInt(raw.released || "0")
+  const remaining = amount > released ? amount - released : 0n
+  return Number(remaining) / 10 ** decimals
+}
+
 const statsCache = new Map<string, CacheEntry<unknown>>()
 
 /** Remove all entries whose TTL has already elapsed. */
@@ -161,7 +190,7 @@ export async function mapIndexerLocks(dtoLocks: IndexerLockDTO[]): Promise<Lock[
     const unlockAtMs = raw.unlockAt * 1000
 
     return {
-      id: raw.id,
+      id: stripKindPrefix(raw.id, raw.kind),
       kind: raw.kind,
       status: raw.withdrawn || raw.status === "withdrawn" ? "withdrawn" : unlockAtMs <= now ? "unlockable" : "locked",
       token: {
@@ -190,11 +219,16 @@ export async function mapIndexerLocksPageToSummary(page: IndexerLocksPageDTO): P
   if (tokenLocks.length === 0) return null
 
   const locks = await mapIndexerLocks(tokenLocks)
-  const active = locks.filter((l) => l.status !== "withdrawn")
-  const totalLocked = active.reduce((s, l) => s + l.amount, 0)
+  // locks[] is produced 1:1, in the same order, from tokenLocks[] by
+  // mapIndexerLocks — zip them back together so the aggregate below can use
+  // each row's cumulative `released` (#1080), which the mapped Lock itself
+  // doesn't carry.
+  const pairs = locks.map((lock, i) => ({ lock, raw: tokenLocks[i] }))
+  const active = pairs.filter(({ lock }) => lock.status !== "withdrawn")
+  const totalLocked = active.reduce((s, { lock, raw }) => s + remainingAmount(raw, lock.token.decimals), 0)
   const upcoming = active
-    .filter((l) => l.status === "locked")
-    .map((l) => l.unlockAt)
+    .filter(({ lock }) => lock.status === "locked")
+    .map(({ lock }) => lock.unlockAt)
     .sort((a, b) => a - b)
 
   return {

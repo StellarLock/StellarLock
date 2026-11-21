@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import { fn } from "@storybook/test"
 import { BulkConfirmModal } from "./BulkConfirmModal"
-import type { Lock } from "@/types/lock"
+import { lockKey, type Lock } from "@/types/lock"
 import type { ComponentProps } from "react"
 
 type OnConfirm = ComponentProps<typeof BulkConfirmModal>["onConfirm"]
@@ -126,11 +126,11 @@ export const TransferInProgress: Story = {
     onConfirm: fn<OnConfirm>(async (_value, onItemSettled) => {
       // Simulate processing items
       await new Promise((resolve) => setTimeout(resolve, 500))
-      onItemSettled("1", { status: "success" })
+      onItemSettled(lockKey(mockLocks[0]), { status: "success" })
       await new Promise((resolve) => setTimeout(resolve, 500))
-      onItemSettled("2", { status: "success" })
+      onItemSettled(lockKey(mockLocks[1]), { status: "success" })
       await new Promise((resolve) => setTimeout(resolve, 500))
-      onItemSettled("3", { status: "error", error: "Insufficient balance" })
+      onItemSettled(lockKey(mockLocks[2]), { status: "error", error: "Insufficient balance" })
     }),
     onClose: fn(),
   },
@@ -143,9 +143,9 @@ export const ExtendCompleted: Story = {
     onConfirm: fn<OnConfirm>(async (_value, onItemSettled) => {
       // Simulate all items completed
       await new Promise((resolve) => setTimeout(resolve, 300))
-      onItemSettled("1", { status: "success" })
-      onItemSettled("2", { status: "success" })
-      onItemSettled("3", { status: "success" })
+      onItemSettled(lockKey(mockLocks[0]), { status: "success" })
+      onItemSettled(lockKey(mockLocks[1]), { status: "success" })
+      onItemSettled(lockKey(mockLocks[2]), { status: "success" })
     }),
     onClose: fn(),
   },
@@ -158,9 +158,9 @@ export const TransferWithFailures: Story = {
     onConfirm: fn<OnConfirm>(async (_value, onItemSettled) => {
       // Simulate mixed results
       await new Promise((resolve) => setTimeout(resolve, 300))
-      onItemSettled("1", { status: "success" })
-      onItemSettled("2", { status: "error", error: "Invalid address" })
-      onItemSettled("3", { status: "success" })
+      onItemSettled(lockKey(mockLocks[0]), { status: "success" })
+      onItemSettled(lockKey(mockLocks[1]), { status: "error", error: "Invalid address" })
+      onItemSettled(lockKey(mockLocks[2]), { status: "success" })
     }),
     onClose: fn(),
   },

@@ -13,7 +13,7 @@
  * directly for read operations.
  */
 
-import type { Lock, TokenLockSummary, TokenMeta } from "@/types/lock"
+import { lockKey, type Lock, type TokenLockSummary, type TokenMeta } from "@/types/lock"
 import {
   getLock,
   getLocksByToken,
@@ -143,12 +143,14 @@ export async function queryMyLocks(address: string, offset = 0, limit = 50): Pro
 
   const allLocks = [...tCreated, ...lpCreated, ...tReceived, ...lpReceived]
   const enriched = await withUsdValues(allLocks)
-  const enrichedMap = new Map(enriched.map((l) => [l.id, l]))
+  // Keyed by `${kind}:${id}`, not bare id — token-locker and LP-locker ids
+  // are independent counters and can collide once token ids pass 5000 (#1081).
+  const enrichedMap = new Map(enriched.map((l) => [lockKey(l), l]))
 
-  const created = [...tCreated, ...lpCreated].map((l) => enrichedMap.get(l.id) ?? l)
+  const created = [...tCreated, ...lpCreated].map((l) => enrichedMap.get(lockKey(l)) ?? l)
   const received = [...tReceived, ...lpReceived]
     .filter((l) => l.creator !== address)
-    .map((l) => enrichedMap.get(l.id) ?? l)
+    .map((l) => enrichedMap.get(lockKey(l)) ?? l)
 
   return {
     created,

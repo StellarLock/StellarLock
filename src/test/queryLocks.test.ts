@@ -274,6 +274,35 @@ describe("queryLocks", () => {
       expect(result.received.map((l) => l.id)).toEqual(["2"])
       expect(result.totalReceived).toBe(2) // count comes from the contract, not the filtered list
     })
+
+    // #1081: token-locker ids and LP-locker ids are independent on-chain
+    // counters (token locks start at 1000, LP locks at 5000) and can collide.
+    // A Map keyed by bare id would make the LP lock's enrichment overwrite
+    // (or be overwritten by) the token lock's, corrupting one of them.
+    it("does not conflate a token lock and an LP lock that share the same bare id", async () => {
+      const tokenLock = makeLock({ id: "5000", amount: 111 })
+      const lpLock = makeLpLock({ id: "5000", amount: 222 })
+      getLocksByCreator.mockResolvedValue([tokenLock])
+      getLpLocksByCreator.mockResolvedValue([lpLock])
+      getLocksByBeneficiary.mockResolvedValue([])
+      getLpLocksByBeneficiary.mockResolvedValue([])
+      getLockCountByCreator.mockResolvedValue(1)
+      getLpLockCountByCreator.mockResolvedValue(1)
+      getLockCountByBeneficiary.mockResolvedValue(0)
+      getLpLockCountByBeneficiary.mockResolvedValue(0)
+
+      const result = await queryMyLocks(CREATOR, 0, 50)
+
+      expect(result.created).toHaveLength(2)
+      const resultToken = result.created.find((l) => l.kind === "token")
+      const resultLp = result.created.find((l) => l.kind === "lp")
+      expect(resultToken?.amount).toBe(111)
+      expect(resultLp?.amount).toBe(222)
+      // Both enriched with USD (2 USD per unit) from their own amount, not a
+      // value borrowed from the other kind's lock of the same id.
+      expect(resultToken?.usdValue).toBe(222)
+      expect(resultLp?.usdValue).toBe(444)
+    })
   })
 
   // ── Site-wide stats ─────────────────────────────────────────────────────────

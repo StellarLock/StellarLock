@@ -65,6 +65,11 @@ class RpcClient {
   private readonly cache = new Map<string, { data: SorobanRpc.Api.SimulateTransactionResponse; expiry: number }>()
   private activeCount = 0
   private readonly queue: Array<() => void> = []
+  // Bumped on every invalidateCache(). simulate() snapshots this at call time
+  // and only writes its result into the cache if it's still current — this is
+  // what keeps a simulation started before invalidation from writing stale
+  // data into the cache after the mutation that triggered the invalidation.
+  private generation = 0
 
   constructor(rpcUrl: string) {
     this.server = new SorobanRpc.Server(rpcUrl, { allowHttp: false })
@@ -139,16 +144,26 @@ class RpcClient {
     const existing = this.inflight.get(key)
     if (existing) return existing
 
+    // Snapshot the current generation. If invalidateCache() runs before this
+    // simulation resolves, this.generation will have moved on, and the stale
+    // result below is discarded instead of being written into the cache.
+    const gen = this.generation
+
     const promise = this.retrySimulate(tx)
       .then((data) => {
-        if (cacheTtlMs > 0) {
-          this.cache.set(key, { data, expiry: Date.now() + cacheTtlMs })
+        if (gen === this.generation) {
+          if (cacheTtlMs > 0) {
+            this.cache.set(key, { data, expiry: Date.now() + cacheTtlMs })
+          }
+          // Only clear our own in-flight entry — invalidateCache() may have
+          // already cleared it (and a newer call for the same key may have
+          // since taken the slot).
+          if (this.inflight.get(key) === promise) this.inflight.delete(key)
         }
-        this.inflight.delete(key)
         return data
       })
       .catch((err) => {
-        this.inflight.delete(key)
+        if (gen === this.generation && this.inflight.get(key) === promise) this.inflight.delete(key)
         throw err
       })
 
@@ -158,8 +173,13 @@ class RpcClient {
 
   invalidateCache(): void {
     this.cache.clear()
-    // In-flight requests are not cancelled; stale results will simply not be
-    // re-cached because the next simulate() call will miss a cold cache.
+    // Drop tracking of any in-flight requests too: they're still running (we
+    // don't cancel underlying network calls), but bumping the generation
+    // below means their eventual result is never written into the cache,
+    // and clearing this map means a repeat call made right after invalidation
+    // starts its own fresh request instead of piggy-backing on the stale one.
+    this.inflight.clear()
+    this.generation++
   }
 }
 
