@@ -168,7 +168,7 @@ function LockDetailView({ lock: sourceLock, onChange }: { lock: Lock; onChange: 
   // Turns a thrown transaction error into sanitized, translated guidance and
   // announces it, instead of letting the rejection disappear silently.
   function reportTxFailure(err: unknown) {
-    const structured = sanitizeError(err)
+    const structured = sanitizeError(err, isLp ? "lp-locker" : "token-locker")
     setTxError(structured)
     notify.error(err)
     announce(`${t(structured.title)}. ${t(structured.message)}`, "assertive")

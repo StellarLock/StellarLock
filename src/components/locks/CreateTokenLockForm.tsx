@@ -312,7 +312,7 @@ export function CreateTokenLockForm() {
   // Sanitize before display so raw RPC/Soroban text never reaches the UI, and
   // announce the failure for screen readers.
   function reportFailure(err: unknown) {
-    const structured = sanitizeError(err)
+    const structured = sanitizeError(err, "token-locker")
     setError(structured)
     announce(`${t(structured.title)}. ${t(structured.message)}`, "assertive")
   }

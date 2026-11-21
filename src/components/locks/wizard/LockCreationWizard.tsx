@@ -161,7 +161,7 @@ export function LockCreationWizard() {
       clearState()
       void navigate("/app/locks")
     } catch (err) {
-      const structured = sanitizeError(err)
+      const structured = sanitizeError(err, state.lockType === "lp" ? "lp-locker" : "token-locker")
       setError(structured)
     } finally {
       setSubmitting(false)

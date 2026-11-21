@@ -49,6 +49,39 @@ describe("errors.ts", () => {
     })
   })
 
+  describe("numeric-only contract errors resolved per contract (#1066)", () => {
+    it("maps Error(Contract, #4) from token-locker to StillLocked", () => {
+      const error = new Error("Error(Contract, #4)")
+      const result = parseError(error, "token-locker")
+      expect(result.code).toBe("StillLocked")
+      expect(result.i18nKey).toBe("errors.stillLocked")
+    })
+
+    it("maps the same code from lp-locker correctly", () => {
+      const error = new Error("Error(Contract, #4)")
+      const result = parseError(error, "lp-locker")
+      expect(result.code).toBe("StillLocked")
+      expect(result.i18nKey).toBe("errors.stillLocked")
+    })
+
+    it("resolves a code that differs between contracts (CanOnlyExtend: #6 token-locker, #5 lp-locker)", () => {
+      expect(parseError(new Error("Error(Contract, #6)"), "token-locker").code).toBe("CanOnlyExtend")
+      expect(parseError(new Error("Error(Contract, #5)"), "lp-locker").code).toBe("CanOnlyExtend")
+      // The same raw code means something else on the other contract.
+      expect(parseError(new Error("Error(Contract, #6)"), "lp-locker").code).not.toBe("CanOnlyExtend")
+    })
+
+    it("falls back to UNKNOWN for a numeric-only error with no contractKind given", () => {
+      const result = parseError(new Error("Error(Contract, #4)"))
+      expect(result.code).toBe("UNKNOWN")
+    })
+
+    it("still prefers the explicit symbolic name when present, regardless of contractKind", () => {
+      const result = parseError(new Error("Error(Contract, #4): StillLocked"), "lp-locker")
+      expect(result.code).toBe("StillLocked")
+    })
+  })
+
   describe("parseWalletError cases", () => {
     describe("user rejection", () => {
       it('should match "user rejected" error message', () => {

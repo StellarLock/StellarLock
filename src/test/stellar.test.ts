@@ -1,6 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { rpc as SorobanRpc, nativeToScVal } from "@stellar/stellar-sdk"
-import { getTokenAllowance, getTokenBalance, invalidateRpcCache, simulateCall } from "@/lib/stellar"
+import { rpc as SorobanRpc, nativeToScVal, xdr } from "@stellar/stellar-sdk"
+import {
+  describeFailedTransaction,
+  estimateLockCost,
+  getTokenAllowance,
+  getTokenBalance,
+  invalidateRpcCache,
+  simulateCall,
+} from "@/lib/stellar"
 import { getOnChainTokenMeta } from "@/lib/token-metadata"
 
 // Mock the token-metadata module so we can control the on-chain decimals that
@@ -30,6 +37,10 @@ function deferred<T>(): { promise: Promise<T>; resolve: (value: T) => void } {
 
 function spyOnSimulateTransaction() {
   return vi.spyOn(SorobanRpc.Server.prototype, "simulateTransaction")
+}
+
+function spyOnGetFeeStats() {
+  return vi.spyOn(SorobanRpc.Server.prototype, "getFeeStats")
 }
 
 describe("RpcClient (exercised via simulateCall) — caching, dedup, rate limiting", () => {
@@ -121,6 +132,178 @@ describe("RpcClient (exercised via simulateCall) — caching, dedup, rate limiti
 
     gates.slice(1).forEach((g) => g.resolve(SUCCESS_RESULT))
     await Promise.all(calls)
+  })
+})
+
+// ── #1073 / #1075: estimateLockCost uses the network fee and the shared client ──
+describe("estimateLockCost (#1073 network-derived fee, #1075 shared client)", () => {
+  let simulateSpy: ReturnType<typeof spyOnSimulateTransaction>
+  let feeStatsSpy: ReturnType<typeof spyOnGetFeeStats>
+
+  const SIM_RESULT = { minResourceFee: "5000000" } as unknown as SorobanRpc.Api.SimulateTransactionResponse
+
+  function feeStats(p50: string): SorobanRpc.Api.GetFeeStatsResponse {
+    const distribution = {
+      max: p50,
+      min: p50,
+      mode: p50,
+      p10: p50,
+      p20: p50,
+      p30: p50,
+      p40: p50,
+      p50,
+      p60: p50,
+      p70: p50,
+      p80: p50,
+      p90: p50,
+      p95: p50,
+      p99: p50,
+      transactionCount: "1",
+      ledgerCount: 1,
+    }
+    return {
+      sorobanInclusionFee: distribution,
+      inclusionFee: distribution,
+      latestLedger: 1,
+    } as SorobanRpc.Api.GetFeeStatsResponse
+  }
+
+  beforeEach(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date("2026-01-01T00:00:00Z"))
+    invalidateRpcCache()
+    simulateSpy = spyOnSimulateTransaction()
+    feeStatsSpy = spyOnGetFeeStats()
+  })
+
+  afterEach(() => {
+    simulateSpy.mockRestore()
+    feeStatsSpy.mockRestore()
+    vi.useRealTimers()
+  })
+
+  it("reflects the network's p50 Soroban inclusion fee instead of the flat 0.1 XLM default", async () => {
+    simulateSpy.mockResolvedValue(SIM_RESULT)
+    feeStatsSpy.mockResolvedValue(feeStats("50000"))
+
+    const estimate = await estimateLockCost(CONTRACT_ID, "create_lock", [])
+
+    // 50_000 stroops, not the old hardcoded 1_000_000 (0.1 XLM).
+    expect(estimate.networkFee).toBeCloseTo(50_000 / 1e7, 9)
+    expect(estimate.networkFee).not.toBeCloseTo(1_000_000 / 1e7, 9)
+  })
+
+  it("falls back to the previous hardcoded cap if getFeeStats() fails", async () => {
+    simulateSpy.mockResolvedValue(SIM_RESULT)
+    feeStatsSpy.mockRejectedValue(new Error("rpc unavailable"))
+
+    const estimate = await estimateLockCost(CONTRACT_ID, "create_lock", [])
+
+    expect(estimate.networkFee).toBeCloseTo(1_000_000 / 1e7, 9)
+  })
+
+  it("routes simulation through the shared RpcClient, respecting its concurrency limit", async () => {
+    const gates = Array.from({ length: 6 }, () => deferred<SorobanRpc.Api.SimulateTransactionResponse>())
+    let callIndex = 0
+    simulateSpy.mockImplementation(() => gates[callIndex++].promise)
+    feeStatsSpy.mockResolvedValue(feeStats("10000"))
+
+    // Distinct methods so none of these share a cache/dedup key — mirrors the
+    // "caps concurrent in-flight requests" case above, but exercised via
+    // estimateLockCost instead of simulateCall (issue #1075: estimateLockCost
+    // used to call rpc.simulateTransaction directly, bypassing this limit).
+    const calls = gates.map((_, i) => estimateLockCost(CONTRACT_ID, `method_${i}`, []))
+    await vi.advanceTimersByTimeAsync(0)
+
+    expect(simulateSpy).toHaveBeenCalledTimes(5)
+
+    gates[0].resolve(SIM_RESULT)
+    await vi.advanceTimersByTimeAsync(0)
+    expect(simulateSpy).toHaveBeenCalledTimes(6)
+
+    gates.slice(1).forEach((g) => g.resolve(SIM_RESULT))
+    await Promise.all(calls)
+  })
+})
+
+// ── #1076: FAILED getTransaction responses decode to a concise message ──────
+describe("describeFailedTransaction (#1076)", () => {
+  function diagnosticEventWithContractError(code: number): xdr.DiagnosticEvent {
+    return new xdr.DiagnosticEvent({
+      inSuccessfulContractCall: false,
+      event: new xdr.ContractEvent({
+        ext: new xdr.ExtensionPoint(0),
+        contractId: null,
+        type: xdr.ContractEventType.diagnostic(),
+        body: new xdr.ContractEventBody(
+          0,
+          new xdr.ContractEventV0({
+            topics: [xdr.ScVal.scvSymbol("error")],
+            data: xdr.ScVal.scvError(xdr.ScError.sceContract(code)),
+          }),
+        ),
+      }),
+    })
+  }
+
+  // A diagnostic event with unrelated data (e.g. a log), to confirm the scan
+  // doesn't just grab the first event — it must find the error-typed one.
+  function diagnosticLogEvent(): xdr.DiagnosticEvent {
+    return new xdr.DiagnosticEvent({
+      inSuccessfulContractCall: false,
+      event: new xdr.ContractEvent({
+        ext: new xdr.ExtensionPoint(0),
+        contractId: null,
+        type: xdr.ContractEventType.diagnostic(),
+        body: new xdr.ContractEventBody(
+          0,
+          new xdr.ContractEventV0({
+            topics: [xdr.ScVal.scvSymbol("log")],
+            data: xdr.ScVal.scvSymbol("something_happened"),
+          }),
+        ),
+      }),
+    })
+  }
+
+  it("decodes a realistic failed-tx fixture to a concise Error(Contract, #N) message", () => {
+    const getResult = {
+      status: SorobanRpc.Api.GetTransactionStatus.FAILED,
+      diagnosticEventsXdr: [diagnosticLogEvent(), diagnosticEventWithContractError(4)],
+    } as unknown as SorobanRpc.Api.GetFailedTransactionResponse
+
+    const message = describeFailedTransaction(getResult, "deadbeef")
+
+    expect(message).toBe("Transaction failed: Error(Contract, #4)")
+    // The message must stay short and never leak the raw fixture/JSON.
+    expect(message.length).toBeLessThan(80)
+  })
+
+  it("falls back to the transaction result code when there is no contract-error diagnostic event", () => {
+    const resultXdr = {
+      result: () => ({ switch: () => ({ name: "txInsufficientFee" }) }),
+    } as unknown as xdr.TransactionResult
+
+    const getResult = {
+      status: SorobanRpc.Api.GetTransactionStatus.FAILED,
+      diagnosticEventsXdr: [diagnosticLogEvent()],
+      resultXdr,
+    } as unknown as SorobanRpc.Api.GetFailedTransactionResponse
+
+    const message = describeFailedTransaction(getResult, "deadbeef")
+
+    expect(message).toBe("Transaction failed: txInsufficientFee (tx deadbeef)")
+  })
+
+  it("never throws or returns a raw JSON blob, even for a malformed/empty result", () => {
+    const getResult = {
+      status: SorobanRpc.Api.GetTransactionStatus.FAILED,
+    } as unknown as SorobanRpc.Api.GetFailedTransactionResponse
+
+    const message = describeFailedTransaction(getResult, "deadbeef")
+
+    expect(message).toBe("Transaction failed (tx deadbeef)")
+    expect(message).not.toContain("{")
   })
 })
 

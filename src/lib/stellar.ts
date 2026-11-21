@@ -41,14 +41,24 @@ export const CONTRACTS = {
   lpLocker: getContractAddress("lp-locker"),
 }
 
-// Soroban transactions need a higher base fee than classic Stellar
-const SOROBAN_FEE = "1000000" // 0.1 XLM — covers resource fees
+// Issue #1073: a flat 0.1 XLM inclusion fee overpaid users on every Soroban
+// transaction even when the network wasn't congested. getInclusionFee() below
+// derives the real fee from getFeeStats(), clamped to this range: never bid
+// below BASE_FEE (the network minimum), never above the old hardcoded value
+// (the previous worst case, kept as a safety ceiling if fee stats look odd).
+const MIN_INCLUSION_FEE = Number(BASE_FEE)
+const MAX_INCLUSION_FEE = 1_000_000 // 0.1 XLM — previous hardcoded fee, now just the cap
+const FEE_STATS_TTL_MS = 30_000
 
 export const STELLAR_DECIMALS = 1e7 // Stellar tokens use 7 decimal places
 const POLL_INTERVAL_MS = 1500
 const MAX_CONCURRENT = 5
 const MAX_RETRIES = 3
 const CACHE_TTL_MS = 10_000
+// Issue #1075: short-lived cache for cost estimates — long enough to dedupe a
+// burst of identical-args calls (e.g. React re-renders), short enough that the
+// estimate never goes stale while the user is actively editing the form.
+const ESTIMATE_CACHE_TTL_MS = 3_000
 
 /** Phase reported via the onProgress callback during submitCall. */
 export type TxPhase = "simulating" | "signing" | "submitting" | "confirming"
@@ -158,8 +168,38 @@ class RpcClient {
 
   invalidateCache(): void {
     this.cache.clear()
+    this.feeStatsCache = null
     // In-flight requests are not cancelled; stale results will simply not be
     // re-cached because the next simulate() call will miss a cold cache.
+  }
+
+  private feeStatsCache: { fee: string; expiry: number } | null = null
+
+  // Issue #1073: derive the inclusion fee from the network's recent Soroban
+  // fee distribution (p50) instead of a flat hardcoded value, clamped to
+  // [MIN_INCLUSION_FEE, MAX_INCLUSION_FEE]. Falls back to the cap if
+  // getFeeStats() fails or returns something unusable — overpaying slightly
+  // is safer than guessing too low and leaving the transaction stuck.
+  async getInclusionFee(): Promise<string> {
+    const cached = this.feeStatsCache
+    if (cached && cached.expiry > Date.now()) {
+      return cached.fee
+    }
+
+    let fee = MAX_INCLUSION_FEE
+    try {
+      const stats = await this.server.getFeeStats()
+      const p50 = Number(stats.sorobanInclusionFee?.p50 ?? stats.inclusionFee?.p50 ?? NaN)
+      if (Number.isFinite(p50) && p50 > 0) {
+        fee = Math.min(MAX_INCLUSION_FEE, Math.max(MIN_INCLUSION_FEE, p50))
+      }
+    } catch (err) {
+      log.debug("[getInclusionFee] getFeeStats failed, using fallback fee", { err })
+    }
+
+    const feeStr = String(fee)
+    this.feeStatsCache = { fee: feeStr, expiry: Date.now() + FEE_STATS_TTL_MS }
+    return feeStr
   }
 }
 
@@ -167,11 +207,6 @@ let _client: RpcClient | null = null
 function getClient(): RpcClient {
   if (!_client) _client = new RpcClient(NETWORK.rpcUrl)
   return _client
-}
-
-// Shared RPC server instance used by the read/write helpers below
-function getRpc(): SorobanRpc.Server {
-  return getClient().getServer()
 }
 
 // Invalidate read cache after mutations (create, withdraw, extend)
@@ -186,6 +221,61 @@ function simError(result: unknown): string {
   if (typeof r.error === "string") return r.error
   if (typeof r.error === "object") return JSON.stringify(r.error)
   return JSON.stringify(r)
+}
+
+// ── Failed-transaction decoding (issue #1076) ─────────────────────────────────
+//
+// Unlike simulateTransaction's response (which carries a ready-made `error`
+// string such as "Error(Contract, #4)"), a FAILED getTransaction response
+// never does — resultXdr only carries the coarse transaction/operation result
+// code (e.g. "txFailed"), not which contract variant failed. The specific
+// contract error code only survives in the diagnostic events the host
+// attaches to the failed call, as an ScVal of type scvError.
+
+/**
+ * Scans diagnostic events for a Soroban contract error (ScError::Contract(N))
+ * and returns its numeric code, or null if none is present.
+ */
+function findContractErrorCode(diagnosticEvents: xdr.DiagnosticEvent[] | undefined): number | null {
+  if (!diagnosticEvents) return null
+  for (const diagEvent of diagnosticEvents) {
+    try {
+      const data = diagEvent.event().body().v0().data()
+      if (data.switch().name !== "scvError") continue
+      const scError = data.error()
+      if (scError.switch().name === "sceContract") {
+        return scError.contractCode()
+      }
+    } catch {
+      // Malformed/unexpected event shape — skip it rather than fail the whole decode.
+    }
+  }
+  return null
+}
+
+/**
+ * Builds a short, parseError()-mappable message for a FAILED getTransaction
+ * response. Never includes the raw XDR/JSON blob: the old
+ * `JSON.stringify(getResult)` message was unreadable, could throw on
+ * embedded BigInt/XDR objects, and never let the contract error code reach
+ * parseError.
+ */
+export function describeFailedTransaction(getResult: SorobanRpc.Api.GetFailedTransactionResponse, hash: string): string {
+  const contractCode = findContractErrorCode(getResult.diagnosticEventsXdr)
+  if (contractCode !== null) {
+    return `Transaction failed: Error(Contract, #${contractCode})`
+  }
+
+  try {
+    const resultCode = getResult.resultXdr?.result?.().switch?.().name
+    if (resultCode) {
+      return `Transaction failed: ${resultCode} (tx ${hash})`
+    }
+  } catch {
+    // fall through to the generic message below
+  }
+
+  return `Transaction failed (tx ${hash})`
 }
 
 // ── Simulate (read-only) ──────────────────────────────────────────────────────
@@ -231,12 +321,14 @@ export async function submitCall<T = void>(
   signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>,
   onProgress?: (phase: TxPhase) => void,
 ): Promise<T> {
-  const rpc = getRpc()
+  const client = getClient()
+  const rpc = client.getServer()
   const account = await rpc.getAccount(sourceAddress)
   const contract = new Contract(contractId)
+  const fee = await client.getInclusionFee()
 
   const tx = new TransactionBuilder(account, {
-    fee: SOROBAN_FEE,
+    fee,
     networkPassphrase: NETWORK.passphrase,
   })
     .addOperation(contract.call(method, ...args))
@@ -280,7 +372,7 @@ export async function submitCall<T = void>(
   log.debug("[submitCall result]", { getResult })
 
   if (getResult.status === SorobanRpc.Api.GetTransactionStatus.FAILED) {
-    throw new Error(`Transaction failed: ${JSON.stringify(getResult)}`)
+    throw new Error(describeFailedTransaction(getResult, sendResult.hash))
   }
 
   if (getResult.returnValue) {
@@ -301,12 +393,14 @@ export async function submitCallWithHash<T = void>(
   signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>,
   onProgress?: (phase: TxPhase) => void,
 ): Promise<{ result: T; txHash: string }> {
-  const rpc = getRpc()
+  const client = getClient()
+  const rpc = client.getServer()
   const account = await rpc.getAccount(sourceAddress)
   const contract = new Contract(contractId)
+  const fee = await client.getInclusionFee()
 
   const tx = new TransactionBuilder(account, {
-    fee: SOROBAN_FEE,
+    fee,
     networkPassphrase: NETWORK.passphrase,
   })
     .addOperation(contract.call(method, ...args))
@@ -348,7 +442,7 @@ export async function submitCallWithHash<T = void>(
   }
 
   if (getResult.status === SorobanRpc.Api.GetTransactionStatus.FAILED) {
-    throw new Error(`Transaction failed: ${JSON.stringify(getResult)}`)
+    throw new Error(describeFailedTransaction(getResult, txHash))
   }
 
   const result = getResult.returnValue ? (scValToNative(getResult.returnValue) as T) : (undefined as T)
@@ -374,7 +468,7 @@ export async function estimateLockCost(
   method: string,
   args: xdr.ScVal[],
 ): Promise<LockCostEstimate> {
-  const rpc = getRpc()
+  const client = getClient()
 
   const dummySource = {
     accountId: () => "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF",
@@ -391,7 +485,13 @@ export async function estimateLockCost(
     .setTimeout(30)
     .build()
 
-  const result = await rpc.simulateTransaction(tx)
+  // Issue #1075: this used to call rpc.simulateTransaction directly,
+  // bypassing the shared client's retry/concurrency limits — typing in the
+  // amount field fired unthrottled simulations. Route through the client
+  // like every other simulation, with a short cache TTL so the estimate
+  // can't go stale while still deduping bursts of identical-args calls.
+  const cacheKey = `estimate:${contractId}:${method}:${args.map((a) => a.toXDR("base64")).join(",")}`
+  const result = await client.simulate(tx, cacheKey, ESTIMATE_CACHE_TTL_MS)
   log.debug("[estimateLockCost]", { method, result })
 
   if (SorobanRpc.Api.isSimulationError(result)) {
@@ -399,7 +499,9 @@ export async function estimateLockCost(
   }
 
   const minResourceFee = Number((result as { minResourceFee?: string }).minResourceFee ?? "0")
-  const networkFee = Number(BASE_FEE) / 1e7
+  // Issue #1073: reflect the actual network-derived inclusion fee instead of
+  // the flat BASE_FEE, so the estimate matches what submitCall will charge.
+  const networkFee = Number(await client.getInclusionFee()) / 1e7
   const resourceFee = minResourceFee / 1e7
   return { networkFee, resourceFee, total: networkFee + resourceFee }
 }
