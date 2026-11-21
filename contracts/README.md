@@ -89,6 +89,48 @@ The table below covers error codes that are relevant to integrators. The full li
 | 24 | `LockDurationTooLong` | Lock duration exceeds the 10-year maximum |
 | 28 | `InvalidPoolTokens` | Pool's `token_a()`/`token_b()` getters returned addresses that do not match the caller-supplied `token_a`/`token_b` |
 
+## Events
+
+All contract events follow Soroban's `(topics, data)` layout, with `topics[0]` always carrying the event name as a `Symbol`.
+
+> **Layout note for indexers:** `token-locker` puts all payload fields in `topics` and emits an empty `()` as `data`. By contrast, `lp-locker` places `(dex, token_a, token_b)` in `data` for `lp_lock_created`, and puts all payload fields in `data` (keeping only `(Symbol, id)` in `topics`) for `lp_lock_withdrawn`, `lp_lock_extended`, and `lp_beneficiary_transferred`. Both contracts share identical `(topics, data)` schemas for admin, upgrade, and pause events.
+
+### `token-locker`
+
+| Event Name | Topics | Data | Emitted When |
+|---|---|---|---|
+| `lock_created` | `(Symbol("lock_created"), id: u64, creator: Address, token: Address, amount: i128, beneficiary: Address, unlock_at: u64)` | `()` | A single lock is created via `create_lock`, or per child sub-lock inside `create_split_lock` |
+| `split_lock_created` | `(Symbol("split_lock_created"), group_id: u64, creator: Address, token: Address, total_amount: i128, unlock_at: u64)` | `()` | Group-level summary emitted at the end of `create_split_lock` (`group_id` matches the first sub-lock's `id`) |
+| `lock_withdrawn` | `(Symbol("lock_withdrawn"), id: u64, beneficiary: Address, token: Address, releasable: i128)` | `()` | `withdraw` transfers released tokens to `beneficiary` (emitted once per partial claim on vesting locks) |
+| `lock_extended` | `(Symbol("lock_extended"), id: u64, creator: Address, old_unlock_at: u64, new_unlock_at: u64)` | `()` | `extend` increases a lock's `unlock_at` timestamp |
+| `beneficiary_transferred` | `(Symbol("beneficiary_transferred"), id: u64, old_beneficiary: Address, new_beneficiary: Address)` | `()` | `transfer_beneficiary` reassigns a lock's `beneficiary` |
+| `contract_initialized` | `(Symbol("contract_initialized"), admin: Address)` | `()` | `init` sets the initial admin address |
+| `admin_proposed` | `(Symbol("admin_proposed"), new_admin: Address)` | `()` | `propose_admin` nominates a pending admin (step 1 of admin transfer) |
+| `admin_accepted` | `(Symbol("admin_accepted"), new_admin: Address)` | `()` | `accept_admin` finalizes the pending admin transfer (step 2) |
+| `upgrade_proposed` | `(Symbol("upgrade_proposed"), execute_after: u64, new_wasm_hash: BytesN<32>)` | `()` | `propose_upgrade` schedules a WASM upgrade with the 7-day timelock |
+| `upgrade_executed` | `(Symbol("upgrade_executed"), admin: Address, new_wasm_hash: BytesN<32>)` | `()` | `execute_upgrade` applies a proposed WASM upgrade after the timelock elapses |
+| `upgrade_cancelled` | `(Symbol("upgrade_cancelled"),)` | `()` | `cancel_upgrade` clears a pending upgrade proposal |
+| `contract_paused` | `(Symbol("contract_paused"),)` | `()` | `pause` halts lock mutations (`create_lock`, `withdraw`, `extend`, `transfer_beneficiary`, `create_split_lock`) |
+| `contract_unpaused` | `(Symbol("contract_unpaused"),)` | `()` | `unpause` restores normal contract operation |
+
+### `lp-locker`
+
+| Event Name | Topics | Data | Emitted When |
+|---|---|---|---|
+| `lp_lock_created` | `(Symbol("lp_lock_created"), id: u64, creator: Address, pool_share: Address, amount: i128, beneficiary: Address, unlock_at: u64)` | `(dex: Dex, token_a: Address, token_b: Address)` | A single LP lock is created via `create_lock`, or per child sub-lock inside `create_split_lock` |
+| `lp_split_lock_created` | `(Symbol("lp_split_lock_created"), group_id: u64, creator: Address, pool_share: Address, total_amount: i128, unlock_at: u64)` | `()` | Group-level summary emitted at the end of `create_split_lock` (`group_id` matches the first sub-lock's `id`) |
+| `lp_lock_withdrawn` | `(Symbol("lp_lock_withdrawn"), id: u64)` | `(beneficiary: Address, pool_share: Address, releasable: i128)` | `withdraw` transfers released LP pool-share tokens to `beneficiary` (emitted once per partial claim on vesting locks) |
+| `lp_lock_extended` | `(Symbol("lp_lock_extended"), id: u64)` | `(creator: Address, old_unlock_at: u64, new_unlock_at: u64)` | `extend` increases an LP lock's `unlock_at` timestamp |
+| `lp_beneficiary_transferred` | `(Symbol("lp_beneficiary_transferred"), id: u64)` | `(old_beneficiary: Address, new_beneficiary: Address)` | `transfer_beneficiary` reassigns an LP lock's `beneficiary` |
+| `contract_initialized` | `(Symbol("contract_initialized"), admin: Address)` | `()` | `init` sets the initial admin address |
+| `admin_proposed` | `(Symbol("admin_proposed"), new_admin: Address)` | `()` | `propose_admin` nominates a pending admin (step 1 of admin transfer) |
+| `admin_accepted` | `(Symbol("admin_accepted"), new_admin: Address)` | `()` | `accept_admin` finalizes the pending admin transfer (step 2) |
+| `upgrade_proposed` | `(Symbol("upgrade_proposed"), execute_after: u64, new_wasm_hash: BytesN<32>)` | `()` | `propose_upgrade` schedules a WASM upgrade with the 7-day timelock |
+| `upgrade_executed` | `(Symbol("upgrade_executed"), admin: Address, new_wasm_hash: BytesN<32>)` | `()` | `execute_upgrade` applies a proposed WASM upgrade after the timelock elapses |
+| `upgrade_cancelled` | `(Symbol("upgrade_cancelled"),)` | `()` | `cancel_upgrade` clears a pending upgrade proposal |
+| `contract_paused` | `(Symbol("contract_paused"),)` | `()` | `pause` halts lock mutations (`create_lock`, `withdraw`, `extend`, `transfer_beneficiary`, `create_split_lock`) |
+| `contract_unpaused` | `(Symbol("contract_unpaused"),)` | `()` | `unpause` restores normal contract operation |
+
 ## Build
 
 ```bash
