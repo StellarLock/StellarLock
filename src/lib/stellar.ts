@@ -14,6 +14,7 @@ import { getContractAddress } from "@/lib/contracts.generated"
 import { createLogger } from "@/lib/logger"
 import { getOnChainTokenMeta } from "@/lib/token-metadata"
 import { resolveNetworkKey } from "@/lib/network-key"
+import { stroopsToXlm } from "@/lib/utils"
 
 const log = createLogger("stellar")
 
@@ -50,7 +51,6 @@ const MIN_INCLUSION_FEE = Number(BASE_FEE)
 const MAX_INCLUSION_FEE = 1_000_000 // 0.1 XLM — previous hardcoded fee, now just the cap
 const FEE_STATS_TTL_MS = 30_000
 
-export const STELLAR_DECIMALS = 1e7 // Stellar tokens use 7 decimal places
 const POLL_INTERVAL_MS = 1500
 const MAX_CONCURRENT = 5
 const MAX_RETRIES = 3
@@ -207,13 +207,11 @@ class RpcClient {
 
     const promise = this.retrySimulate(tx)
       .then((data) => {
-        if (cacheTtlMs > 0) {
-          this.evictExpired()
-          this.cache.set(key, { data, expiry: Date.now() + cacheTtlMs })
-          this.enforceMaxSize()
         if (gen === this.generation) {
           if (cacheTtlMs > 0) {
+            this.evictExpired()
             this.cache.set(key, { data, expiry: Date.now() + cacheTtlMs })
+            this.enforceMaxSize()
           }
           // Only clear our own in-flight entry — invalidateCache() may have
           // already cleared it (and a newer call for the same key may have
@@ -314,6 +312,8 @@ function isTxTooLateError(errorResult: xdr.TransactionResult | undefined): boole
     // throwing from inside a best-effort classification helper.
     return false
   }
+}
+
 // ── Failed-transaction decoding (issue #1076) ─────────────────────────────────
 //
 // Unlike simulateTransaction's response (which carries a ready-made `error`
@@ -351,7 +351,10 @@ function findContractErrorCode(diagnosticEvents: xdr.DiagnosticEvent[] | undefin
  * embedded BigInt/XDR objects, and never let the contract error code reach
  * parseError.
  */
-export function describeFailedTransaction(getResult: SorobanRpc.Api.GetFailedTransactionResponse, hash: string): string {
+export function describeFailedTransaction(
+  getResult: SorobanRpc.Api.GetFailedTransactionResponse,
+  hash: string,
+): string {
   const contractCode = findContractErrorCode(getResult.diagnosticEventsXdr)
   if (contractCode !== null) {
     return `Transaction failed: Error(Contract, #${contractCode})`
@@ -420,34 +423,6 @@ async function sendWithRetry(rpc: SorobanRpc.Server, tx: SendArg): Promise<Sorob
       return result
     }
     await new Promise((r) => setTimeout(r, SEND_RETRY_BACKOFF_MS * 2 ** attempt))
-export async function submitCall<T = void>(
-  contractId: string,
-  method: string,
-  args: xdr.ScVal[],
-  sourceAddress: string,
-  signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>,
-  onProgress?: (phase: TxPhase) => void,
-): Promise<T> {
-  const client = getClient()
-  const rpc = client.getServer()
-  const account = await rpc.getAccount(sourceAddress)
-  const contract = new Contract(contractId)
-  const fee = await client.getInclusionFee()
-
-  const tx = new TransactionBuilder(account, {
-    fee,
-    networkPassphrase: NETWORK.passphrase,
-  })
-    .addOperation(contract.call(method, ...args))
-    .setTimeout(30)
-    .build()
-
-  onProgress?.("simulating")
-  const simResult = await rpc.simulateTransaction(tx)
-  log.debug("[submitCall sim]", { method, simResult })
-
-  if (SorobanRpc.Api.isSimulationError(simResult)) {
-    throw new Error(`Simulation error: ${simError(simResult)}`)
   }
 }
 
@@ -487,7 +462,7 @@ async function pollTransaction<T>(rpc: SorobanRpc.Server, hash: string): Promise
   log.debug("[pollTransaction result]", { hash, getResult })
 
   if (getResult.status === SorobanRpc.Api.GetTransactionStatus.FAILED) {
-    throw new Error(describeFailedTransaction(getResult, sendResult.hash))
+    throw new Error(describeFailedTransaction(getResult, hash))
   }
 
   return getResult.returnValue ? (scValToNative(getResult.returnValue) as T) : (undefined as T)
@@ -549,21 +524,6 @@ export async function submitCallWithHash<T = void>(
 
   onProgress?.("confirming")
   const result = await pollTransaction<T>(rpc, txHash)
-  const MAX_POLL_ATTEMPTS = 40
-  let getResult = await rpc.getTransaction(txHash)
-  for (let attempts = 0; getResult.status === SorobanRpc.Api.GetTransactionStatus.NOT_FOUND; attempts++) {
-    if (attempts >= MAX_POLL_ATTEMPTS) {
-      throw new Error(`Transaction ${txHash} not found after ${MAX_POLL_ATTEMPTS} attempts (~60s)`)
-    }
-    await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS))
-    getResult = await rpc.getTransaction(txHash)
-  }
-
-  if (getResult.status === SorobanRpc.Api.GetTransactionStatus.FAILED) {
-    throw new Error(describeFailedTransaction(getResult, txHash))
-  }
-
-  const result = getResult.returnValue ? (scValToNative(getResult.returnValue) as T) : (undefined as T)
   return { result, txHash }
 }
 
@@ -630,14 +590,10 @@ export async function estimateLockCost(
   }
 
   const minResourceFee = Number((result as { minResourceFee?: string }).minResourceFee ?? "0")
-  // Issue #1074: submitCall actually pays SOROBAN_FEE, not BASE_FEE — using
-  // BASE_FEE here understated the pre-signing estimate by ~0.1 XLM versus
-  // what the user is really charged.
-  const networkFee = Number(SOROBAN_FEE) / 1e7
   // Issue #1073: reflect the actual network-derived inclusion fee instead of
   // the flat BASE_FEE, so the estimate matches what submitCall will charge.
-  const networkFee = Number(await client.getInclusionFee()) / 1e7
-  const resourceFee = minResourceFee / 1e7
+  const networkFee = stroopsToXlm(Number(await client.getInclusionFee()))
+  const resourceFee = stroopsToXlm(minResourceFee)
   return { networkFee, resourceFee, total: networkFee + resourceFee }
 }
 
@@ -716,7 +672,7 @@ export async function submitRestoreFootprint(
   signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>,
   onProgress?: (phase: TxPhase) => void,
 ): Promise<{ txHash: string }> {
-  const rpc = getRpc()
+  const rpc = getClient().getServer()
 
   // Step 1 — simulate get_lock to obtain the archived footprint
   onProgress?.("simulating")
@@ -741,8 +697,7 @@ export async function submitRestoreFootprint(
 
   // The simulation must come back with a restorePreamble for an archived entry
   const preamble = (simResult as Record<string, unknown>).restorePreamble as
-    | { transactionData: string | xdr.SorobanTransactionData }
-    | undefined
+    { transactionData: string | xdr.SorobanTransactionData } | undefined
 
   if (!preamble?.transactionData) {
     throw new Error(
@@ -753,6 +708,7 @@ export async function submitRestoreFootprint(
 
   // Step 2 — build the restore transaction from the preamble's footprint
   const account = await rpc.getAccount(sourceAddress)
+  const fee = await getClient().getInclusionFee()
 
   const sorobanData =
     typeof preamble.transactionData === "string"
@@ -760,7 +716,7 @@ export async function submitRestoreFootprint(
       : preamble.transactionData
 
   const restoreTx = new TransactionBuilder(account, {
-    fee: SOROBAN_FEE,
+    fee,
     networkPassphrase: NETWORK.passphrase,
   })
     .addOperation(Operation.restoreFootprint({}))

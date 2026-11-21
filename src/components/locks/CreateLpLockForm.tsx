@@ -7,7 +7,7 @@ import type { Dex } from "@/types/lock"
 import { Input, Label } from "@/components/ui/Input"
 import { Button } from "@/components/ui/Button"
 import { TxProgressSteps } from "@/components/ui/TxProgressSteps"
-import { cn, formatDate, notify } from "@/lib/utils"
+import { cn, formatDate, notify, parseUnits } from "@/lib/utils"
 import { isValidStellarAddress } from "@/lib/stellar-address"
 import { validateLpLockForm, type FieldKey } from "@/lib/validation/lockFormValidation"
 import { FormValidationErrors } from "@/components/locks/FormValidationErrors"
@@ -17,6 +17,7 @@ import { TxErrorAlert } from "@/components/ui/TxErrorAlert"
 import { useAnnouncer } from "@/hooks/useAnnouncer"
 import { useWallet } from "@/hooks/useWallet"
 import { useTokenBalance } from "@/hooks/useLocks"
+import { useTokenDecimals } from "@/hooks/useTokenDecimals"
 import { createLpLock } from "@/lib/lp-locker"
 import { CONTRACTS, type TxPhase } from "@/lib/stellar"
 import { trackEvent } from "@/lib/analytics"
@@ -118,6 +119,7 @@ export function CreateLpLockForm() {
   }, [validation, poolShareAddress, tokenA, tokenB, amount, unlockDate])
 
   const validPoolShareAddress = hasIssue("poolShareAddress") ? undefined : trimmedPoolShareAddress
+  const poolDecimals = useTokenDecimals(validPoolShareAddress)
   const { data: balance, loading: balanceLoading } = useTokenBalance(validPoolShareAddress, address ?? null)
   // Build the contract args for cost estimation when form is sufficiently filled in
   const costArgs = useMemo((): xdr.ScVal[] | null => {
@@ -132,7 +134,7 @@ export function CreateLpLockForm() {
       ) {
         return null
       }
-      const amountStroops = BigInt(Math.round(Number(amount) * 1e7))
+      const amountStroops = parseUnits(amount, poolDecimals)
       const dexScVal = xdr.ScVal.scvVec([xdr.ScVal.scvSymbol(dex === "aquarius" ? "Aquarius" : "Soroswap")])
       return [
         new Address(address).toScVal(),
@@ -147,7 +149,7 @@ export function CreateLpLockForm() {
     } catch {
       return null
     }
-  }, [address, dex, poolShareAddress, tokenA, tokenB, amount, unlockTs, effectiveBeneficiary])
+  }, [address, dex, poolShareAddress, poolDecimals, tokenA, tokenB, amount, unlockTs, effectiveBeneficiary])
 
   function applyPreset(days: number) {
     setUnlockDate(new Date(Date.now() + days * DAY).toISOString().slice(0, 10))

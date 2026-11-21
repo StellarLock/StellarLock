@@ -7,6 +7,13 @@ import { LockCreationWizard } from "@/components/locks/wizard/LockCreationWizard
 import { mockWallet, VALID_CONTRACT_ADDRESS } from "./mocks"
 
 const mockNavigate = vi.fn()
+const mockGetOnChainTokenMeta = vi.fn()
+const mockUseTokenBalanceSWR = vi.fn()
+
+vi.mock("@/lib/token-metadata", () => ({
+  getOnChainTokenMeta: (...args: unknown[]) =>
+    mockGetOnChainTokenMeta(...args) as Promise<{ symbol: string; name: string; decimals: number }>,
+}))
 
 vi.mock("react-router-dom", async (importOriginal) => {
   const actual = await importOriginal<typeof import("react-router-dom")>()
@@ -22,12 +29,13 @@ vi.mock("@/hooks/WalletProvider", () => ({
 }))
 
 vi.mock("@/hooks/useTokenBalanceSWR", () => ({
-  useTokenBalanceSWR: () => ({
-    balance: null,
-    isLoading: false,
-    isRevalidating: false,
-    revalidate: vi.fn(),
-  }),
+  useTokenBalanceSWR: () =>
+    mockUseTokenBalanceSWR() as {
+      balance: bigint | null
+      isLoading: boolean
+      isRevalidating: boolean
+      revalidate: () => void
+    },
 }))
 
 vi.mock("@/lib/token-locker", () => ({
@@ -66,6 +74,15 @@ describe("LockCreationWizard", () => {
   beforeEach(() => {
     vi.clearAllMocks()
     sessionStorage.clear()
+    mockGetOnChainTokenMeta.mockReset()
+    mockGetOnChainTokenMeta.mockResolvedValue({ symbol: "TOK", name: "Token", decimals: 7 })
+    mockUseTokenBalanceSWR.mockReset()
+    mockUseTokenBalanceSWR.mockReturnValue({
+      balance: null,
+      isLoading: false,
+      isRevalidating: false,
+      revalidate: vi.fn(),
+    })
   })
 
   it("renders step 1 with both lock type options", () => {
@@ -218,6 +235,25 @@ describe("LockCreationWizard", () => {
         mockWallet.signTransaction,
         expect.any(Function),
       )
+    })
+  })
+
+  it("scales token balance on step 2 using the token's real decimals (#1060)", async () => {
+    mockGetOnChainTokenMeta.mockResolvedValue({ symbol: "USDC", name: "USD Coin", decimals: 6 })
+    mockUseTokenBalanceSWR.mockReturnValue({
+      balance: 2_500_000n,
+      isLoading: false,
+      isRevalidating: false,
+      revalidate: vi.fn(),
+    })
+
+    const user = userEvent.setup()
+    render(<LockCreationWizard />)
+    await user.click(screen.getByRole("button", { name: /^next$/i }))
+    await user.type(screen.getByLabelText(/token contract address/i), VALID_CONTRACT_ADDRESS)
+
+    await waitFor(() => {
+      expect(screen.getByText(/balance:\s*2\.5/i)).toBeInTheDocument()
     })
   })
 })

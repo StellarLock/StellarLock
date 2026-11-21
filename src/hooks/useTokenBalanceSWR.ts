@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { getTokenBalance as getTokenBalanceNumber } from "../lib/stellar"
 import { getOnChainTokenMeta } from "../lib/token-metadata"
+import { parseUnits } from "../lib/utils"
 
 interface BalanceCacheEntry {
   balance: bigint
@@ -60,7 +61,7 @@ export function useTokenBalanceSWR(
       // 1e7 here assumed every token has 7 decimals like XLM — wrong for any
       // SEP-41 token with a different `decimals()` value (Issue #747).
       const [fresh, { decimals }] = await Promise.all([getTokenBalanceNumber(token, addr), getOnChainTokenMeta(token)])
-      const freshStroops = BigInt(Math.round(fresh * 10 ** decimals))
+      const freshStroops = parseUnits(fresh, decimals)
 
       cache.set(cacheKey, { balance: freshStroops, fetchedAt: Date.now() })
 

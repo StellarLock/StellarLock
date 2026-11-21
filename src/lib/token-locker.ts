@@ -1,11 +1,12 @@
 import { Address, nativeToScVal, xdr } from "@stellar/stellar-sdk"
 import type { Lock, LockMetadata, TokenLockSummary } from "@/types/lock"
-import { CONTRACTS, simulateCall, submitCall, submitCallWithHash, submitRestoreFootprint, type TxPhase } from "@/lib/stellar"
+import { CONTRACTS, simulateCall, submitCallWithHash, submitRestoreFootprint, type TxPhase } from "@/lib/stellar"
 import { getOnChainTokenMeta, type OnChainTokenMeta } from "@/lib/token-metadata"
+import { parseUnits } from "@/lib/utils"
 
 interface CreateTokenLockArgs {
   tokenAddress: string
-  amount: number
+  amount: number | string
   beneficiary: string
   unlockAt: number // unix seconds
   vesting?: { start: number; end: number }
@@ -277,9 +278,9 @@ export async function createTokenLock(
   onProgress?: (phase: TxPhase) => void,
 ): Promise<{ id: string; txHash: string }> {
   const unlockAtSecs = Math.floor(args.unlockAt)
-  // Issue #737: fetch the token's real decimals instead of hardcoding 7
+  // Issue #737 / #1063: fetch real decimals and use string-based parseUnits
   const { decimals } = await getOnChainTokenMeta(args.tokenAddress)
-  const amountStroops = BigInt(Math.round(args.amount * 10 ** decimals))
+  const amountStroops = parseUnits(args.amount, decimals)
 
   const scArgs: xdr.ScVal[] = [
     addressArg(sourceAddress),

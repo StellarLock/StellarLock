@@ -20,6 +20,109 @@ export function shortAddress(addr: string, lead = 4, trail = 4): string {
   return `${addr.slice(0, lead)}…${addr.slice(-trail)}`
 }
 
+export const XLM_STROOPS_PER_UNIT = 10_000_000
+
+/** Convert raw XLM stroops to XLM display units (7 decimals). */
+export function stroopsToXlm(stroops: number | bigint): number {
+  return Number(stroops) / XLM_STROOPS_PER_UNIT
+}
+
+/**
+ * Normalize a decimal or scientific-notation numeric string into `{ negative, digits, exponent }`
+ * without floating-point arithmetic.
+ */
+function parseDecimalParts(raw: string): { negative: boolean; digits: string; exponent: number } {
+  let s = raw.trim()
+  if (!s) throw new Error(`Invalid amount: "${raw}"`)
+
+  let negative = false
+  if (s.startsWith("-")) {
+    negative = true
+    s = s.slice(1)
+  } else if (s.startsWith("+")) {
+    s = s.slice(1)
+  }
+
+  const match = /^(?:(\d+)(?:\.(\d*))?|\.(\d+))(?:[eE]([+-]?\d+))?$/.exec(s)
+  if (!match) {
+    throw new Error(`Invalid amount: "${raw}"`)
+  }
+
+  const intPart = match[1] ?? "0"
+  const fracPart = match[2] ?? match[3] ?? ""
+  const eExp = match[4] ? Number(match[4]) : 0
+  if (!Number.isInteger(eExp)) {
+    throw new Error(`Invalid amount exponent: "${raw}"`)
+  }
+
+  return {
+    negative,
+    digits: `${intPart}${fracPart}`,
+    exponent: eExp - fracPart.length,
+  }
+}
+
+/**
+ * Convert a human-readable token amount to its smallest integer unit (`bigint`)
+ * using string arithmetic only — avoiding IEEE-754 float precision loss on
+ * 18-decimal tokens (e.g. `0.1`) or large values above `Number.MAX_SAFE_INTEGER`.
+ */
+export function parseUnits(value: string | number, decimals = 7): bigint {
+  if (!Number.isInteger(decimals) || decimals < 0) {
+    throw new Error(`Invalid token decimals: ${decimals}`)
+  }
+  const str = typeof value === "number" ? (Number.isFinite(value) ? String(value) : "") : value
+  const { negative, digits, exponent } = parseDecimalParts(str)
+
+  const shift = exponent + decimals
+  let scaledDigits: string
+  if (shift >= 0) {
+    scaledDigits = `${digits}${"0".repeat(shift)}`
+  } else {
+    const cut = digits.length + shift
+    scaledDigits = cut > 0 ? digits.slice(0, cut) : "0"
+  }
+
+  const trimmed = scaledDigits.replace(/^0+/, "") || "0"
+  if (trimmed === "0") return 0n
+  return negative ? -BigInt(trimmed) : BigInt(trimmed)
+}
+
+/**
+ * Convert a smallest-unit token amount (`bigint` or integer string) into a
+ * decimal string using `decimals` places, without floating-point rounding.
+ */
+export function formatUnits(rawAmount: bigint | string | number, decimals = 7): string {
+  if (!Number.isInteger(decimals) || decimals < 0) {
+    throw new Error(`Invalid token decimals: ${decimals}`)
+  }
+
+  const rawBig =
+    typeof rawAmount === "bigint"
+      ? rawAmount
+      : typeof rawAmount === "number"
+        ? BigInt(Math.trunc(rawAmount))
+        : BigInt(rawAmount.trim() || "0")
+
+  if (rawBig === 0n) return "0"
+  const negative = rawBig < 0n
+  const digits = (negative ? -rawBig : rawBig).toString()
+
+  if (decimals === 0) return negative ? `-${digits}` : digits
+
+  const padded = digits.padStart(decimals + 1, "0")
+  const intPart = padded.slice(0, -decimals)
+  const fracPart = padded.slice(-decimals).replace(/0+$/, "")
+  const formatted = fracPart ? `${intPart}.${fracPart}` : intPart
+  return negative ? `-${formatted}` : formatted
+}
+
+/** Scale a cached raw bigint token balance to a number using the token's decimals. */
+export function scaleTokenBalance(balanceRaw: bigint | null, decimals = 7): number | null {
+  if (balanceRaw === null) return null
+  return Number(formatUnits(balanceRaw, decimals))
+}
+
 /** Format a raw token amount (stroops-style, 7 decimals) into a readable string. */
 export function formatAmount(amount: number, opts: { compact?: boolean; decimals?: number } = {}): string {
   const { compact, decimals = 2 } = opts

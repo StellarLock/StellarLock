@@ -1,5 +1,13 @@
 import { describe, it, expect } from "vitest"
-import { shortAddress, formatAmount, formatUsd } from "@/lib/utils"
+import {
+  shortAddress,
+  formatAmount,
+  formatUsd,
+  parseUnits,
+  formatUnits,
+  scaleTokenBalance,
+  stroopsToXlm,
+} from "@/lib/utils"
 
 describe("shortAddress", () => {
   it("should return an empty string if no address is provided", () => {
@@ -81,5 +89,41 @@ describe("formatUsd", () => {
     ])('should compactly format %f to equal "%s"', (value, expected) => {
       expect(formatUsd(value)).toBe(expected)
     })
+  })
+})
+
+describe("parseUnits / formatUnits / scaleTokenBalance", () => {
+  it("encodes 0.1 of an 18-decimal token without IEEE-754 float precision loss", () => {
+    expect(parseUnits("0.1", 18)).toBe(100_000_000_000_000_000n)
+    expect(parseUnits("0.123456789012345678", 18)).toBe(123_456_789_012_345_678n)
+  })
+
+  it("handles values above Number.MAX_SAFE_INTEGER (9e15) cleanly", () => {
+    expect(parseUnits("123456789.123456789", 18)).toBe(123_456_789_123_456_789_000_000_000n)
+    expect(parseUnits("9007199254740993", 7)).toBe(90_071_992_547_409_930_000_000n)
+  })
+
+  it("handles 6-decimal and 7-decimal tokens accurately", () => {
+    expect(parseUnits("1.234567", 6)).toBe(1_234_567n)
+    expect(parseUnits("12.5", 7)).toBe(125_000_000n)
+    expect(parseUnits("1e-7", 7)).toBe(1n)
+  })
+
+  it("formats bigint base units back to exact decimal strings", () => {
+    expect(formatUnits(100_000_000_000_000_000n, 18)).toBe("0.1")
+    expect(formatUnits(1_234_567n, 6)).toBe("1.234567")
+    expect(formatUnits(125_000_000n, 7)).toBe("12.5")
+    expect(formatUnits(0n, 18)).toBe("0")
+  })
+
+  it("scales token balances using the token's real decimals", () => {
+    expect(scaleTokenBalance(null, 6)).toBeNull()
+    expect(scaleTokenBalance(1_500_000n, 6)).toBe(1.5)
+    expect(scaleTokenBalance(150_000_000_000_000_000n, 18)).toBe(0.15)
+  })
+
+  it("converts XLM stroops via stroopsToXlm", () => {
+    expect(stroopsToXlm(10_000_000)).toBe(1)
+    expect(stroopsToXlm(50_000)).toBeCloseTo(0.005, 9)
   })
 })

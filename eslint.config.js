@@ -64,6 +64,18 @@ export default tseslint.config(
           message: "Use the safe helpers from @/lib/safe-storage instead of accessing localStorage directly.",
         },
       ],
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "Literal[raw='1e7']",
+          message:
+            "Do not hardcode 1e7 for token amount math; use parseUnits/formatUnits with the token's decimals, or stroopsToXlm for XLM fees.",
+        },
+        {
+          selector: "Identifier[name='STELLAR_DECIMALS']",
+          message: "STELLAR_DECIMALS is removed; use parseUnits/formatUnits with the token's decimals instead.",
+        },
+      ],
     },
   },
   {
@@ -73,6 +85,7 @@ export default tseslint.config(
     rules: {
       "no-restricted-globals": "off",
       "no-restricted-properties": "off",
+      "no-restricted-syntax": "off",
     },
   },
   prettierConfig,

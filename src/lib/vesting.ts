@@ -1,3 +1,5 @@
+import { parseUnits } from "@/lib/utils"
+
 /**
  * Linear-vesting math shared between the UI and the Soroban contracts.
  *
@@ -29,8 +31,8 @@ export function calculateVestedRaw(amountRaw: bigint, start: bigint, end: bigint
 }
 
 /** Converts a display-unit amount (e.g. `1234.56`) to the token's raw integer unit. */
-export function toRawUnits(amount: number, decimals: number): bigint {
-  return BigInt(Math.round(amount * 10 ** decimals))
+export function toRawUnits(amount: number | string, decimals: number): bigint {
+  return parseUnits(amount, decimals)
 }
 
 /** Converts a raw integer unit amount back to a display-unit number. */
