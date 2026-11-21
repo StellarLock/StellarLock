@@ -1,6 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { rpc as SorobanRpc, nativeToScVal } from "@stellar/stellar-sdk"
-import { getTokenAllowance, getTokenBalance, invalidateRpcCache, simulateCall } from "@/lib/stellar"
+import { rpc as SorobanRpc, nativeToScVal, xdr } from "@stellar/stellar-sdk"
+import {
+  estimateLockCost,
+  getTokenAllowance,
+  getTokenBalance,
+  invalidateRpcCache,
+  resolveSendResult,
+  simulateCall,
+} from "@/lib/stellar"
 import { getOnChainTokenMeta } from "@/lib/token-metadata"
 
 // Mock the token-metadata module so we can control the on-chain decimals that
@@ -246,5 +253,83 @@ describe("NETWORK resolution (#742)", () => {
 
     expect(NETWORK.id).toBe("testnet")
     expect(NETWORK.passphrase).toBe(Networks.TESTNET)
+  })
+})
+
+// ── #1074: estimateLockCost must quote the fee submitCall actually pays ─────
+describe("estimateLockCost (#1074)", () => {
+  let simulateSpy: ReturnType<typeof spyOnSimulateTransaction>
+
+  beforeEach(() => {
+    invalidateRpcCache()
+    simulateSpy = spyOnSimulateTransaction()
+    simulateSpy.mockResolvedValue(SUCCESS_RESULT)
+  })
+
+  afterEach(() => {
+    simulateSpy.mockRestore()
+  })
+
+  it("quotes the network fee using submitCall's real SOROBAN_FEE (0.1 XLM), not BASE_FEE", async () => {
+    const estimate = await estimateLockCost(CONTRACT_ID, "create_lock", [])
+
+    // Before the fix this used BASE_FEE (100 stroops = 0.00001 XLM), which
+    // understated the estimate shown before signing by ~0.1 XLM relative to
+    // what submitCall actually charges.
+    expect(estimate.networkFee).toBeCloseTo(0.1, 7)
+    expect(estimate.total).toBeCloseTo(estimate.networkFee + estimate.resourceFee, 7)
+  })
+})
+
+// ── #1071: each sendTransaction status gets explicit, correct handling ─────
+describe("resolveSendResult (#1071)", () => {
+  const HASH = "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
+
+  // A minimal double for xdr.TransactionResult: resolveSendResult (via
+  // isTxTooLateError) only ever calls `.result().switch().name` or
+  // `.toXDR("base64")` on it, so we don't need to build a real XDR struct.
+  function fakeErrorResult(resultCodeName: string): xdr.TransactionResult {
+    return {
+      result: () => ({ switch: () => ({ name: resultCodeName }) }),
+      toXDR: () => "AAAAAA==",
+    } as unknown as xdr.TransactionResult
+  }
+
+  function sendResult(
+    status: SorobanRpc.Api.SendTransactionResponse["status"],
+    errorResult?: xdr.TransactionResult,
+  ): SorobanRpc.Api.SendTransactionResponse {
+    return { status, hash: HASH, errorResult } as SorobanRpc.Api.SendTransactionResponse
+  }
+
+  it("returns the hash for PENDING, the normal happy path", () => {
+    expect(resolveSendResult(sendResult("PENDING"))).toBe(HASH)
+  })
+
+  it("returns the hash for DUPLICATE instead of treating it as a failure", () => {
+    // DUPLICATE means this exact transaction is already in flight or landed
+    // (e.g. a retried submit) — the existing hash should still be polled.
+    expect(resolveSendResult(sendResult("DUPLICATE"))).toBe(HASH)
+  })
+
+  it("throws a clear, actionable error for TRY_AGAIN_LATER instead of polling", () => {
+    // Before #1071, this status fell through to the ~60s getTransaction poll
+    // and produced a confusing "not found after 40 attempts" error, even
+    // though the transaction was never accepted in the first place.
+    expect(() => resolveSendResult(sendResult("TRY_AGAIN_LATER"))).toThrow(/network is busy/i)
+  })
+
+  it("maps an ERROR with result code txTooLate to a friendly expired-transaction message", () => {
+    expect(() => resolveSendResult(sendResult("ERROR", fakeErrorResult("txTooLate")))).toThrow(
+      /expired before it could be submitted/i,
+    )
+  })
+
+  it("falls back to a generic send error for any other ERROR result code", () => {
+    expect(() => resolveSendResult(sendResult("ERROR", fakeErrorResult("txBadSeq")))).toThrow(/^Send error:/)
+  })
+
+  it("falls back to a generic send error when ERROR has no errorResult at all", () => {
+    expect(() => resolveSendResult(sendResult("ERROR"))).toThrow(/Send error: unknown/)
   })
 })

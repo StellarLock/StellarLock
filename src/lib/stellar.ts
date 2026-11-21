@@ -50,6 +50,18 @@ const MAX_CONCURRENT = 5
 const MAX_RETRIES = 3
 const CACHE_TTL_MS = 10_000
 
+// Issue #1072: 30s was too tight for the submit tx — if the user takes more
+// than ~30s to review/approve in their wallet (easy with Freighter, routine
+// with a hardware wallet), the tx's timebounds expire before it's even
+// submitted and the network rejects it with txTooLate. A few minutes gives
+// wallets a realistic review window without the tx staying valid "forever".
+const SOROBAN_TX_TIMEOUT_SECONDS = 180
+
+// Issue #1071: how many times to retry a send that comes back
+// TRY_AGAIN_LATER (network congestion, tx never accepted) before giving up.
+const MAX_SEND_RETRIES = 3
+const SEND_RETRY_BACKOFF_MS = 1500
+
 /** Phase reported via the onProgress callback during submitCall. */
 export type TxPhase = "simulating" | "signing" | "submitting" | "confirming"
 
@@ -188,6 +200,21 @@ function simError(result: unknown): string {
   return JSON.stringify(r)
 }
 
+// Issue #1072: distinguishes "the tx's timebounds expired before/while
+// submitting" (txTooLate) from every other send failure, so callers can be
+// given a clear, actionable retry message instead of a raw XDR dump.
+function isTxTooLateError(errorResult: xdr.TransactionResult | undefined): boolean {
+  if (!errorResult) return false
+  try {
+    return errorResult.result().switch().name === "txTooLate"
+  } catch {
+    // Defensive: if this ever runs against an SDK build whose XDR shape
+    // differs, fall back to the generic send-error message rather than
+    // throwing from inside a best-effort classification helper.
+    return false
+  }
+}
+
 // ── Simulate (read-only) ──────────────────────────────────────────────────────
 
 export async function simulateCall<T>(contractId: string, method: string, args: xdr.ScVal[]): Promise<T> {
@@ -223,76 +250,73 @@ export async function simulateCall<T>(contractId: string, method: string, args: 
 
 // ── Submit (write) ────────────────────────────────────────────────────────────
 
-export async function submitCall<T = void>(
-  contractId: string,
-  method: string,
-  args: xdr.ScVal[],
-  sourceAddress: string,
-  signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>,
-  onProgress?: (phase: TxPhase) => void,
-): Promise<T> {
-  const rpc = getRpc()
-  const account = await rpc.getAccount(sourceAddress)
-  const contract = new Contract(contractId)
+type SendArg = Parameters<SorobanRpc.Server["sendTransaction"]>[0]
 
-  const tx = new TransactionBuilder(account, {
-    fee: SOROBAN_FEE,
-    networkPassphrase: NETWORK.passphrase,
-  })
-    .addOperation(contract.call(method, ...args))
-    .setTimeout(30)
-    .build()
-
-  onProgress?.("simulating")
-  const simResult = await rpc.simulateTransaction(tx)
-  log.debug("[submitCall sim]", { method, simResult })
-
-  if (SorobanRpc.Api.isSimulationError(simResult)) {
-    throw new Error(`Simulation error: ${simError(simResult)}`)
+// Issue #1071: a plain "await sendTransaction()" only distinguished ERROR
+// from everything else, so TRY_AGAIN_LATER (network congestion — the tx was
+// never accepted by this node) fell through to the getTransaction poll below
+// and spent ~60s producing a confusing "not found after 40 attempts" error.
+// Retrying the send itself (with backoff) is cheap and usually clears up
+// congestion without the caller ever seeing an error.
+async function sendWithRetry(rpc: SorobanRpc.Server, tx: SendArg): Promise<SorobanRpc.Api.SendTransactionResponse> {
+  let result: SorobanRpc.Api.SendTransactionResponse
+  for (let attempt = 0; ; attempt++) {
+    result = await rpc.sendTransaction(tx)
+    if (result.status !== "TRY_AGAIN_LATER" || attempt >= MAX_SEND_RETRIES) {
+      return result
+    }
+    await new Promise((r) => setTimeout(r, SEND_RETRY_BACKOFF_MS * 2 ** attempt))
   }
+}
 
-  const preparedTx = SorobanRpc.assembleTransaction(tx, simResult).build()
-
-  onProgress?.("signing")
-  const { signedTxXdr } = await signTransaction(preparedTx.toXDR())
-
-  onProgress?.("submitting")
-  const sendResult = await rpc.sendTransaction(TransactionBuilder.fromXDR(signedTxXdr, NETWORK.passphrase))
-  log.debug("[submitCall send]", { sendResult })
-
+// Issue #1071: classifies a sendTransaction response and either returns the
+// hash to poll or throws a clear, status-specific error. Exported (on top of
+// being used by submitCallWithHash below) so each status's handling can be
+// unit-tested directly, without needing to drive a full build/simulate/sign
+// pipeline just to produce a SendTransactionResponse.
+export function resolveSendResult(sendResult: SorobanRpc.Api.SendTransactionResponse): string {
   if (sendResult.status === "ERROR") {
+    if (isTxTooLateError(sendResult.errorResult)) {
+      throw new Error("Transaction expired before it could be submitted — signing took too long. Please try again.")
+    }
     throw new Error(`Send error: ${sendResult.errorResult?.toXDR("base64") ?? "unknown"}`)
   }
+  if (sendResult.status === "TRY_AGAIN_LATER") {
+    throw new Error(
+      "The Stellar network is busy and didn't accept the transaction after several attempts. Please try again in a moment.",
+    )
+  }
+  // PENDING and DUPLICATE both mean the hash is (or will be) tracked
+  // on-chain — DUPLICATE just means this exact tx was already submitted —
+  // so both are handled the same way: poll the hash below.
+  return sendResult.hash
+}
 
-  // Invalidate read cache now that a mutation has been submitted successfully
-  invalidateRpcCache()
-
-  onProgress?.("confirming")
+async function pollTransaction<T>(rpc: SorobanRpc.Server, hash: string): Promise<T> {
   const MAX_POLL_ATTEMPTS = 40
-  let getResult = await rpc.getTransaction(sendResult.hash)
+  let getResult = await rpc.getTransaction(hash)
   for (let attempts = 0; getResult.status === SorobanRpc.Api.GetTransactionStatus.NOT_FOUND; attempts++) {
     if (attempts >= MAX_POLL_ATTEMPTS) {
-      throw new Error(`Transaction ${sendResult.hash} not found after ${MAX_POLL_ATTEMPTS} attempts (~60s)`)
+      throw new Error(`Transaction ${hash} not found after ${MAX_POLL_ATTEMPTS} attempts (~60s)`)
     }
     await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS))
-    getResult = await rpc.getTransaction(sendResult.hash)
+    getResult = await rpc.getTransaction(hash)
   }
-  log.debug("[submitCall result]", { getResult })
+  log.debug("[pollTransaction result]", { hash, getResult })
 
   if (getResult.status === SorobanRpc.Api.GetTransactionStatus.FAILED) {
     throw new Error(`Transaction failed: ${JSON.stringify(getResult)}`)
   }
 
-  if (getResult.returnValue) {
-    return scValToNative(getResult.returnValue) as T
-  }
-
-  return undefined as T
+  return getResult.returnValue ? (scValToNative(getResult.returnValue) as T) : (undefined as T)
 }
 
-// ── submitCallWithHash — like submitCall but also returns the tx hash ─────────
-
-/** Same as submitCall, but additionally returns the transaction hash. */
+// Issue #1070: this used to be ~70 lines duplicated almost verbatim between
+// submitCall and submitCallWithHash — identical build/simulate/sign/send/poll,
+// differing only in whether the hash was returned — so every bug fix (the
+// timeout and send-status handling above included) had to be made twice.
+// submitCallWithHash is now the one real implementation; submitCall below is
+// a thin wrapper that just drops the hash.
 export async function submitCallWithHash<T = void>(
   contractId: string,
   method: string,
@@ -310,11 +334,12 @@ export async function submitCallWithHash<T = void>(
     networkPassphrase: NETWORK.passphrase,
   })
     .addOperation(contract.call(method, ...args))
-    .setTimeout(30)
+    .setTimeout(SOROBAN_TX_TIMEOUT_SECONDS)
     .build()
 
   onProgress?.("simulating")
   const simResult = await rpc.simulateTransaction(tx)
+  log.debug("[submitCallWithHash sim]", { method, simResult })
 
   if (SorobanRpc.Api.isSimulationError(simResult)) {
     throw new Error(`Simulation error: ${simError(simResult)}`)
@@ -326,33 +351,34 @@ export async function submitCallWithHash<T = void>(
   const { signedTxXdr } = await signTransaction(preparedTx.toXDR())
 
   onProgress?.("submitting")
-  const sendResult = await rpc.sendTransaction(TransactionBuilder.fromXDR(signedTxXdr, NETWORK.passphrase))
+  const signedTx = TransactionBuilder.fromXDR(signedTxXdr, NETWORK.passphrase)
+  const sendResult = await sendWithRetry(rpc, signedTx)
+  log.debug("[submitCallWithHash send]", { sendResult })
 
-  if (sendResult.status === "ERROR") {
-    throw new Error(`Send error: ${sendResult.errorResult?.toXDR("base64") ?? "unknown"}`)
-  }
+  // See resolveSendResult: ERROR and an exhausted TRY_AGAIN_LATER mean the
+  // transaction was never accepted and fail fast here; PENDING/DUPLICATE
+  // return the hash to poll below.
+  const txHash = resolveSendResult(sendResult)
 
-  const txHash = sendResult.hash
-
+  // Invalidate read cache now that a mutation has been submitted successfully
   invalidateRpcCache()
 
   onProgress?.("confirming")
-  const MAX_POLL_ATTEMPTS = 40
-  let getResult = await rpc.getTransaction(txHash)
-  for (let attempts = 0; getResult.status === SorobanRpc.Api.GetTransactionStatus.NOT_FOUND; attempts++) {
-    if (attempts >= MAX_POLL_ATTEMPTS) {
-      throw new Error(`Transaction ${txHash} not found after ${MAX_POLL_ATTEMPTS} attempts (~60s)`)
-    }
-    await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS))
-    getResult = await rpc.getTransaction(txHash)
-  }
-
-  if (getResult.status === SorobanRpc.Api.GetTransactionStatus.FAILED) {
-    throw new Error(`Transaction failed: ${JSON.stringify(getResult)}`)
-  }
-
-  const result = getResult.returnValue ? (scValToNative(getResult.returnValue) as T) : (undefined as T)
+  const result = await pollTransaction<T>(rpc, txHash)
   return { result, txHash }
+}
+
+/** Same as submitCallWithHash, but only returns the call's result (no hash). */
+export async function submitCall<T = void>(
+  contractId: string,
+  method: string,
+  args: xdr.ScVal[],
+  sourceAddress: string,
+  signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>,
+  onProgress?: (phase: TxPhase) => void,
+): Promise<T> {
+  const { result } = await submitCallWithHash<T>(contractId, method, args, sourceAddress, signTransaction, onProgress)
+  return result
 }
 
 // ── Address helpers ─────────────────────────────────────────────────────────
@@ -399,7 +425,10 @@ export async function estimateLockCost(
   }
 
   const minResourceFee = Number((result as { minResourceFee?: string }).minResourceFee ?? "0")
-  const networkFee = Number(BASE_FEE) / 1e7
+  // Issue #1074: submitCall actually pays SOROBAN_FEE, not BASE_FEE — using
+  // BASE_FEE here understated the pre-signing estimate by ~0.1 XLM versus
+  // what the user is really charged.
+  const networkFee = Number(SOROBAN_FEE) / 1e7
   const resourceFee = minResourceFee / 1e7
   return { networkFee, resourceFee, total: networkFee + resourceFee }
 }
