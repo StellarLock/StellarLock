@@ -557,6 +557,36 @@
       "title": "Contract Paused",
       "message": "The contract is currently paused by the administrator for maintenance or emergency.",
       "recovery": "Please try again later once operations have been resumed."
+    },
+    "vestingOutsideLockBounds": {
+      "title": "Invalid Vesting Window",
+      "message": "The vesting start date must not be before the lock was created, and must not be after the unlock date.",
+      "recovery": "Choose a vesting start and end date that both fall within the lock's creation and unlock dates."
+    },
+    "duplicateBeneficiary": {
+      "title": "Duplicate Beneficiary",
+      "message": "The same beneficiary address was listed more than once in this split lock.",
+      "recovery": "Remove the duplicate entry so each beneficiary address appears only once."
+    },
+    "alreadyInitialized": {
+      "title": "Already Initialized",
+      "message": "This contract has already been initialized with an administrator.",
+      "recovery": "No action is needed — the contract was already set up during deployment."
+    },
+    "invalidPoolTokens": {
+      "title": "Invalid Pool Tokens",
+      "message": "The pool contract's own token A/B addresses do not match the token addresses supplied for this LP lock.",
+      "recovery": "Double-check the pool share address and the token A/B addresses, and make sure they belong to the same pool."
+    },
+    "noPendingUpgrade": {
+      "title": "No Pending Upgrade",
+      "message": "There is no pending contract upgrade to execute or cancel.",
+      "recovery": "Ask the contract admin to propose an upgrade first."
+    },
+    "timelockNotElapsed": {
+      "title": "Upgrade Timelock Not Elapsed",
+      "message": "The mandatory waiting period for this contract upgrade has not passed yet.",
+      "recovery": "Wait until the upgrade's timelock period has elapsed before executing it."
     }
   },
   "analytics": {

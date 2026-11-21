@@ -527,6 +527,36 @@
       "title": "Contrato pausado",
       "message": "El contrato está actualmente pausado por el administrador por mantenimiento o emergencia.",
       "recovery": "Por favor, vuelve a intentarlo más tarde una vez que se hayan reanudado las operaciones."
+    },
+    "vestingOutsideLockBounds": {
+      "title": "Ventana de vesting inválida",
+      "message": "La fecha de inicio del vesting no puede ser anterior a la creación del bloqueo, y ni la fecha de inicio ni la de fin pueden ser posteriores a la fecha de desbloqueo.",
+      "recovery": "Elige una fecha de inicio y fin de vesting que estén dentro de las fechas de creación y desbloqueo del bloqueo."
+    },
+    "duplicateBeneficiary": {
+      "title": "Beneficiario duplicado",
+      "message": "La misma dirección de beneficiario se indicó más de una vez en este bloqueo dividido.",
+      "recovery": "Elimina la entrada duplicada para que cada dirección de beneficiario aparezca solo una vez."
+    },
+    "alreadyInitialized": {
+      "title": "Ya inicializado",
+      "message": "Este contrato ya ha sido inicializado con un administrador.",
+      "recovery": "No se necesita ninguna acción: el contrato ya se configuró durante el despliegue."
+    },
+    "invalidPoolTokens": {
+      "title": "Tokens de pool inválidos",
+      "message": "Las direcciones de token A/B del propio contrato del pool no coinciden con las direcciones de token proporcionadas para este bloqueo de LP.",
+      "recovery": "Verifica la dirección de las acciones del pool y las direcciones de token A/B, y asegúrate de que pertenezcan al mismo pool."
+    },
+    "noPendingUpgrade": {
+      "title": "Sin actualización pendiente",
+      "message": "No hay ninguna actualización de contrato pendiente para ejecutar o cancelar.",
+      "recovery": "Pide al administrador del contrato que proponga una actualización primero."
+    },
+    "timelockNotElapsed": {
+      "title": "Tiempo de espera de actualización no transcurrido",
+      "message": "El período de espera obligatorio para esta actualización del contrato aún no ha transcurrido.",
+      "recovery": "Espera hasta que haya transcurrido el período de espera de la actualización antes de ejecutarla."
     }
   },
   "notfound": {

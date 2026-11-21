@@ -5,7 +5,6 @@ import {
   rpc as SorobanRpc,
   TransactionBuilder,
   BASE_FEE,
-  nativeToScVal,
   scValToNative,
   xdr,
 } from "@stellar/stellar-sdk"
@@ -410,40 +409,6 @@ export async function getTokenBalance(tokenAddress: string, owner: string): Prom
   const raw = await simulateCall<bigint>(tokenAddress, "balance", [new Address(owner).toScVal()])
   const { decimals } = await getOnChainTokenMeta(tokenAddress)
   return Number(raw ?? 0n) / 10 ** decimals
-}
-
-export async function getTokenAllowance(tokenAddress: string, owner: string, spender: string): Promise<number> {
-  const raw = await simulateCall<bigint>(tokenAddress, "allowance", [
-    new Address(owner).toScVal(),
-    new Address(spender).toScVal(),
-  ])
-  const { decimals } = await getOnChainTokenMeta(tokenAddress)
-  return Number(raw ?? 0n) / 10 ** decimals
-}
-
-export async function submitTokenApproval(
-  tokenAddress: string,
-  owner: string,
-  spender: string,
-  amount: number,
-  sourceAddress: string,
-  signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>,
-): Promise<void> {
-  // Issue #740: was hardcoded to 7 decimals regardless of the token's real
-  // decimals(), breaking the approve-then-lock flow for any token that
-  // isn't 7 decimals.
-  const { decimals } = await getOnChainTokenMeta(tokenAddress)
-  const amountStroops = BigInt(Math.round(amount * 10 ** decimals))
-  const expirationLedger = 0
-
-  const scArgs: xdr.ScVal[] = [
-    new Address(owner).toScVal(),
-    new Address(spender).toScVal(),
-    nativeToScVal(amountStroops, { type: "i128" }),
-    nativeToScVal(expirationLedger, { type: "u32" }),
-  ]
-
-  await submitCall(tokenAddress, "approve", scArgs, sourceAddress, signTransaction)
 }
 
 // ── Utils ─────────────────────────────────────────────────────────────────────

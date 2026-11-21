@@ -47,6 +47,61 @@ describe("errors.ts", () => {
       expect(result.code).toBe("LockDurationTooLong")
       expect(result.i18nKey).toBe("errors.lockDurationTooLong")
     })
+
+    // --- Previously missing contract error variants (#1067) ---
+    it("should match VestingOutsideLockBounds contract error", () => {
+      const error = new Error("Error(Contract, #25): VestingOutsideLockBounds")
+      const result = parseError(error)
+      expect(result.code).toBe("VestingOutsideLockBounds")
+      expect(result.i18nKey).toBe("errors.vestingOutsideLockBounds")
+      expect(result.title).toBe("errors.vestingOutsideLockBounds.title")
+      expect(result.message).toBe("errors.vestingOutsideLockBounds.message")
+    })
+
+    it("should match DuplicateBeneficiary contract error", () => {
+      const error = new Error("Error(Contract, #26): DuplicateBeneficiary")
+      const result = parseError(error)
+      expect(result.code).toBe("DuplicateBeneficiary")
+      expect(result.i18nKey).toBe("errors.duplicateBeneficiary")
+      expect(result.title).toBe("errors.duplicateBeneficiary.title")
+      expect(result.message).toBe("errors.duplicateBeneficiary.message")
+    })
+
+    it("should match AlreadyInitialized contract error", () => {
+      const error = new Error("Error(Contract, #27): AlreadyInitialized")
+      const result = parseError(error)
+      expect(result.code).toBe("AlreadyInitialized")
+      expect(result.i18nKey).toBe("errors.alreadyInitialized")
+      expect(result.title).toBe("errors.alreadyInitialized.title")
+      expect(result.message).toBe("errors.alreadyInitialized.message")
+    })
+
+    it("should match InvalidPoolTokens contract error", () => {
+      const error = new Error("Error(Contract, #28): InvalidPoolTokens")
+      const result = parseError(error)
+      expect(result.code).toBe("InvalidPoolTokens")
+      expect(result.i18nKey).toBe("errors.invalidPoolTokens")
+      expect(result.title).toBe("errors.invalidPoolTokens.title")
+      expect(result.message).toBe("errors.invalidPoolTokens.message")
+    })
+
+    it("should match NoPendingUpgrade contract error", () => {
+      const error = new Error("Error(Contract, #18): NoPendingUpgrade")
+      const result = parseError(error)
+      expect(result.code).toBe("NoPendingUpgrade")
+      expect(result.i18nKey).toBe("errors.noPendingUpgrade")
+      expect(result.title).toBe("errors.noPendingUpgrade.title")
+      expect(result.message).toBe("errors.noPendingUpgrade.message")
+    })
+
+    it("should match TimelockNotElapsed contract error", () => {
+      const error = new Error("Error(Contract, #17): TimelockNotElapsed")
+      const result = parseError(error)
+      expect(result.code).toBe("TimelockNotElapsed")
+      expect(result.i18nKey).toBe("errors.timelockNotElapsed")
+      expect(result.title).toBe("errors.timelockNotElapsed.title")
+      expect(result.message).toBe("errors.timelockNotElapsed.message")
+    })
   })
 
   describe("parseWalletError cases", () => {

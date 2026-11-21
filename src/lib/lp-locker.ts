@@ -14,55 +14,6 @@ interface CreateLpLockArgs {
   metadata?: { description?: string; projectUrl?: string; logoUrl?: string }
 }
 
-/**
- * Approve the LP-locker contract to pull `amount` of `tokenAddress` (typically an
- * LP/pool-share token) from `owner`'s balance, via the token's standard SEP-41
- * `approve` entrypoint. Must be called (and confirmed) before {@link createLpLock},
- * since `create_lock` performs a `transfer` that requires sufficient allowance.
- *
- * Note: this targets `tokenAddress` directly (not the lp-locker contract), so any
- * errors surfaced come from that token contract's own implementation, not the
- * lp-locker's `ContractError` enum.
- *
- * @param tokenAddress - Contract address of the pool-share/LP token to approve.
- * @param owner - Address granting the allowance (the wallet that will create the lock).
- * @param spender - Address allowed to spend the allowance — normally the lp-locker contract id.
- * @param amount - Human-readable amount to approve (converted to the token's smallest unit using its real on-chain decimals).
- * @param sourceAddress - Address submitting the transaction; must equal `owner` for `require_auth` to pass.
- * @param signTransaction - Callback that signs the built transaction XDR and returns signed XDR.
- * @returns Resolves with no value once the approval transaction is confirmed.
- * @throws {Error} `Simulation error: ...` / `Send error: ...` / `Transaction failed: ...` if
- *   `sourceAddress` fails auth as `owner`, or for RPC/network failures. The expiration ledger is
- *   hard-coded to `0`, so a `0` allowance is effectively immediately expired if not spent promptly.
- */
-export async function submitTokenApproval(
-  tokenAddress: string,
-  owner: string,
-  spender: string,
-  amount: number,
-  sourceAddress: string,
-  signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>,
-): Promise<void> {
-  // Issue #740: was hardcoded to 7 decimals regardless of the LP/pool-share
-  // token's real decimals(), breaking the approve-then-lock flow for any
-  // token that isn't 7 decimals. This is a duplicate of stellar.ts's
-  // submitTokenApproval, kept separate here because the two are exercised
-  // by test suites that mock @/lib/stellar and @/lib/lp-locker independently
-  // of each other; both copies now fetch and use the real decimals.
-  const { decimals } = await getOnChainTokenMeta(tokenAddress)
-  const amountStroops = BigInt(Math.round(amount * 10 ** decimals))
-  const expirationLedger = 0
-
-  const scArgs: xdr.ScVal[] = [
-    new Address(owner).toScVal(),
-    new Address(spender).toScVal(),
-    nativeToScVal(amountStroops, { type: "i128" }),
-    nativeToScVal(expirationLedger, { type: "u32" }),
-  ]
-
-  await submitCall(tokenAddress, "approve", scArgs, sourceAddress, signTransaction)
-}
-
 /** LockMetadata is stored non-optionally on-chain; empty strings mean "not set". */
 function parseMetadata(raw: unknown): LockMetadata | undefined {
   const m = raw as { description: string; project_url: string; logo_url: string } | null | undefined
@@ -269,9 +220,10 @@ export async function getLpLockCountByBeneficiary(address: string): Promise<numb
 /**
  * Create a new LP (pool-share) lock on-chain: transfers `args.amount` of
  * `args.poolShareAddress` from `sourceAddress` into the contract, escrowed until
- * `args.unlockAt`. Requires `sourceAddress`'s signature (`creator.require_auth()`
- * on-chain) and a prior token allowance covering the transfer — call
- * {@link submitTokenApproval} first. Unlike token locks, LP locks have no vesting option.
+ * `args.unlockAt`. Requires only `sourceAddress`'s signature (`creator.require_auth()`
+ * on-chain): the contract calls `token.transfer(&creator, contract, amount)` directly,
+ * so no prior token approval/allowance is needed. Unlike token locks, LP locks have no
+ * vesting option.
  *
  * @param args - Lock parameters:
  *   - `poolShareAddress` — contract address of the DEX pool-share/LP token to lock.
@@ -292,7 +244,7 @@ export async function getLpLockCountByBeneficiary(address: string): Promise<numb
  *   - `AmountMustBePositive` (1) — `amount` is zero or negative.
  *   - `UnlockMustBeFuture` (2) — `unlockAt` is not after the current ledger time.
  * @throws {Error} `Simulation error: ...` / `Send error: ...` / `Transaction failed: ...` for
- *   RPC/network failures or an insufficient token allowance/balance on the transfer.
+ *   RPC/network failures or an insufficient token balance on the transfer.
  */
 export async function createLpLock(
   args: CreateLpLockArgs,

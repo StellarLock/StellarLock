@@ -17,14 +17,6 @@ vi.mock("@/hooks/useWallet", () => ({
   }),
 }))
 
-vi.mock("@/hooks/useLocks", async () => {
-  const actual = await vi.importActual<typeof import("@/hooks/useLocks")>("@/hooks/useLocks")
-  return {
-    ...actual,
-    useTokenAllowance: () => ({ data: null, loading: false }),
-  }
-})
-
 // CreateTokenLockForm sources its balance from useTokenBalanceSWR, not
 // useTokenBalance from @/hooks/useLocks.
 vi.mock("@/hooks/useTokenBalanceSWR", () => ({

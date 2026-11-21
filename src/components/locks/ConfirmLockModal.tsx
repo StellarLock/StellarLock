@@ -1,7 +1,7 @@
 import { useRef } from "react"
 import { useTranslation } from "react-i18next"
 import { useModalFocusTrap } from "@/lib/modalFocusTrap"
-import { AlertTriangle, Lock, CheckCircle2 } from "lucide-react"
+import { AlertTriangle, Lock } from "lucide-react"
 import { Button } from "@/components/ui/Button"
 import { formatDate, shortAddress } from "@/lib/utils"
 
@@ -12,8 +12,6 @@ export interface LockConfirmData {
   unlockDate: string
   vesting?: boolean
   balance?: number | null
-  allowance?: number | null
-  needsApproval?: boolean
   isLp?: boolean
   dex?: string
   poolShareAddress?: string
@@ -22,19 +20,16 @@ export interface LockConfirmData {
 interface ConfirmLockModalProps {
   data: LockConfirmData
   onConfirm: () => void
-  onApprove?: () => void
   onCancel: () => void
   loading?: boolean
-  approving?: boolean
 }
 
-export function ConfirmLockModal({ data, onConfirm, onApprove, onCancel, loading, approving }: ConfirmLockModalProps) {
+export function ConfirmLockModal({ data, onConfirm, onCancel, loading }: ConfirmLockModalProps) {
   const { t } = useTranslation()
   const unlockTs = new Date(data.unlockDate).getTime()
   const isInvalidDate = Number.isNaN(unlockTs)
   const amount = Number(data.amount)
   const hasInsufficientBalance = data.balance != null && data.balance < amount
-  const needsApproval = data.needsApproval || (data.allowance != null && data.allowance < amount)
 
   const containerRef = useRef<HTMLDivElement | null>(null)
   const cancelBtnRef = useRef<HTMLButtonElement | null>(null)
@@ -111,16 +106,6 @@ export function ConfirmLockModal({ data, onConfirm, onApprove, onCancel, loading
                 }
               />
             )}
-            {data.allowance != null && (
-              <Row
-                label={t("confirmLockModal.currentAllowance")}
-                value={
-                  <span className={needsApproval ? "text-destructive" : "text-foreground"}>
-                    {data.allowance.toLocaleString(undefined, { maximumFractionDigits: 7 })}
-                  </span>
-                }
-              />
-            )}
           </dl>
         )}
 
@@ -139,20 +124,6 @@ export function ConfirmLockModal({ data, onConfirm, onApprove, onCancel, loading
           </div>
         )}
 
-        {needsApproval && !hasInsufficientBalance && (
-          <div className="mx-5 mb-5 rounded-lg border border-primary/40 bg-primary/10 p-3 text-sm">
-            <div className="flex items-start gap-2">
-              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-              <div className="flex-1">
-                <p className="font-medium text-foreground">{t("confirmLockModal.approvalRequired")}</p>
-                <p className="mt-1 text-muted-foreground">
-                  {t("confirmLockModal.approvalRequiredDescription")}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
         <div className="flex items-start gap-2 mx-5 mb-5 rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm text-warning-foreground">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
           <span className="text-muted-foreground">
@@ -163,7 +134,7 @@ export function ConfirmLockModal({ data, onConfirm, onApprove, onCancel, loading
         </div>
 
         <div className="flex gap-3 border-t border-border p-5">
-          <Button variant="outline" className="flex-1" onClick={onCancel} disabled={loading || approving}>
+          <Button variant="outline" className="flex-1" onClick={onCancel} disabled={loading}>
             {t("confirmLockModal.cancel")}
           </Button>
           {isInvalidDate ? (
@@ -173,11 +144,6 @@ export function ConfirmLockModal({ data, onConfirm, onApprove, onCancel, loading
           ) : hasInsufficientBalance ? (
             <Button className="flex-1" disabled>
               {t("confirmLockModal.insufficientBalanceButton")}
-            </Button>
-          ) : needsApproval && onApprove ? (
-            <Button className="flex-1" onClick={onApprove} loading={approving}>
-              <CheckCircle2 className="h-4 w-4" />
-              {approving ? t("confirmLockModal.approving") : t("confirmLockModal.approveAndContinue")}
             </Button>
           ) : (
             <Button className="flex-1" onClick={onConfirm} loading={loading}>

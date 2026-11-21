@@ -242,9 +242,10 @@ export async function getLocksByToken(
 /**
  * Create a new token lock on-chain: transfers `args.amount` of `args.tokenAddress`
  * from `sourceAddress` into the contract, escrowed until `args.unlockAt`, optionally
- * released gradually per `args.vesting`. Requires `sourceAddress`'s signature
- * (`creator.require_auth()` on-chain) and prior token allowance/balance sufficient
- * to cover the transfer.
+ * released gradually per `args.vesting`. Requires only `sourceAddress`'s signature
+ * (`creator.require_auth()` on-chain): the contract calls `token.transfer(&creator,
+ * contract, amount)` directly, so no prior token approval/allowance is needed —
+ * just a sufficient balance to cover the transfer.
  *
  * @param args - Lock parameters:
  *   - `tokenAddress` — contract address of the SEP-41 token to lock.

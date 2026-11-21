@@ -25,8 +25,6 @@ const tokenLockData: LockConfirmData = {
   unlockDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
   vesting: false,
   balance: 5000,
-  allowance: 1000,
-  needsApproval: false,
   isLp: false,
 }
 
@@ -37,8 +35,6 @@ const lpLockData: LockConfirmData = {
   unlockDate: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString(),
   vesting: true,
   balance: 2000,
-  allowance: 500,
-  needsApproval: false,
   isLp: true,
   dex: "soroswap",
   tokenAddress: "",
@@ -50,22 +46,6 @@ export const TokenLock: Story = {
     onConfirm: fn(),
     onCancel: fn(),
     loading: false,
-    approving: false,
-  },
-}
-
-export const TokenLockWithApprovalNeeded: Story = {
-  args: {
-    data: {
-      ...tokenLockData,
-      needsApproval: true,
-      allowance: 0,
-    },
-    onConfirm: fn(),
-    onApprove: fn(),
-    onCancel: fn(),
-    loading: false,
-    approving: false,
   },
 }
 
@@ -78,7 +58,6 @@ export const TokenLockWithInsufficientBalance: Story = {
     onConfirm: fn(),
     onCancel: fn(),
     loading: false,
-    approving: false,
   },
 }
 
@@ -88,22 +67,6 @@ export const LPLock: Story = {
     onConfirm: fn(),
     onCancel: fn(),
     loading: false,
-    approving: false,
-  },
-}
-
-export const Approving: Story = {
-  args: {
-    data: {
-      ...tokenLockData,
-      needsApproval: true,
-      allowance: 0,
-    },
-    onConfirm: fn(),
-    onApprove: fn(),
-    onCancel: fn(),
-    loading: false,
-    approving: true,
   },
 }
 
@@ -113,6 +76,5 @@ export const Confirming: Story = {
     onConfirm: fn(),
     onCancel: fn(),
     loading: true,
-    approving: false,
   },
 }

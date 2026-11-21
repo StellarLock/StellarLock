@@ -7,7 +7,6 @@ import { Input, Label } from "@/components/ui/Input"
 import { Button } from "@/components/ui/Button"
 import { TxProgressSteps } from "@/components/ui/TxProgressSteps"
 import { useWallet } from "@/hooks/useWallet"
-import { useTokenAllowance } from "@/hooks/useLocks"
 import { useTokenBalanceSWR } from "@/hooks/useTokenBalanceSWR"
 import { createTokenLock } from "@/lib/token-locker"
 import { createSplitLock, type SplitBeneficiary } from "@/lib/split-lock"
@@ -20,7 +19,7 @@ import { sanitizeError } from "@/lib/error-sanitizer"
 import type { StructuredError } from "@/lib/errors"
 import { TxErrorAlert } from "@/components/ui/TxErrorAlert"
 import { useAnnouncer } from "@/hooks/useAnnouncer"
-import { CONTRACTS, type TxPhase, submitTokenApproval } from "@/lib/stellar"
+import { CONTRACTS, type TxPhase } from "@/lib/stellar"
 import { ConfirmLockModal } from "@/components/locks/ConfirmLockModal"
 import { CostEstimate } from "@/components/locks/CostEstimate"
 import { MultiBeneficiaryFields } from "@/components/locks/MultiBeneficiaryFields"
@@ -55,7 +54,6 @@ export function CreateTokenLockForm() {
   const [vestingTemplate, setVestingTemplate] = useState<VestingTemplate>("none")
   const [vestingStartDate, setVestingStartDate] = useState("")
   const [submitting, setSubmitting] = useState(false)
-  const [approving, setApproving] = useState(false)
   const [txPhase, setTxPhase] = useState<TxPhase | "idle">("idle")
   const [error, setError] = useState<StructuredError | null>(null)
   const [showConfirm, setShowConfirm] = useState(false)
@@ -142,9 +140,6 @@ export function CreateTokenLockForm() {
   // Single source of truth for this form's validity — the same module backs
   // CreateLpLockForm, so the two forms can't drift apart. Memoized because
   // FormValidationErrors keys its screen-reader announcement off the result.
-  //
-  // `allowance` is deliberately not passed: a low allowance is recoverable from
-  // the confirm modal's Approve button, so it must not block reaching it.
   const validation = useMemo(
     () =>
       validateTokenLockForm({
@@ -182,11 +177,6 @@ export function CreateTokenLockForm() {
   // Convert stroops (bigint) to a human-readable float for display/validation.
   // While revalidating we keep the stale value visible — that's the SWR benefit.
   const balance = balanceStroops !== null ? Number(balanceStroops) / 1e7 : null
-  const { data: allowance, loading: allowanceLoading } = useTokenAllowance(
-    validTokenAddress,
-    address ?? null,
-    CONTRACTS.tokenLocker,
-  )
 
   const presets = [
     { label: t("tokenForm.days30"), days: 30 },
@@ -411,26 +401,6 @@ export function CreateTokenLockForm() {
     }
   }
 
-  async function handleApprove() {
-    setApproving(true)
-    try {
-      await submitTokenApproval(
-        tokenAddress.trim(),
-        address!,
-        CONTRACTS.tokenLocker,
-        Number(amount),
-        address!,
-        signTransaction,
-      )
-      trackEvent("token_approve")
-    } catch (err: unknown) {
-      log.error("[approve error]", err)
-      reportFailure(err)
-    } finally {
-      setApproving(false)
-    }
-  }
-
   return (
     <>
       <form onSubmit={submit} className="flex flex-col gap-5">
@@ -452,7 +422,7 @@ export function CreateTokenLockForm() {
             <Label htmlFor="amount">{t("tokenForm.amount")}</Label>
             {validTokenAddress && (
               <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                {balanceLoading || allowanceLoading ? (
+                {balanceLoading ? (
                   <Loader2 className="h-3 w-3 animate-spin" />
                 ) : balance != null ? (
                   <>
@@ -753,14 +723,10 @@ export function CreateTokenLockForm() {
               unlockDate: unlockDate,
               vesting,
               balance,
-              allowance,
-              needsApproval: allowance != null && allowance < Number(amount),
             }}
             onConfirm={() => void confirmLock()}
-            onApprove={() => void handleApprove()}
             onCancel={() => setShowConfirm(false)}
             loading={submitting}
-            approving={approving}
           />
           <div className="fixed bottom-6 left-1/2 z-50 w-full max-w-sm -translate-x-1/2 px-4">
             <TxProgressSteps phase={txPhase} />

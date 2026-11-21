@@ -26,10 +26,8 @@ vi.mock("@/hooks/WalletProvider", () => ({
 }))
 
 const mockUseTokenBalance = vi.fn()
-const mockUseTokenAllowance = vi.fn()
 vi.mock("@/hooks/useLocks", () => ({
   useTokenBalance: () => mockUseTokenBalance() as unknown as Record<string, unknown>,
-  useTokenAllowance: () => mockUseTokenAllowance() as unknown as Record<string, unknown>,
 }))
 
 vi.mock("@/lib/stellar", () => ({
@@ -47,7 +45,6 @@ describe("CreateTokenLockForm Validation Rules", () => {
     localStorage.clear()
     mockUseWallet.mockReturnValue({ address: VALID_PUBLIC_KEY })
     mockUseTokenBalance.mockReturnValue({ data: 500, loading: false })
-    mockUseTokenAllowance.mockReturnValue({ data: 0, loading: false })
   })
 
   it("should evaluate the form state changes synchronously as valid strings are provided", async () => {
@@ -153,7 +150,6 @@ describe("CreateTokenLockForm lock-creation cooldown", () => {
   beforeEach(() => {
     localStorage.clear()
     mockUseTokenBalance.mockReturnValue({ data: 500, loading: false })
-    mockUseTokenAllowance.mockReturnValue({ data: 0, loading: false })
   })
 
   it("does not apply wallet A's cooldown to wallet B", () => {

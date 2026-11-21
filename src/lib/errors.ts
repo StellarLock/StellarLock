@@ -12,7 +12,11 @@ export interface StructuredError {
 // Map Soroban contract error codes → structured errors.
 // Every variant in the Rust ContractError enum must have a corresponding entry
 // here so users see a meaningful message instead of the generic fallback.
-const CONTRACT_ERRORS: Record<string, Omit<StructuredError, "code">> = {
+// Exported (read-only, in spirit) so tests — notably the contract-error
+// coverage test in src/test/contract-error-coverage.test.ts — can assert
+// every Rust ContractError variant has an entry here, without duplicating
+// this map or going through parseError's regex matching indirectly.
+export const CONTRACT_ERRORS: Record<string, Omit<StructuredError, "code">> = {
   AmountMustBePositive: {
     title: "errors.amountMustBePositive.title",
     message: "errors.amountMustBePositive.message",
@@ -175,6 +179,49 @@ const CONTRACT_ERRORS: Record<string, Omit<StructuredError, "code">> = {
     recovery: "errors.contractPaused.recovery",
     link: null,
     i18nKey: "errors.contractPaused",
+  },
+  // --- Previously missing contract error variants (#1067) ---
+  VestingOutsideLockBounds: {
+    title: "errors.vestingOutsideLockBounds.title",
+    message: "errors.vestingOutsideLockBounds.message",
+    recovery: "errors.vestingOutsideLockBounds.recovery",
+    link: null,
+    i18nKey: "errors.vestingOutsideLockBounds",
+  },
+  DuplicateBeneficiary: {
+    title: "errors.duplicateBeneficiary.title",
+    message: "errors.duplicateBeneficiary.message",
+    recovery: "errors.duplicateBeneficiary.recovery",
+    link: null,
+    i18nKey: "errors.duplicateBeneficiary",
+  },
+  AlreadyInitialized: {
+    title: "errors.alreadyInitialized.title",
+    message: "errors.alreadyInitialized.message",
+    recovery: "errors.alreadyInitialized.recovery",
+    link: null,
+    i18nKey: "errors.alreadyInitialized",
+  },
+  InvalidPoolTokens: {
+    title: "errors.invalidPoolTokens.title",
+    message: "errors.invalidPoolTokens.message",
+    recovery: "errors.invalidPoolTokens.recovery",
+    link: null,
+    i18nKey: "errors.invalidPoolTokens",
+  },
+  NoPendingUpgrade: {
+    title: "errors.noPendingUpgrade.title",
+    message: "errors.noPendingUpgrade.message",
+    recovery: "errors.noPendingUpgrade.recovery",
+    link: null,
+    i18nKey: "errors.noPendingUpgrade",
+  },
+  TimelockNotElapsed: {
+    title: "errors.timelockNotElapsed.title",
+    message: "errors.timelockNotElapsed.message",
+    recovery: "errors.timelockNotElapsed.recovery",
+    link: null,
+    i18nKey: "errors.timelockNotElapsed",
   },
 }
 

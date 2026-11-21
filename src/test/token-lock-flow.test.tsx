@@ -5,7 +5,6 @@ import userEvent from "@testing-library/user-event"
 import { render } from "./utils"
 import { CreateTokenLockForm } from "@/components/locks/CreateTokenLockForm"
 import { mockWallet, VALID_CONTRACT_ADDRESS, VALID_PUBLIC_KEY } from "./mocks"
-import { useTokenAllowance } from "@/hooks/useLocks"
 import { useTokenBalanceSWR } from "@/hooks/useTokenBalanceSWR"
 import { resetNotificationStore } from "@/hooks/useNotifications"
 
@@ -27,26 +26,9 @@ vi.mock("@/lib/token-locker", async (importOriginal) => {
   }
 })
 
-vi.mock("@/lib/stellar", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/lib/stellar")>()
-  return {
-    ...actual,
-    submitTokenApproval: vi.fn().mockResolvedValue(undefined),
-  }
-})
-
-vi.mock("@/hooks/useLocks", () => ({
-  useTokenAllowance: vi.fn(() => ({
-    data: 10000,
-    loading: false,
-    error: null,
-    reload: vi.fn(),
-  })),
-}))
-
-// CreateTokenLockForm sources its balance from useTokenBalanceSWR (not
-// useTokenBalance from @/hooks/useLocks above) — mock it with the same
-// shape the hook actually returns (stroops bigint, isLoading/isRevalidating).
+// CreateTokenLockForm sources its balance from useTokenBalanceSWR — mock it
+// with the same shape the hook actually returns (stroops bigint,
+// isLoading/isRevalidating).
 vi.mock("@/hooks/useTokenBalanceSWR", () => ({
   useTokenBalanceSWR: vi.fn(() => ({
     balance: BigInt(5000 * 1e7),
@@ -359,73 +341,6 @@ describe("Token Lock Creation Flow", () => {
     expect(screen.queryByText(/^user rejected$/i)).not.toBeInTheDocument()
   })
 
-  it("should show approve button when allowance is insufficient", async () => {
-    vi.mocked(useTokenAllowance).mockReturnValue({
-      data: 50,
-      loading: false,
-      error: null,
-      reload: vi.fn(),
-    })
-
-    const user = userEvent.setup()
-    render(<CreateTokenLockForm />)
-
-    const tokenInput = screen.getByPlaceholderText(/token/i)
-    const dateInput = screen.getByLabelText(/unlock date/i)
-
-    await user.type(tokenInput, VALID_CONTRACT_ADDRESS)
-    const amountInputs = screen.getAllByDisplayValue("")
-    await user.type(amountInputs[0], "100")
-
-    const futureDate = new Date()
-    futureDate.setDate(futureDate.getDate() + 30)
-    const dateStr = futureDate.toISOString().split("T")[0]
-    await user.type(dateInput, dateStr)
-
-    const submitButton = screen.getByRole("button", { name: /lock tokens/i })
-    await user.click(submitButton)
-
-    await waitFor(() => {
-      expect(screen.getByText(/approve & continue/i)).toBeInTheDocument()
-    })
-  })
-
-  it("should handle approval flow before creating lock", async () => {
-    const { submitTokenApproval } = await import("@/lib/stellar")
-    vi.mocked(submitTokenApproval).mockResolvedValueOnce(undefined)
-    vi.mocked(useTokenAllowance).mockReturnValue({
-      data: 50,
-      loading: false,
-      error: null,
-      reload: vi.fn(),
-    })
-
-    const user = userEvent.setup()
-    render(<CreateTokenLockForm />)
-
-    const tokenInput = screen.getByPlaceholderText(/token/i)
-    const dateInput = screen.getByLabelText(/unlock date/i)
-
-    await user.type(tokenInput, VALID_CONTRACT_ADDRESS)
-    const amountInputs = screen.getAllByDisplayValue("")
-    await user.type(amountInputs[0], "100")
-
-    const futureDate = new Date()
-    futureDate.setDate(futureDate.getDate() + 30)
-    const dateStr = futureDate.toISOString().split("T")[0]
-    await user.type(dateInput, dateStr)
-
-    const submitButton = screen.getByRole("button", { name: /lock tokens/i })
-    await user.click(submitButton)
-
-    const approveButton = await screen.findByRole("button", { name: /approve & continue/i })
-    await user.click(approveButton)
-
-    await waitFor(() => {
-      expect(submitTokenApproval).toHaveBeenCalled()
-    })
-  })
-
   it("should show insufficient balance error when balance < amount", async () => {
     vi.mocked(useTokenBalanceSWR).mockReturnValue({
       balance: BigInt(50 * 1e7),
@@ -463,9 +378,9 @@ describe("Token Lock Creation Flow", () => {
 
   it("records a split_lock transaction with the real hash when creating a multi-beneficiary lock", async () => {
     localStorage.clear()
-    // Earlier tests in this file override these mocks with mockReturnValue
+    // Earlier tests in this file override this mock with mockReturnValue
     // (not mockReturnValueOnce) and beforeEach only clearAllMocks(), which
-    // doesn't restore implementations — so pin these explicitly rather than
+    // doesn't restore implementations — so pin it explicitly rather than
     // depend on test order.
     vi.mocked(useTokenBalanceSWR).mockReturnValue({
       balance: BigInt(5000 * 1e7),
@@ -474,7 +389,6 @@ describe("Token Lock Creation Flow", () => {
       refetch: vi.fn(),
       clear: vi.fn(),
     })
-    vi.mocked(useTokenAllowance).mockReturnValue({ data: 10000, loading: false, error: null, reload: vi.fn() })
     const user = userEvent.setup()
     render(<CreateTokenLockForm />)
 

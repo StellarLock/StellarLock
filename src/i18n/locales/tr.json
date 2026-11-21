@@ -516,6 +516,36 @@
       "title": "Sözleşme Duraklatıldı",
       "message": "Sözleşme bakım veya acil durum nedeniyle yönetici tarafından duraklatıldı.",
       "recovery": "İşlemler devam ettiğinde lütfen tekrar deneyin."
+    },
+    "vestingOutsideLockBounds": {
+      "title": "Geçersiz Vesting Aralığı",
+      "message": "Vesting başlangıç tarihi kilidin oluşturulma tarihinden önce olamaz ve başlangıç veya bitiş tarihi kilidin açılma tarihinden sonra olamaz.",
+      "recovery": "Kilidin oluşturulma ve açılma tarihleri arasında kalan bir vesting başlangıç ve bitiş tarihi seçin."
+    },
+    "duplicateBeneficiary": {
+      "title": "Yinelenen Yararlanıcı",
+      "message": "Aynı yararlanıcı adresi bu bölünmüş kilitte birden fazla kez listelendi.",
+      "recovery": "Her yararlanıcı adresinin yalnızca bir kez görünmesi için yinelenen girişi kaldırın."
+    },
+    "alreadyInitialized": {
+      "title": "Zaten Başlatıldı",
+      "message": "Bu sözleşme zaten bir yöneticiyle başlatıldı.",
+      "recovery": "Herhangi bir işlem gerekmez — sözleşme dağıtım sırasında zaten kuruldu."
+    },
+    "invalidPoolTokens": {
+      "title": "Geçersiz Havuz Tokenleri",
+      "message": "Havuz sözleşmesinin kendi token A/B adresleri, bu LP kilidi için sağlanan token adresleriyle eşleşmiyor.",
+      "recovery": "Havuz payı adresini ve token A/B adreslerini kontrol edin ve aynı havuza ait olduklarından emin olun."
+    },
+    "noPendingUpgrade": {
+      "title": "Bekleyen Yükseltme Yok",
+      "message": "Yürütülecek veya iptal edilecek bekleyen bir sözleşme yükseltmesi yok.",
+      "recovery": "Önce sözleşme yöneticisinden bir yükseltme önermesini isteyin."
+    },
+    "timelockNotElapsed": {
+      "title": "Yükseltme Zaman Kilidi Dolmadı",
+      "message": "Bu sözleşme yükseltmesi için gereken zorunlu bekleme süresi henüz dolmadı.",
+      "recovery": "Yürütmeden önce yükseltmenin zaman kilidi süresinin dolmasını bekleyin."
     }
   },
   "analytics": {

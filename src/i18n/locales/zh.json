@@ -530,6 +530,36 @@
       "title": "合约已暂停",
       "message": "管理员因维护或紧急情况已暂停该合约。",
       "recovery": "请待合约恢复运行后再试。"
+    },
+    "vestingOutsideLockBounds": {
+      "title": "归属期窗口无效",
+      "message": "归属开始日期不能早于锁仓创建时间，开始和结束日期也不能晚于解锁日期。",
+      "recovery": "请选择一个介于锁仓创建日期和解锁日期之间的归属开始和结束日期。"
+    },
+    "duplicateBeneficiary": {
+      "title": "受益人重复",
+      "message": "在此拆分锁仓中，同一受益人地址被列出了多次。",
+      "recovery": "请删除重复项，确保每个受益人地址只出现一次。"
+    },
+    "alreadyInitialized": {
+      "title": "已初始化",
+      "message": "该合约已使用管理员地址完成初始化。",
+      "recovery": "无需操作——该合约在部署期间已完成设置。"
+    },
+    "invalidPoolTokens": {
+      "title": "资金池代币无效",
+      "message": "资金池合约自身的代币 A/B 地址与为此 LP 锁仓提供的代币地址不匹配。",
+      "recovery": "请仔细核对资金池份额地址及代币 A/B 地址，并确认它们属于同一个资金池。"
+    },
+    "noPendingUpgrade": {
+      "title": "没有待处理的升级",
+      "message": "没有待执行或取消的合约升级。",
+      "recovery": "请让合约管理员先提出升级提案。"
+    },
+    "timelockNotElapsed": {
+      "title": "升级时间锁尚未到期",
+      "message": "此次合约升级所需的强制等待期尚未结束。",
+      "recovery": "请等待升级的时间锁期限结束后再执行。"
     }
   },
   "notfound": {
