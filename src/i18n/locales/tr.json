@@ -172,6 +172,7 @@
   "lockDetail": {
     "notFoundTitle": "Kilit bulunamadı",
     "notFoundDesc": "#{{id}} id'li bir kilit bulunamadı.",
+    "archivedNotice": "Bu kilit uzun zaman önce çekildi ve zincir üzerindeki canlı kaydının süresi doldu. Yukarıdaki ayrıntılar kilit indeksleyicisinin arşivinden alınmıştır.",
     "backToLocks": "Kilitlerime dön",
     "lpLock": "LP Kilidi",
     "tokenLock": "Token Kilidi",
@@ -559,7 +560,8 @@
   "lockStatus": {
     "locked": "Kilitli",
     "unlockable": "Kilidi açılabilir",
-    "withdrawn": "Çekildi"
+    "withdrawn": "Çekildi",
+    "withdrawnArchived": "Çekildi (arşivlendi)"
   },
   "lockCreated": {
     "title": "Kilit Oluşturuldu | StellarLock",

@@ -39,6 +39,12 @@ export interface Lock {
   id: string
   kind: LockKind
   status: LockStatus
+  /**
+   * Set when this lock could no longer be read live from the contract (its
+   * withdrawn-TTL has lapsed) and was recovered from the lock indexer's
+   * archival record instead. Always `status === "withdrawn"` when true.
+   */
+  archived?: boolean
 
   /** Token being locked. For LP locks this is the pool share token. */
   token: TokenMeta

@@ -172,6 +172,7 @@
   "lockDetail": {
     "notFoundTitle": "잠금을 찾을 수 없음",
     "notFoundDesc": "id #{{id}}의 잠금을 찾을 수 없습니다.",
+    "archivedNotice": "이 잠금은 오래전에 출금되어 온체인 기록이 만료되었습니다. 위 세부 정보는 잠금 인덱서의 보관 기록에서 가져온 것입니다.",
     "backToLocks": "내 잠금으로 돌아가기",
     "lpLock": "LP 잠금",
     "tokenLock": "토큰 잠금",
@@ -559,7 +560,8 @@
   "lockStatus": {
     "locked": "잠김",
     "unlockable": "잠금 해제 가능",
-    "withdrawn": "인출됨"
+    "withdrawn": "인출됨",
+    "withdrawnArchived": "인출됨 (보관됨)"
   },
   "lockCreated": {
     "title": "잠금 생성 완료 | StellarLock",

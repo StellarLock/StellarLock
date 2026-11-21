@@ -261,6 +261,17 @@ describe("lock indexer", () => {
     expect(emptyPage.locks).toHaveLength(0)
   })
 
+  it("looks up a lock by its composite id (#1084 archival fallback)", () => {
+    const lock = indexer.getLockById(`${TOKEN_CONTRACT}:1`)
+    expect(lock).not.toBeNull()
+    expect(lock!.token).toBe(tokenAddr)
+    // Withdrawn in an earlier test — the row is never deleted, only its
+    // on-chain RPC TTL eventually lapses, so the archived data stays here.
+    expect(lock!.status).toBe("withdrawn")
+
+    expect(indexer.getLockById("does-not-exist")).toBeNull()
+  })
+
   it("aggregates per-token totals across still-locked locks for cross-token views", () => {
     const topTokens = indexer.getTopTokens()
     // The token-locker lock was withdrawn in an earlier test, so only the

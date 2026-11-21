@@ -704,6 +704,19 @@ export function getLocksForToken(token: string): IndexedLock[] {
   return rows.map(rowToLock)
 }
 
+/**
+ * Look up a single lock by its indexer-internal id (`${contractId}:${numericId}`,
+ * see `mkLockId` above). Used as the by-id archival fallback (#1084): once a
+ * withdrawn lock's on-chain TTL (`WITHDRAWN_BUMP`) lapses, `get_lock` on the
+ * contract starts returning `None`, but the indexer's SQLite row for it is
+ * never deleted, so history is still recoverable here.
+ */
+export function getLockById(id: string): IndexedLock | null {
+  ensureDb()
+  const row = db.prepare("SELECT * FROM locks WHERE id = ?").get(id) as LockRow | undefined
+  return row ? rowToLock(row) : null
+}
+
 interface LockPage {
   locks: IndexedLock[]
   total: number

@@ -117,6 +117,12 @@ function LockDetailView({ lock: sourceLock, onChange }: { lock: Lock; onChange: 
   const isLp = lock.kind === "lp"
   const verified = useVerifiedToken(lock.token.address)
 
+  // Bumped by CountdownTimer's onComplete when `lock.unlockAt` is reached, so
+  // this view re-renders (and re-reads Date.now()) instead of staying frozen
+  // at the render where the countdown was still ticking.
+  const [, forceUnlockTick] = useState(0)
+  const handleCountdownComplete = () => forceUnlockTick((n) => n + 1)
+
   const now = Date.now()
   const isBeneficiary = address === lock.beneficiary
   const isCreator = address === lock.creator
@@ -324,7 +330,7 @@ function LockDetailView({ lock: sourceLock, onChange }: { lock: Lock; onChange: 
             </div>
           </div>
           <div className="flex flex-col items-end gap-2">
-            <StatusBadge status={lock.status} />
+            <StatusBadge status={lock.status} archived={lock.archived} />
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={() => setQrOpen(true)} title={t("lockDetail.shareViaQr")}>
                 <QrCode className="h-4 w-4" />
@@ -384,9 +390,18 @@ function LockDetailView({ lock: sourceLock, onChange }: { lock: Lock; onChange: 
         <div className="border-t border-border p-6">
           <div className="mb-3 flex items-center justify-between">
             <span className="text-sm font-medium text-muted-foreground">{t("lockDetail.timeRemaining")}</span>
-            <CountdownTimer target={lock.unlockAt} compact className="text-sm font-medium" />
+            <CountdownTimer
+              target={lock.unlockAt}
+              compact
+              className="text-sm font-medium"
+              onComplete={handleCountdownComplete}
+            />
           </div>
-          <CountdownTimer target={lock.unlockAt} className="mb-5 justify-center sm:justify-start" />
+          <CountdownTimer
+            target={lock.unlockAt}
+            className="mb-5 justify-center sm:justify-start"
+            onComplete={handleCountdownComplete}
+          />
           <LockProgressBar createdAt={lock.createdAt} unlockAt={lock.unlockAt} />
         </div>
 
@@ -606,6 +621,13 @@ function LockDetailView({ lock: sourceLock, onChange }: { lock: Lock; onChange: 
           </div>
         )}
       </Card>
+
+      {lock.archived && (
+        <div className="mt-4 flex items-start gap-3 rounded-xl border border-border bg-card p-4 text-sm text-muted-foreground">
+          <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
+          <p>{t("lockDetail.archivedNotice")}</p>
+        </div>
+      )}
 
       {lock.status === "locked" && (
         <div className="mt-4 flex items-start gap-3 rounded-xl border border-border bg-card p-4 text-sm text-muted-foreground">

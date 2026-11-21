@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { rpc as SorobanRpc, nativeToScVal } from "@stellar/stellar-sdk"
-import { getTokenAllowance, getTokenBalance, invalidateRpcCache, simulateCall } from "@/lib/stellar"
+import { getRpcCacheSize, getTokenAllowance, getTokenBalance, invalidateRpcCache, simulateCall } from "@/lib/stellar"
 import { getOnChainTokenMeta } from "@/lib/token-metadata"
 
 // Mock the token-metadata module so we can control the on-chain decimals that
@@ -121,6 +121,57 @@ describe("RpcClient (exercised via simulateCall) — caching, dedup, rate limiti
 
     gates.slice(1).forEach((g) => g.resolve(SUCCESS_RESULT))
     await Promise.all(calls)
+  })
+})
+
+// ── #1078: response cache evicts rather than growing unbounded ──────────────
+describe("RpcClient response cache — bounded size (#1078)", () => {
+  let simulateSpy: ReturnType<typeof spyOnSimulateTransaction>
+
+  beforeEach(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date("2026-01-01T00:00:00Z"))
+    invalidateRpcCache()
+    simulateSpy = spyOnSimulateTransaction()
+  })
+
+  afterEach(() => {
+    simulateSpy.mockRestore()
+    vi.useRealTimers()
+  })
+
+  it("evicts an already-expired entry on the next write instead of keeping it forever", async () => {
+    simulateSpy.mockResolvedValue(SUCCESS_RESULT)
+
+    await simulateCall(CONTRACT_ID, "get_lock", [])
+    expect(getRpcCacheSize()).toBe(1)
+
+    // Past the 10s TTL: the stale entry is never read again here, so without
+    // sweeping on write it would simply sit in the Map forever.
+    await vi.advanceTimersByTimeAsync(11_000)
+    await simulateCall(CONTRACT_ID, "get_other_lock", [])
+
+    // The expired "get_lock" entry was swept; only the fresh write remains.
+    expect(getRpcCacheSize()).toBe(1)
+  })
+
+  it("caps total cache size even when many distinct keys are written before anything expires", async () => {
+    simulateSpy.mockResolvedValue(SUCCESS_RESULT)
+
+    // One more than the cap, all written well within the TTL window so
+    // nothing has expired yet — only the size cap can keep this bounded.
+    const entryCount = 201
+    for (let i = 0; i < entryCount; i++) {
+      await simulateCall(CONTRACT_ID, `method_${i}`, [])
+    }
+
+    expect(getRpcCacheSize()).toBeLessThanOrEqual(200)
+
+    // The oldest entry should have been evicted to make room, so it's a
+    // cache miss (a fresh network call) rather than served stale/forever.
+    simulateSpy.mockClear()
+    await simulateCall(CONTRACT_ID, "method_0", [])
+    expect(simulateSpy).toHaveBeenCalledTimes(1)
   })
 })
 

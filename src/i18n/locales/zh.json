@@ -175,6 +175,7 @@
   "lockDetail": {
     "notFoundTitle": "锁定未找到",
     "notFoundDesc": "找不到 id 为 #{{id}} 的锁定。",
+    "archivedNotice": "该锁定早已被提取，其链上实时记录已过期。以上详情来自锁定索引器的归档记录。",
     "backToLocks": "返回我的锁定",
     "lpLock": "LP 锁定",
     "tokenLock": "代币锁定",
@@ -562,7 +563,8 @@
   "lockStatus": {
     "locked": "已锁定",
     "unlockable": "可解锁",
-    "withdrawn": "已提取"
+    "withdrawn": "已提取",
+    "withdrawnArchived": "已提取（已归档）"
   },
   "lockCreated": {
     "title": "锁定已创建 | StellarLock",

@@ -91,6 +91,41 @@ describe("CountdownTimer", () => {
     expect(screen.getByText("Unlocked")).toBeInTheDocument()
   })
 
+  it("calls onComplete exactly once when the countdown reaches zero", () => {
+    vi.useFakeTimers()
+    const onComplete = vi.fn()
+    const future = Date.now() + 2000 // 2 seconds
+
+    render(
+      <I18nextProvider i18n={i18n}>
+        <CountdownTimer target={future} onComplete={onComplete} />
+      </I18nextProvider>,
+    )
+
+    expect(onComplete).not.toHaveBeenCalled()
+
+    act(() => {
+      vi.advanceTimersByTime(2000)
+    })
+    expect(onComplete).toHaveBeenCalledTimes(1)
+
+    // Further ticks after unlock must not fire onComplete again.
+    act(() => {
+      vi.advanceTimersByTime(3000)
+    })
+    expect(onComplete).toHaveBeenCalledTimes(1)
+  })
+
+  it("calls onComplete immediately when the target is already in the past", () => {
+    const onComplete = vi.fn()
+    render(
+      <I18nextProvider i18n={i18n}>
+        <CountdownTimer target={Date.now() - 1000} onComplete={onComplete} />
+      </I18nextProvider>,
+    )
+    expect(onComplete).toHaveBeenCalledTimes(1)
+  })
+
   it("applies an extra className to the unlocked span", () => {
     const { container } = render(
       <I18nextProvider i18n={i18n}>

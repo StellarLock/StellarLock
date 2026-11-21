@@ -172,6 +172,7 @@
   "lockDetail": {
     "notFoundTitle": "Bloqueo no encontrado",
     "notFoundDesc": "No pudimos encontrar un bloqueo con id #{{id}}.",
+    "archivedNotice": "Este bloqueo se retiró hace tiempo y su registro en cadena ya expiró. Los detalles anteriores provienen del archivo del indexador de bloqueos.",
     "backToLocks": "Volver a mis bloqueos",
     "lpLock": "Bloqueo LP",
     "tokenLock": "Bloqueo de Token",
@@ -559,7 +560,8 @@
   "lockStatus": {
     "locked": "Bloqueado",
     "unlockable": "Desbloqueable",
-    "withdrawn": "Retirado"
+    "withdrawn": "Retirado",
+    "withdrawnArchived": "Retirado (archivado)"
   },
   "lockCreated": {
     "title": "Bloqueo creado | StellarLock",

@@ -176,6 +176,7 @@
   "lockDetail": {
     "notFoundTitle": "Lock not found",
     "notFoundDesc": "We couldn't find a lock with id #{{id}}.",
+    "archivedNotice": "This lock was withdrawn long ago and its live on-chain record has expired. The details above are from the lock indexer's archive.",
     "backToLocks": "Back to my locks",
     "lpLock": "LP Lock",
     "tokenLock": "Token Lock",
@@ -220,7 +221,8 @@
   "lockStatus": {
     "locked": "Locked",
     "unlockable": "Unlockable",
-    "withdrawn": "Withdrawn"
+    "withdrawn": "Withdrawn",
+    "withdrawnArchived": "Withdrawn (archived)"
   },
   "lockCreated": {
     "title": "Lock Created | StellarLock",

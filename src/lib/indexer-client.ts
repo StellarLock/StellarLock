@@ -143,6 +143,16 @@ export function fetchIndexerLocksForToken(
   return fetchJson<IndexerLocksPageDTO>(`/api/indexer-locks?${params}`)
 }
 
+/**
+ * Fetch a single lock by the indexer's internal id (`${contractId}:${numericId}`)
+ * from the lock indexer. Returns null if unavailable or not indexed — callers
+ * should treat that the same as a direct-RPC miss (#1084's archival fallback).
+ */
+export function fetchIndexerLockById(id: string): Promise<IndexerLockDTO | null> {
+  const params = new URLSearchParams({ id })
+  return fetchJson<IndexerLockDTO>(`/api/indexer-lock?${params}`)
+}
+
 // ── DTO → frontend Lock mapping ────────────────────────────────────────────────
 
 /** Map indexer lock rows to the frontend Lock type, resolving token metadata on-chain. */
@@ -179,6 +189,12 @@ export async function mapIndexerLocks(dtoLocks: IndexerLockDTO[]): Promise<Lock[
       extendedCount: raw.extendedCount ?? 0,
     }
   })
+}
+
+/** Map a single indexer lock row to the frontend Lock type. Convenience wrapper around mapIndexerLocks. */
+export async function mapIndexerLock(dtoLock: IndexerLockDTO): Promise<Lock> {
+  const [lock] = await mapIndexerLocks([dtoLock])
+  return lock
 }
 
 /** Build a TokenLockSummary (same shape token-locker.ts's getLocksByToken returns) from an indexer page. */
