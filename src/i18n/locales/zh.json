@@ -57,7 +57,9 @@
     "ctaTitle": "一笔交易赢得社区信任",
     "ctaDesc": "锁定你的流动性，分享证明，让链来说话。",
     "ctaButton": "创建你的第一个锁定",
-    "step": "步骤 {{n}}"
+    "step": "步骤 {{n}}",
+    "pageTitle": "StellarLock — Stellar 上的代币与 LP 锁定",
+    "pageDescription": "在 Stellar 上锁定代币和流动性。通过公开、可验证的锁定浏览器向你的社区证明你没有跑路。"
   },
   "createLock": {
     "title": "创建锁定",
@@ -65,7 +67,9 @@
     "modeSimple": "简单",
     "modeWizard": "向导",
     "tabToken": "代币锁定",
-    "tabLp": "LP 锁定"
+    "tabLp": "LP 锁定",
+    "pageTitle": "创建锁定 | StellarLock",
+    "pageDescription": "在 Stellar 上的不可变 Soroban 智能合约中锁定代币或 LP 仓位。"
   },
   "tokenForm": {
     "tokenAddress": "代币合约地址",
@@ -170,7 +174,9 @@
     "typeLp": "LP",
     "sortUnlockDate": "排序：解锁日期",
     "sortAmount": "排序：数量",
-    "sortCreated": "排序：创建时间"
+    "sortCreated": "排序：创建时间",
+    "pageTitle": "我的锁定 | StellarLock",
+    "pageDescription": "管理和提取你在 StellarLock 上锁定的代币和 LP 仓位。"
   },
   "lockDetail": {
     "notFoundTitle": "锁定未找到",
@@ -213,7 +219,9 @@
     "vestingReleased": "已释放",
     "vestingClaimable": "可领取",
     "lockDetails": "锁定详情",
-    "projectLogoAlt": "项目 Logo"
+    "projectLogoAlt": "项目 Logo",
+    "pageTitle": "锁定 #{{id}} — {{amount}} {{symbol}} 锁定至 {{date}} | StellarLock",
+    "pageDescription": "锁定 #{{id}}：{{amount}} {{symbol}} 在 StellarLock 上锁定至 {{date}}。"
   },
   "explorer": {
     "backToSearch": "返回搜索",
@@ -239,7 +247,9 @@
       "summary_other": "{{count}} 个活跃锁定 · 已锁定 {{value}}",
       "copyUrl": "复制分享链接",
       "copyBadge": "复制 README 徽章"
-    }
+    },
+    "pageTitle": "{{symbol}} 流动性锁定 | StellarLock",
+    "pageDescription": "StellarLock 上 {{activeLocks}} 个活跃锁定中共锁定了 {{amount}} {{symbol}}。"
   },
   "discover": {
     "title": "浏览锁定",
@@ -254,7 +264,9 @@
     "noLocks": "未找到此代币的锁定。",
     "recentActivity": "近期活动",
     "noRecentActivity": "暂无近期活动。",
-    "searchHint": "按代币符号或合约地址搜索特定锁定。"
+    "searchHint": "按代币符号或合约地址搜索特定锁定。",
+    "pageTitle": "浏览锁定 | StellarLock",
+    "pageDescription": "浏览 StellarLock 上的所有代币和 LP 锁定。发现最近创建的锁定、即将到来的解锁和受保护的代币。"
   },
   "search": {
     "placeholder": "通过符号或合约地址搜索代币…",
@@ -349,7 +361,9 @@
     "statusPending": "待处理",
     "statusSuccess": "成功",
     "statusFailed": "失败",
-    "cleanupNote": "超过 90 天的交易将自动删除。"
+    "cleanupNote": "超过 90 天的交易将自动删除。",
+    "pageTitle": "交易历史 | StellarLock",
+    "pageDescription": "查看你的 StellarLock 交易历史。"
   },
   "splitLock": {
     "toggle": "多受益人",
@@ -538,7 +552,9 @@
     "goHome": "返回首页",
     "explore": "浏览锁定",
     "helpTitle": "需要帮助？",
-    "helpDesc": "查看我们的 <explorer>浏览器</explorer> 查找锁定或 <github>访问我们的 GitHub</github>。"
+    "helpDesc": "查看我们的 <explorer>浏览器</explorer> 查找锁定或 <github>访问我们的 GitHub</github>。",
+    "pageTitle": "找不到页面 — StellarLock",
+    "pageDescription": "你查找的页面不存在。"
   },
   "countdown": {
     "unlocked": "已解锁",

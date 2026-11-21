@@ -57,7 +57,9 @@
     "ctaTitle": "Tek bir işlemle topluluğunuzun güvenini kazanın",
     "ctaDesc": "Likiditenizi kilitleyin, kanıtı paylaşın ve zincirin sizin adınıza konuşmasına izin verin.",
     "ctaButton": "İlk kildinizi oluşturun",
-    "step": "Adım {{n}}"
+    "step": "Adım {{n}}",
+    "pageTitle": "StellarLock — Stellar'da Token ve LP Kilitleri",
+    "pageDescription": "Stellar'da tokenlerinizi ve likiditenizi kilitleyin. Halka açık, doğrulanabilir bir kilit gezgini ile topluluğunuza rug pull yapmadığınızı kanıtlayın."
   },
   "createLock": {
     "title": "Kilit oluştur",
@@ -65,7 +67,9 @@
     "modeSimple": "Basit",
     "modeWizard": "Sihirbaz",
     "tabToken": "Token Kilidi",
-    "tabLp": "LP Kilidi"
+    "tabLp": "LP Kilidi",
+    "pageTitle": "Kilit Oluştur | StellarLock",
+    "pageDescription": "Stellar üzerinde değiştirilemez bir Soroban akıllı sözleşmesinde token veya LP pozisyonlarını kilitleyin."
   },
   "tokenForm": {
     "tokenAddress": "Token sözleşme adresi",
@@ -167,7 +171,9 @@
     "noLocksCreatedDesc": "Tokenlerinizin veya likiditenizin güvende olduğunu kanıtlamak için ilk kildinizi oluşturun.",
     "noBeneficiary": "Yararlanıcı olduğunuz kilit yok",
     "noBeneficiaryDesc": "Başkaları tarafından sizin için oluşturulan kilitler burada görünecektir.",
-    "createLock": "Kilit Oluştur"
+    "createLock": "Kilit Oluştur",
+    "pageTitle": "Kilitlerim | StellarLock",
+    "pageDescription": "StellarLock'ta kilitli token ve LP pozisyonlarınızı yönetin ve çekin."
   },
   "lockDetail": {
     "notFoundTitle": "Kilit bulunamadı",
@@ -210,7 +216,9 @@
     "vestingReleased": "Serbest bırakılan",
     "vestingClaimable": "Talep edilebilir",
     "lockDetails": "Kilit Ayrıntıları",
-    "projectLogoAlt": "Proje logosu"
+    "projectLogoAlt": "Proje logosu",
+    "pageTitle": "Kilit #{{id}} — {{amount}} {{symbol}}, {{date}} tarihine kadar kilitli | StellarLock",
+    "pageDescription": "Kilit #{{id}}: {{amount}} {{symbol}}, StellarLock'ta {{date}} tarihine kadar kilitli."
   },
   "explorer": {
     "backToSearch": "Aramaya dön",
@@ -236,7 +244,9 @@
       "summary_other": "{{count}} aktif kilit · {{value}} güvence altında",
       "copyUrl": "Paylaşım bağlantısını kopyala",
       "copyBadge": "README rozetini kopyala"
-    }
+    },
+    "pageTitle": "{{symbol}} Likidite Kilitleri | StellarLock",
+    "pageDescription": "StellarLock'ta {{activeLocks}} aktif kilit genelinde {{amount}} {{symbol}} kilitli."
   },
   "discover": {
     "title": "Kilitleri Keşfet",
@@ -251,7 +261,9 @@
     "tokensSecured": "Güvence Altına Alınan Tokenler",
     "viewAll": "Tüm kilitleri görüntüle",
     "noLocks": "Bu token için kilit bulunamadı.",
-    "searchHint": "Belirli kilitleri bulmak için token sembolü veya sözleşme adresine göre arayın."
+    "searchHint": "Belirli kilitleri bulmak için token sembolü veya sözleşme adresine göre arayın.",
+    "pageTitle": "Kilitleri Keşfet | StellarLock",
+    "pageDescription": "StellarLock'taki tüm token ve LP kilitlerini keşfedin. Son oluşturulan kilitleri, yaklaşan kilit açılmalarını ve güvence altına alınan tokenleri keşfedin."
   },
   "search": {
     "placeholder": "Sembol veya sözleşme adresine göre token arayın…",
@@ -346,7 +358,9 @@
     "statusPending": "Bekliyor",
     "statusSuccess": "Başarılı",
     "statusFailed": "Başarısız",
-    "cleanupNote": "90 günden eski işlemler otomatik olarak kaldırılır."
+    "cleanupNote": "90 günden eski işlemler otomatik olarak kaldırılır.",
+    "pageTitle": "İşlem Geçmişi | StellarLock",
+    "pageDescription": "StellarLock işlem geçmişinizi görüntüleyin."
   },
   "splitLock": {
     "toggle": "Çoklu yararlanıcı",
@@ -535,7 +549,9 @@
     "goHome": "Anasayfaya Dön",
     "explore": "Kilitleri Keşfet",
     "helpTitle": "Yardıma mı ihtiyacınız var?",
-    "helpDesc": "Kilitleri bulmak için <explorer>gezginimizi</explorer> kontrol edin veya <github>GitHub'ı ziyaret edin</github>."
+    "helpDesc": "Kilitleri bulmak için <explorer>gezginimizi</explorer> kontrol edin veya <github>GitHub'ı ziyaret edin</github>.",
+    "pageTitle": "Sayfa Bulunamadı — StellarLock",
+    "pageDescription": "Aradığınız sayfa mevcut değil."
   },
   "countdown": {
     "unlocked": "Kilit Açıldı",

@@ -4,7 +4,7 @@ import { Plus, Wallet, Layers, Search, CheckSquare, LayoutGrid, Table2, Download
 import { Helmet } from "react-helmet-async"
 import { useTranslation } from "react-i18next"
 import { useWallet } from "@/hooks/useWallet"
-import { ALL_LOCKS_LIMIT, useMyLocks, useMyLocksStats } from "@/hooks/useLocks"
+import { ALL_LOCKS_LIMIT, useMyLocks } from "@/hooks/useLocks"
 import { extendLock, transferBeneficiary } from "@/lib/token-locker"
 import { extendLpLock, transferLpBeneficiary } from "@/lib/lp-locker"
 import { exportToCSV, exportToJSON } from "@/lib/export"
@@ -54,7 +54,6 @@ export function MyLocks() {
   // Fetch the full lock set so search/status/kind filters apply across every
   // lock, not just the current page; pagination is done client-side below.
   const { data, loading, error, reload } = useMyLocks(address, 0, ALL_LOCKS_LIMIT)
-  const { data: statsData, loading: statsLoading } = useMyLocksStats(address)
   const [tab, setTab] = useState<Tab>("created")
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState<LockStatus | "all">("all")
@@ -74,13 +73,20 @@ export function MyLocks() {
   const totalCreated = data?.totalCreated ?? 0
   const totalReceived = data?.totalReceived ?? 0
 
+  // Derived from the already-fetched `created` list (see `useMyLocks` above)
+  // instead of a second `queryMyLocks` call — the previous `useMyLocksStats`
+  // hook re-ran the same 8-simulation + USD-enrichment query a second time
+  // on every page load, doubling RPC work for no new data (issue #1083).
   const stats = useMemo(() => {
+    const now = Date.now()
+    const totalValue = created.reduce((sum, l) => sum + l.usdValue, 0)
+    const unlockable = created.filter((l) => l.unlockAt <= now && l.status !== "withdrawn").length
     return {
       count: totalCreated,
-      totalValue: statsData?.totalValue ?? 0,
-      unlockable: statsData?.unlockable ?? 0,
+      totalValue,
+      unlockable,
     }
-  }, [totalCreated, statsData])
+  }, [created, totalCreated])
 
   const rawList = tab === "created" ? created : received
 
@@ -223,8 +229,8 @@ export function MyLocks() {
   return (
     <ConnectGate title={t("connectGate.title")}>
       <Helmet>
-        <title>My Locks | StellarLock</title>
-        <meta name="description" content="Manage and withdraw your locked token and LP positions on StellarLock." />
+        <title>{t("myLocks.pageTitle")}</title>
+        <meta name="description" content={t("myLocks.pageDescription")} />
       </Helmet>
       <div className="mx-auto max-w-6xl px-4 py-10 md:px-6">
         <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -280,7 +286,7 @@ export function MyLocks() {
         </header>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-3">
-          {loading || statsLoading ? (
+          {loading ? (
             <>
               <SkeletonStatCard />
               <SkeletonStatCard />

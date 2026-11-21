@@ -35,10 +35,14 @@ export function Explorer() {
     <div className="mx-auto max-w-6xl px-4 py-8">
       {data && (
         <Helmet>
-          <title>{data.token.symbol} Liquidity Locks | StellarLock</title>
+          <title>{t("explorer.pageTitle", { symbol: data.token.symbol })}</title>
           <meta
             name="description"
-            content={`${formatAmount(data.totalLocked)} ${data.token.symbol} locked across ${data.activeLocks} active locks on StellarLock.`}
+            content={t("explorer.pageDescription", {
+              amount: formatAmount(data.totalLocked),
+              symbol: data.token.symbol,
+              activeLocks: data.activeLocks,
+            })}
           />
         </Helmet>
       )}

@@ -23,11 +23,8 @@ export function Landing() {
   return (
     <div>
       <Helmet>
-        <title>StellarLock — Token & LP Locks on Stellar</title>
-        <meta
-          name="description"
-          content="Lock tokens and liquidity on Stellar. Prove to your community you haven't rugged with a public, verifiable lock explorer."
-        />
+        <title>{t("landing.pageTitle")}</title>
+        <meta name="description" content={t("landing.pageDescription")} />
       </Helmet>
       {/* Hero */}
       <section className="relative overflow-hidden">

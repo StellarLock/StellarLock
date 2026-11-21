@@ -27,11 +27,8 @@ export function Discover() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
       <Helmet>
-        <title>Explore Locks | StellarLock</title>
-        <meta
-          name="description"
-          content="Browse all token and LP locks on StellarLock. Discover recently created locks, upcoming unlocks, and secured tokens."
-        />
+        <title>{t("discover.pageTitle")}</title>
+        <meta name="description" content={t("discover.pageDescription")} />
       </Helmet>
 
       <div className="mb-8">

@@ -57,7 +57,9 @@
     "ctaTitle": "Earn your community's trust in one transaction",
     "ctaDesc": "Lock your liquidity, share the proof, and let the chain speak for you.",
     "ctaButton": "Create your first lock",
-    "step": "Step {{n}}"
+    "step": "Step {{n}}",
+    "pageTitle": "StellarLock — Token & LP Locks on Stellar",
+    "pageDescription": "Lock tokens and liquidity on Stellar. Prove to your community you haven't rugged with a public, verifiable lock explorer."
   },
   "createLock": {
     "title": "Create a lock",
@@ -65,7 +67,9 @@
     "modeSimple": "Simple",
     "modeWizard": "Wizard",
     "tabToken": "Token Lock",
-    "tabLp": "LP Lock"
+    "tabLp": "LP Lock",
+    "pageTitle": "Create a Lock | StellarLock",
+    "pageDescription": "Lock tokens or LP positions in an immutable Soroban smart contract on Stellar."
   },
   "tokenForm": {
     "tokenAddress": "Token contract address",
@@ -171,7 +175,9 @@
     "typeLp": "LP",
     "sortUnlockDate": "Sort: Unlock date",
     "sortAmount": "Sort: Amount",
-    "sortCreated": "Sort: Created"
+    "sortCreated": "Sort: Created",
+    "pageTitle": "My Locks | StellarLock",
+    "pageDescription": "Manage and withdraw your locked token and LP positions on StellarLock."
   },
   "lockDetail": {
     "notFoundTitle": "Lock not found",
@@ -215,7 +221,9 @@
     "released": "Released",
     "claimable": "Claimable",
     "lockDetails": "Lock Details",
-    "projectLogoAlt": "Project logo"
+    "projectLogoAlt": "Project logo",
+    "pageTitle": "Lock #{{id}} — {{amount}} {{symbol}} locked until {{date}} | StellarLock",
+    "pageDescription": "Lock #{{id}}: {{amount}} {{symbol}} locked until {{date}} on StellarLock."
   },
   "lockStatus": {
     "locked": "Locked",
@@ -277,7 +285,9 @@
       "summary_other": "{{count}} active locks · {{value}} secured",
       "copyUrl": "Copy share link",
       "copyBadge": "Copy README badge"
-    }
+    },
+    "pageTitle": "{{symbol}} Liquidity Locks | StellarLock",
+    "pageDescription": "{{amount}} {{symbol}} locked across {{activeLocks}} active locks on StellarLock."
   },
   "discover": {
     "title": "Explore Locks",
@@ -292,7 +302,9 @@
     "tokensSecured": "Tokens Secured",
     "viewAll": "View all locks",
     "noLocks": "No locks found for this token.",
-    "searchHint": "Search by token symbol or contract address to find specific locks."
+    "searchHint": "Search by token symbol or contract address to find specific locks.",
+    "pageTitle": "Explore Locks | StellarLock",
+    "pageDescription": "Browse all token and LP locks on StellarLock. Discover recently created locks, upcoming unlocks, and secured tokens."
   },
   "search": {
     "placeholder": "Search a token by symbol or contract address…",
@@ -387,7 +399,9 @@
     "statusPending": "Pending",
     "statusSuccess": "Success",
     "statusFailed": "Failed",
-    "cleanupNote": "Transactions older than 90 days are removed automatically."
+    "cleanupNote": "Transactions older than 90 days are removed automatically.",
+    "pageTitle": "Transaction History | StellarLock",
+    "pageDescription": "View your StellarLock transaction history."
   },
   "splitLock": {
     "toggle": "Multiple beneficiaries",
@@ -576,7 +590,9 @@
     "goHome": "Back to Home",
     "explore": "Explore Locks",
     "helpTitle": "Need Help?",
-    "helpDesc": "Check our <explorer>explorer</explorer> to find locks or <github>visit our GitHub</github>."
+    "helpDesc": "Check our <explorer>explorer</explorer> to find locks or <github>visit our GitHub</github>.",
+    "pageTitle": "Page Not Found — StellarLock",
+    "pageDescription": "The page you're looking for doesn't exist."
   },
   "countdown": {
     "unlocked": "Unlocked",
