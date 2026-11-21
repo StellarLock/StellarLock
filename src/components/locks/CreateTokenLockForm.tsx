@@ -8,11 +8,12 @@ import { Button } from "@/components/ui/Button"
 import { TxProgressSteps } from "@/components/ui/TxProgressSteps"
 import { useWallet } from "@/hooks/useWallet"
 import { useTokenBalanceSWR } from "@/hooks/useTokenBalanceSWR"
+import { useTokenDecimals } from "@/hooks/useTokenDecimals"
 import { createTokenLock } from "@/lib/token-locker"
 import { createSplitLock, type SplitBeneficiary } from "@/lib/split-lock"
 import { trackEvent } from "@/lib/analytics"
 import { addTransaction } from "@/lib/transaction-history"
-import { cn, formatDate, notify } from "@/lib/utils"
+import { cn, formatDate, notify, parseUnits, scaleTokenBalance } from "@/lib/utils"
 import { validateTokenLockForm, type FieldKey } from "@/lib/validation/lockFormValidation"
 import { FormValidationErrors } from "@/components/locks/FormValidationErrors"
 import { sanitizeError } from "@/lib/error-sanitizer"
@@ -169,14 +170,15 @@ export function CreateTokenLockForm() {
   }, [validation, tokenAddress, amount, beneficiary, unlockDate, multiMode, splitBeneficiaries])
 
   const validTokenAddress = hasIssue("tokenAddress") ? undefined : trimmedTokenAddress
+  const tokenDecimals = useTokenDecimals(validTokenAddress)
   const {
     balance: balanceStroops,
     isLoading: balanceLoading,
     isRevalidating: balanceRevalidating,
   } = useTokenBalanceSWR(validTokenAddress, address ?? null)
-  // Convert stroops (bigint) to a human-readable float for display/validation.
-  // While revalidating we keep the stale value visible — that's the SWR benefit.
-  const balance = balanceStroops !== null ? Number(balanceStroops) / 1e7 : null
+  // Convert raw base units (bigint) to a human-readable float using the token's
+  // real decimals. While revalidating we keep the stale value visible.
+  const balance = scaleTokenBalance(balanceStroops, tokenDecimals)
 
   const presets = [
     { label: t("tokenForm.days30"), days: 30 },
@@ -194,10 +196,11 @@ export function CreateTokenLockForm() {
     try {
       if (!validTokenAddress || !address || Number(amount) <= 0 || unlockTs <= Date.now()) return null
 
+      const amountStroops = parseUnits(amount, tokenDecimals)
+
       if (multiMode) {
         // Cost estimation for split lock (create_split_lock method)
         if (!splitSharesOk) return null
-        const amountStroops = BigInt(Math.round(Number(amount) * 1e7))
         const beneficiaryArgs = splitBeneficiaries.map((b) =>
           xdr.ScVal.scvMap([
             new xdr.ScMapEntry({
@@ -237,7 +240,6 @@ export function CreateTokenLockForm() {
 
       // Cost estimation for regular lock (create_lock method)
       const beneficiaryAddr = beneficiary.trim().length > 0 ? beneficiary.trim() : address
-      const amountStroops = BigInt(Math.round(Number(amount) * 1e7))
       const args: xdr.ScVal[] = [
         new Address(address).toScVal(),
         new Address(validTokenAddress).toScVal(),
@@ -269,7 +271,18 @@ export function CreateTokenLockForm() {
     } catch {
       return null
     }
-  }, [validTokenAddress, address, amount, beneficiary, unlockTs, vesting, multiMode, splitBeneficiaries, splitSharesOk])
+  }, [
+    validTokenAddress,
+    tokenDecimals,
+    address,
+    amount,
+    beneficiary,
+    unlockTs,
+    vesting,
+    multiMode,
+    splitBeneficiaries,
+    splitSharesOk,
+  ])
 
   function applyPreset(days: number) {
     const date = new Date(Date.now() + days * DAY).toISOString().slice(0, 10)
@@ -426,7 +439,8 @@ export function CreateTokenLockForm() {
                   <Loader2 className="h-3 w-3 animate-spin" />
                 ) : balance != null ? (
                   <>
-                    {t("tokenForm.balance")}: {balance.toLocaleString(undefined, { maximumFractionDigits: 7 })}
+                    {t("tokenForm.balance")}:{" "}
+                    {balance.toLocaleString(undefined, { maximumFractionDigits: Math.min(tokenDecimals, 18) })}
                     {balanceRevalidating && <Loader2 className="h-3 w-3 animate-spin ml-1" />}
                   </>
                 ) : null}

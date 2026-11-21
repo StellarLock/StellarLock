@@ -1,15 +1,22 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { createSplitLock } from "@/lib/split-lock"
 import type { CreateSplitLockArgs, SplitBeneficiary } from "@/lib/split-lock"
-import { xdr } from "@stellar/stellar-sdk"
+import { scValToNative, xdr } from "@stellar/stellar-sdk"
+
+const { mockGetOnChainTokenMeta } = vi.hoisted(() => ({
+  mockGetOnChainTokenMeta: vi.fn(),
+}))
 
 // We mock submitCallWithHash from stellar.ts since it actually submits transactions
 vi.mock("@/lib/stellar", () => ({
   CONTRACTS: {
     tokenLocker: "CBMOCKTOKENLOCKERCONTRACTADDRESS1234567890123456789",
   },
-  STELLAR_DECIMALS: 10_000_000,
   submitCallWithHash: vi.fn().mockResolvedValue({ result: undefined, txHash: "mock-tx-hash" }),
+}))
+
+vi.mock("@/lib/token-metadata", () => ({
+  getOnChainTokenMeta: mockGetOnChainTokenMeta,
 }))
 
 import { submitCallWithHash } from "@/lib/stellar"
@@ -33,6 +40,7 @@ function buildBaseArgs(overrides: Partial<CreateSplitLockArgs> = {}): CreateSpli
 describe("createSplitLock", () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockGetOnChainTokenMeta.mockResolvedValue({ symbol: "TOK", name: "Token", decimals: 7 })
   })
 
   it("should call submitCall with the correct contract and function name", async () => {
@@ -181,5 +189,25 @@ describe("createSplitLock", () => {
     const result = await createSplitLock(args, VALID_ADDRESS, signTx)
 
     expect(result).toEqual({ txHash: "mock-tx-hash" })
+  })
+
+  it("encodes 6-decimal and 18-decimal split lock amounts using on-chain decimals", async () => {
+    mockGetOnChainTokenMeta.mockResolvedValueOnce({ symbol: "USDC", name: "USD Coin", decimals: 6 })
+    await createSplitLock(
+      buildBaseArgs({ totalAmount: "1.25" }),
+      VALID_ADDRESS,
+      vi.fn().mockResolvedValue({ signedTxXdr: "AAAA..." }),
+    )
+    const scArgs6 = vi.mocked(submitCallWithHash).mock.calls[0][2]
+    expect(scValToNative(scArgs6[2])).toBe(1_250_000n)
+
+    mockGetOnChainTokenMeta.mockResolvedValueOnce({ symbol: "WETH", name: "Wrapped Ether", decimals: 18 })
+    await createSplitLock(
+      buildBaseArgs({ totalAmount: "0.1" }),
+      VALID_ADDRESS,
+      vi.fn().mockResolvedValue({ signedTxXdr: "AAAA..." }),
+    )
+    const scArgs18 = vi.mocked(submitCallWithHash).mock.calls[1][2]
+    expect(scValToNative(scArgs18[2])).toBe(100_000_000_000_000_000n)
   })
 })

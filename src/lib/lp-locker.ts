@@ -1,14 +1,15 @@
 import { Address, nativeToScVal, xdr } from "@stellar/stellar-sdk"
 import type { Dex, Lock, LockMetadata } from "@/types/lock"
-import { CONTRACTS, simulateCall, submitCall, submitCallWithHash, submitRestoreFootprint, type TxPhase } from "@/lib/stellar"
+import { CONTRACTS, simulateCall, submitCallWithHash, submitRestoreFootprint, type TxPhase } from "@/lib/stellar"
 import { getOnChainTokenMeta } from "@/lib/token-metadata"
+import { parseUnits } from "@/lib/utils"
 
 interface CreateLpLockArgs {
   poolShareAddress: string
   dex: Dex
   tokenA: string
   tokenB: string
-  amount: number
+  amount: number | string
   beneficiary: string
   unlockAt: number // unix seconds
   metadata?: { description?: string; projectUrl?: string; logoUrl?: string }
@@ -252,9 +253,9 @@ export async function createLpLock(
   signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>,
   onProgress?: (phase: TxPhase) => void,
 ): Promise<{ id: string; txHash: string }> {
-  // Issue #738: fetch the pool-share token's real decimals instead of hardcoding 7
+  // Issue #738 / #1063: fetch real pool decimals and use string-based parseUnits
   const { decimals } = await getOnChainTokenMeta(args.poolShareAddress)
-  const amountStroops = BigInt(Math.round(args.amount * 10 ** decimals))
+  const amountStroops = parseUnits(args.amount, decimals)
 
   const scArgs: xdr.ScVal[] = [
     addressArg(sourceAddress),

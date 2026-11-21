@@ -4,10 +4,11 @@ import { Coins, Droplets, ArrowLeft, ArrowRight, Check } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/Button"
 import { Card } from "@/components/ui/Card"
-import { cn, formatDate } from "@/lib/utils"
+import { cn, formatDate, scaleTokenBalance } from "@/lib/utils"
 import { Input, Label } from "@/components/ui/Input"
 import { useWallet } from "@/hooks/useWallet"
 import { useTokenBalanceSWR } from "@/hooks/useTokenBalanceSWR"
+import { useTokenDecimals } from "@/hooks/useTokenDecimals"
 import { isValidStellarContractAddress, isValidStellarAddress } from "@/lib/stellar"
 import { createTokenLock } from "@/lib/token-locker"
 import { createLpLock } from "@/lib/lp-locker"
@@ -315,8 +316,9 @@ function Step2({ state, updateState }: { state: WizardState; updateState: (updat
   const validTokenAddress = isValidStellarContractAddress(state.tokenAddress.trim())
     ? state.tokenAddress.trim()
     : undefined
+  const tokenDecimals = useTokenDecimals(validTokenAddress)
   const { balance: balanceStroops } = useTokenBalanceSWR(validTokenAddress, address ?? null)
-  const balance = balanceStroops !== null ? Number(balanceStroops) / 1e7 : null
+  const balance = scaleTokenBalance(balanceStroops, tokenDecimals)
 
   return (
     <div>
@@ -336,7 +338,7 @@ function Step2({ state, updateState }: { state: WizardState; updateState: (updat
             />
             {balance !== null && (
               <p className="mt-1 text-xs text-muted-foreground">
-                Balance: {balance.toLocaleString(undefined, { maximumFractionDigits: 7 })}
+                Balance: {balance.toLocaleString(undefined, { maximumFractionDigits: Math.min(tokenDecimals, 18) })}
               </p>
             )}
           </div>
