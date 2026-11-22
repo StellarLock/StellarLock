@@ -23,7 +23,6 @@ const baseData: LockConfirmData = {
 describe("ConfirmLockModal", () => {
   const onConfirm = vi.fn()
   const onCancel = vi.fn()
-  const onApprove = vi.fn()
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -125,17 +124,6 @@ describe("ConfirmLockModal", () => {
     expect(screen.getByText(/2[,.]?000/)).toBeInTheDocument()
   })
 
-  it("shows allowance row when allowance is provided", () => {
-    render(
-      <ConfirmLockModal
-        data={{ ...baseData, balance: 2000, allowance: 1500 }}
-        onConfirm={onConfirm}
-        onCancel={onCancel}
-      />,
-    )
-    expect(screen.getByText(/current allowance/i)).toBeInTheDocument()
-  })
-
   // -------------------------------------------------------------------------
   // Insufficient balance state
   // -------------------------------------------------------------------------
@@ -160,61 +148,6 @@ describe("ConfirmLockModal", () => {
     // Only the "Insufficient Balance" (disabled) and "Cancel" buttons are shown
     expect(screen.queryByRole("button", { name: /confirm & lock/i })).not.toBeInTheDocument()
     expect(onConfirm).not.toHaveBeenCalled()
-  })
-
-  // -------------------------------------------------------------------------
-  // Approval required state
-  // -------------------------------------------------------------------------
-
-  it("shows 'Approval required' info when needsApproval=true and balance is sufficient", () => {
-    render(
-      <ConfirmLockModal
-        data={{ ...baseData, balance: 2000, needsApproval: true }}
-        onConfirm={onConfirm}
-        onApprove={onApprove}
-        onCancel={onCancel}
-      />,
-    )
-    expect(screen.getByText(/approval required/i)).toBeInTheDocument()
-  })
-
-  it("renders 'Approve & Continue' button when approval is needed", () => {
-    render(
-      <ConfirmLockModal
-        data={{ ...baseData, balance: 2000, needsApproval: true }}
-        onConfirm={onConfirm}
-        onApprove={onApprove}
-        onCancel={onCancel}
-      />,
-    )
-    expect(screen.getByRole("button", { name: /approve & continue/i })).toBeInTheDocument()
-  })
-
-  it("calls onApprove when 'Approve & Continue' is clicked", async () => {
-    const user = userEvent.setup()
-    render(
-      <ConfirmLockModal
-        data={{ ...baseData, balance: 2000, needsApproval: true }}
-        onConfirm={onConfirm}
-        onApprove={onApprove}
-        onCancel={onCancel}
-      />,
-    )
-    await user.click(screen.getByRole("button", { name: /approve & continue/i }))
-    expect(onApprove).toHaveBeenCalledOnce()
-  })
-
-  it("shows 'Approving...' label while approving is in progress", () => {
-    render(
-      <ConfirmLockModal
-        data={{ ...baseData, balance: 2000, needsApproval: true }}
-        onConfirm={onConfirm}
-        onApprove={onApprove}
-        onCancel={onCancel}
-        approving
-      />,
-    )
-    expect(screen.getByText(/approving/i)).toBeInTheDocument()
   })
 
   // -------------------------------------------------------------------------

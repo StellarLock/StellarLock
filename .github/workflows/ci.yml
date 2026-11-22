@@ -20,24 +20,24 @@ jobs:
     if: github.event_name == 'pull_request'
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
         with:
           version: 9
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '22'
 
       # Mirrors the caching pattern used in the frontend job so pnpm install
       # does not re-download the full store on every PR (#757).
       - name: Cache pnpm store
-        uses: actions/cache@v4
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e3516 # v4.2.3
         with:
           path: ~/.local/share/pnpm/store
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
@@ -60,21 +60,21 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
         with:
           version: 9
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '22' # Upgraded to 22 to clear the Action runner deprecation warning
 
       # Custom cache setup bypasses the workspace/pnpm store validation panic
       - name: Cache pnpm store
-        uses: actions/cache@v4
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e3516 # v4.2.3
         with:
           path: ~/.local/share/pnpm/store
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
@@ -86,6 +86,8 @@ jobs:
 
       - name: Lint (ESLint)
         run: pnpm exec eslint .
+      - name: Format check
+        run: pnpm format:check
 
       - name: Type Check
         run: pnpm exec tsc -b
@@ -98,6 +100,8 @@ jobs:
 
       - name: Unit / component tests
         run: pnpm test
+      - name: Unit / component coverage
+        run: pnpm test:coverage
 
       - name: Storybook build
         run: pnpm storybook:build
@@ -105,28 +109,31 @@ jobs:
       - name: Build Vite App
         run: pnpm build
 
+      - name: Enforce Vite bundle budgets
+        run: pnpm check:bundle-size
+
   e2e:
     name: End-to-End and Visual Regression
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
         with:
           version: 9
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '22'
 
       # Mirrors the caching pattern used in the frontend job so pnpm install
       # does not re-download the full store on every PR (#757).
       - name: Cache pnpm store
-        uses: actions/cache@v4
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e3516 # v4.2.3
         with:
           path: ~/.local/share/pnpm/store
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
@@ -152,7 +159,7 @@ jobs:
 
       - name: Upload Playwright report
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6098a580494f7e56b65f4b8e1b6ea # v4.6.2
         with:
           name: playwright-report
           path: playwright-report/
@@ -160,11 +167,66 @@ jobs:
 
       - name: Upload Playwright test results
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6098a580494f7e56b65f4b8e1b6ea # v4.6.2
         with:
           name: playwright-test-results
           path: test-results/
           retention-days: 14
+
+  storybook-a11y:
+    name: Storybook Accessibility Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Depends on the frontend job so a11y failures appear alongside other
+    # frontend failures in the same PR check list.
+    needs: frontend
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
+        with:
+          version: 9
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+
+      - name: Cache pnpm store
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e3516 # v4.2.3
+        with:
+          path: ~/.local/share/pnpm/store
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Storybook
+        run: pnpm storybook:build
+
+      # @storybook/test-runner (Playwright-based) runs the axe checks
+      # configured via @storybook/addon-a11y for every story. --ci exits
+      # non-zero on any violation, failing the job.
+      - name: Install Playwright browsers for a11y runner
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run Storybook a11y tests
+        run: pnpm exec test-storybook --ci
+        env:
+          # Run against the static build — no live server needed.
+          TARGET_URL: 'file:///${{ github.workspace }}/storybook-static/iframe.html'
+
+      - name: Upload a11y report on failure
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6098a580494f7e56b65f4b8e1b6ea # v4.6.2
+        with:
+          name: storybook-a11y-report
+          path: storybook-static/
+          retention-days: 7
 
   contracts:
     name: Smart Contract Checks
@@ -175,20 +237,23 @@ jobs:
         working-directory: ./contracts
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@b3b07ba8b418998c39fb20f53e8b695cdcc8de1b # stable @ 2026-11-15
         with:
           targets: wasm32-unknown-unknown, wasm32v1-none
 
       - name: Rust Cache
-        uses: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@9d47c6ad15e7e8b75ac0c1b9d8ba96f4e2b22ea7 # v2.7.8
         with:
           workspaces: ./contracts
 
       # Official Stellar CLI action — version must stay in sync with the
       # cargo install pin in Dockerfile.contracts (currently stellar-cli@27.0.0).
+      # @v27.0.0 is an exact release tag (not a floating alias); the action
+      # also reads github.action_ref internally to select the binary version,
+      # so a full SHA pin would cause it to install an incorrect version.
       - name: Install Stellar CLI
         uses: stellar/stellar-cli@v27.0.0
 
@@ -200,6 +265,23 @@ jobs:
 
       - name: Run contract tests
         run: cargo test --workspace --all-targets
+
+      # cargo-llvm-cov instruments the contracts with LLVM source-based
+      # coverage and produces an lcov report. Uploaded as an artifact for
+      # review in coverage dashboards. No threshold gate yet — a follow-up
+      # issue will add one once a baseline is established.
+      - name: Install cargo-llvm-cov
+        run: cargo install cargo-llvm-cov --locked
+
+      - name: Measure contract test coverage
+        run: cargo llvm-cov --workspace --all-targets --lcov --output-path lcov.info
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@ea165f8d65b6098a580494f7e56b65f4b8e1b6ea # v4.6.2
+        with:
+          name: contracts-coverage-lcov
+          path: contracts/lcov.info
+          retention-days: 30
 
       - name: Run Clippy
         run: cargo clippy --workspace --all-targets --all-features -- -D warnings

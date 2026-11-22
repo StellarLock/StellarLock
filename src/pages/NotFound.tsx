@@ -11,8 +11,8 @@ export function NotFound() {
   return (
     <div>
       <Helmet>
-        <title>Page Not Found — StellarLock</title>
-        <meta name="description" content="The page you're looking for doesn't exist." />
+        <title>{t("notfound.pageTitle")}</title>
+        <meta name="description" content={t("notfound.pageDescription")} />
       </Helmet>
 
       <div className="flex min-h-screen items-center justify-center px-4">

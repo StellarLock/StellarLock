@@ -45,8 +45,8 @@ export function History() {
   return (
     <div className="mx-auto max-w-4xl px-4 py-10 md:px-6">
       <Helmet>
-        <title>Transaction History | StellarLock</title>
-        <meta name="description" content="View your StellarLock transaction history." />
+        <title>{t("history.pageTitle")}</title>
+        <meta name="description" content={t("history.pageDescription")} />
       </Helmet>
 
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">

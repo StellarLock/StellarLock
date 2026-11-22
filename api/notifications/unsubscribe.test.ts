@@ -21,6 +21,11 @@ vi.mock('../../indexer/db.js', () => ({
   initDb: vi.fn(),
 }))
 
+// Session auth is exercised separately — treat every request as authenticated.
+vi.mock('../_lib/notification-auth.js', () => ({
+  requireAddressSession: vi.fn(() => true),
+}))
+
 // ---------------------------------------------------------------------------
 // Import handler AFTER mocks are in place.
 // ---------------------------------------------------------------------------
@@ -97,20 +102,21 @@ describe('DELETE /api/notifications/unsubscribe', () => {
       expect(res._chain.json).toHaveBeenCalledWith({ deleted: true })
     })
 
-    it('normalises a bare numeric lockId to "token:<id>" before querying', () => {
+    it('passes the lockId as-is (no bare-numeric normalisation)', () => {
       const runMock = vi.fn()
       mockDb.prepare.mockReturnValue({ run: runMock })
 
-      const req = makeReq('DELETE', { lockId: '1042', address: VALID_ADDRESS })
+      const contractId = 'CCONTRACTXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
+      const req = makeReq('DELETE', { lockId: `${contractId}:1042`, address: VALID_ADDRESS })
       const res = makeRes()
 
       handler(req, res)
 
       expect(res.status).toHaveBeenCalledWith(200)
-      // The DELETE statement should have received 'token:1042', not '1042'.
+      // The DELETE statement should receive the full contract-namespaced id.
       const [addr, lockId] = runMock.mock.calls[0]
       expect(addr).toBe(VALID_ADDRESS)
-      expect(lockId).toBe('token:1042')
+      expect(lockId).toBe(`${contractId}:1042`)
     })
   })
 

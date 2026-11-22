@@ -36,6 +36,12 @@ Every entry maps directly to an error case defined in `src/lib/errors.ts`.
   - [NotInitialized](#notinitialized)
   - [LockNotFound](#locknotfound)
   - [ContractPaused](#contractpaused)
+  - [VestingOutsideLockBounds](#vestingoutsidelockbounds)
+  - [DuplicateBeneficiary](#duplicatebeneficiary)
+  - [AlreadyInitialized](#alreadyinitialized)
+  - [InvalidPoolTokens](#invalidpooltokens)
+  - [NoPendingUpgrade](#nopendingupgrade)
+  - [TimelockNotElapsed](#timelocknotelapsed)
 - [Connection issues](#connection-issues)
   - [Freighter not detected](#freighter-not-detected)
   - [Wallet disconnected mid-session](#wallet-disconnected-mid-session)
@@ -289,6 +295,54 @@ If timeouts are frequent, the RPC node may be having issues. Check the health in
 **Cause:** The contract is currently paused by the administrator using the emergency circuit breaker mechanism (`pause()`). All lock creations, withdrawals, extensions, and beneficiary transfers are temporarily halted.
 
 **Fix:** Wait for the contract administrator to resolve the maintenance/incident and call `unpause()`. Read queries remain operational during a pause. Check team communication channels or status updates for more details.
+
+---
+
+### VestingOutsideLockBounds
+
+**Cause:** The vesting schedule's start date is before the lock was created, or either the start or end date falls after the lock's unlock date. The contract requires the entire vesting window to sit within `[created_at, unlock_at]`.
+
+**Fix:** Set the vesting start date to today (or later) and keep the vesting end date at or before the unlock date you chose. Adjust the unlock date first if you need a longer vesting window.
+
+---
+
+### DuplicateBeneficiary
+
+**Cause:** The same beneficiary address was listed more than once when creating a split (multi-beneficiary) lock.
+
+**Fix:** Review the beneficiary list and remove the duplicate row so each address appears exactly once. If you want one address to receive a larger share, increase its share percentage instead of adding it twice.
+
+---
+
+### AlreadyInitialized
+
+**Cause:** The contract's `init(admin)` entry point was called a second time. The contract can only be initialized once, immediately after deployment.
+
+**Fix:** No action is needed for regular users — the contract was already set up correctly during deployment. If you are the deployer and see this unexpectedly, it means initialization already succeeded in a previous call.
+
+---
+
+### InvalidPoolTokens
+
+**Cause:** The LP-locker contract queried the pool share contract's own `token_a()` / `token_b()` getters and found they don't match the `tokenA` / `tokenB` addresses you supplied when creating the LP lock.
+
+**Fix:** Double-check that the pool share address and the token A/B addresses all belong to the same liquidity pool. Copy the token addresses directly from the DEX's pool page rather than typing them by hand.
+
+---
+
+### NoPendingUpgrade
+
+**Cause:** An attempt was made to execute or cancel a contract upgrade, but no upgrade has been proposed via `propose_upgrade`.
+
+**Fix:** No action is needed if you are a regular user — this is an admin-only operation. If you are administering the contract, call `propose_upgrade` first before trying to execute or cancel one.
+
+---
+
+### TimelockNotElapsed
+
+**Cause:** A contract upgrade was proposed, but the mandatory timelock delay (`UPGRADE_DELAY`) between proposing and executing the upgrade has not yet passed.
+
+**Fix:** Wait until the proposal's `execute_after` timestamp has passed, then retry `execute_upgrade`. This delay is a safety mechanism and cannot be bypassed.
 
 ---
 

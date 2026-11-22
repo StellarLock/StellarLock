@@ -22,14 +22,6 @@ vi.mock("@/lib/token-locker", async (importOriginal) => {
   }
 })
 
-vi.mock("@/lib/stellar", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/lib/stellar")>()
-  return {
-    ...actual,
-    submitTokenApproval: vi.fn().mockResolvedValue(undefined),
-  }
-})
-
 // CreateTokenLockForm sources its balance from useTokenBalanceSWR, not
 // useTokenBalance from @/hooks/useLocks — mocked separately below with the
 // shape the hook actually returns (stroops bigint, isLoading/isRevalidating).
@@ -40,15 +32,6 @@ vi.mock("@/hooks/useTokenBalanceSWR", () => ({
     isRevalidating: false,
     refetch: vi.fn(),
     clear: vi.fn(),
-  })),
-}))
-
-vi.mock("@/hooks/useLocks", () => ({
-  useTokenAllowance: vi.fn(() => ({
-    data: 10000,
-    loading: false,
-    error: null,
-    reload: vi.fn(),
   })),
 }))
 

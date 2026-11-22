@@ -112,6 +112,18 @@ describe("mapIndexerLocks token metadata (#697)", () => {
     expect(mockGetOnChainTokenMeta).toHaveBeenCalledTimes(2)
   })
 
+  // #1079: indexer ids are namespaced (`token:1000`, `lp:5000`); the frontend
+  // Lock.id must be the bare on-chain id so /app/lock/${kind}/${id} resolves.
+  it("strips the kind: prefix from a namespaced indexer id", async () => {
+    const [lock] = await mapIndexerLocks([dto({ id: "token:1000", kind: "token" })])
+    expect(lock.id).toBe("1000")
+  })
+
+  it("leaves an already-bare id unchanged", async () => {
+    const [lock] = await mapIndexerLocks([dto({ id: "1000", kind: "token" })])
+    expect(lock.id).toBe("1000")
+  })
+
   it("converts timestamps to ms and defaults extendedCount to 0", async () => {
     const [lock] = await mapIndexerLocks([dto()])
 
@@ -184,6 +196,26 @@ describe("mapIndexerLocksPageToSummary (#698)", () => {
 
     expect(summary!.activeLocks).toBe(1)
     expect(summary!.nextUnlockAt).toBeNull()
+  })
+
+  // #1080: totalLocked must reflect remaining (amount - released), not the
+  // full original amount, for a partially vested lock.
+  it("subtracts cumulative released from a partially vested lock's contribution to totalLocked", async () => {
+    const summary = await mapIndexerLocksPageToSummary({
+      total: 1,
+      locks: [dto({ amount: "1000000", released: "400000" })], // 1.0 - 0.4 = 0.6 (6-decimal token)
+    })
+
+    expect(summary!.totalLocked).toBe(0.6)
+  })
+
+  it("treats a missing released field as zero", async () => {
+    const summary = await mapIndexerLocksPageToSummary({
+      total: 1,
+      locks: [dto({ amount: "1000000" })],
+    })
+
+    expect(summary!.totalLocked).toBe(1)
   })
 
   it("reports zero totals when every token lock is withdrawn", async () => {

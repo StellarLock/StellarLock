@@ -98,7 +98,6 @@ vi.mock("@/hooks/useLocks", () => ({
   useLocksByToken: () => ({ data: null, loading: false, error: null }),
   useLockCountByToken: () => ({ data: 0, loading: false }),
   useTokenBalance: () => ({ data: null, loading: false }),
-  useTokenAllowance: () => ({ data: null, loading: false }),
   useDiscoverStats: () => ({
     data: {
       source: "mock",

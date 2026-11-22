@@ -23,18 +23,11 @@ vi.mock("@/hooks/WalletProvider", () => ({
 
 vi.mock("@/lib/lp-locker", () => ({
   createLpLock: vi.fn().mockResolvedValue({ id: "2", txHash: "mock-tx-hash" }),
-  submitTokenApproval: vi.fn().mockResolvedValue(undefined),
 }))
 
 vi.mock("@/hooks/useLocks", () => ({
   useTokenBalance: vi.fn(() => ({
     data: 1000,
-    loading: false,
-    error: null,
-    reload: vi.fn(),
-  })),
-  useTokenAllowance: vi.fn(() => ({
-    data: 10000,
     loading: false,
     error: null,
     reload: vi.fn(),

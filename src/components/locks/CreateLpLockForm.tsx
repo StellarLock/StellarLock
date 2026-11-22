@@ -16,8 +16,8 @@ import type { StructuredError } from "@/lib/errors"
 import { TxErrorAlert } from "@/components/ui/TxErrorAlert"
 import { useAnnouncer } from "@/hooks/useAnnouncer"
 import { useWallet } from "@/hooks/useWallet"
-import { useTokenBalance, useTokenAllowance } from "@/hooks/useLocks"
-import { createLpLock, submitTokenApproval } from "@/lib/lp-locker"
+import { useTokenBalance } from "@/hooks/useLocks"
+import { createLpLock } from "@/lib/lp-locker"
 import { CONTRACTS, type TxPhase } from "@/lib/stellar"
 import { trackEvent } from "@/lib/analytics"
 import { addTransaction } from "@/lib/transaction-history"
@@ -46,7 +46,6 @@ export function CreateLpLockForm() {
   const [amount, setAmount] = useState("")
   const [unlockDate, setUnlockDate] = useState("")
   const [submitting, setSubmitting] = useState(false)
-  const [approving, setApproving] = useState(false)
   const [txPhase, setTxPhase] = useState<TxPhase | "idle">("idle")
   const [showConfirm, setShowConfirm] = useState(false)
   const [error, setError] = useState<StructuredError | null>(null)
@@ -90,9 +89,6 @@ export function CreateLpLockForm() {
   // Single source of truth for this form's validity — the same module backs
   // CreateTokenLockForm, so the two forms can't drift apart. Memoized because
   // FormValidationErrors keys its screen-reader announcement off the result.
-  //
-  // `allowance` is deliberately not passed: a low allowance is recoverable from
-  // the confirm modal's Approve button, so it must not block reaching it.
   const validation = useMemo(
     () =>
       validateLpLockForm({
@@ -123,11 +119,6 @@ export function CreateLpLockForm() {
 
   const validPoolShareAddress = hasIssue("poolShareAddress") ? undefined : trimmedPoolShareAddress
   const { data: balance, loading: balanceLoading } = useTokenBalance(validPoolShareAddress, address ?? null)
-  const { data: allowance, loading: allowanceLoading } = useTokenAllowance(
-    validPoolShareAddress,
-    address ?? null,
-    CONTRACTS.lpLocker,
-  )
   // Build the contract args for cost estimation when form is sufficiently filled in
   const costArgs = useMemo((): xdr.ScVal[] | null => {
     try {
@@ -165,7 +156,7 @@ export function CreateLpLockForm() {
   // Sanitize before display so raw RPC/Soroban text never reaches the UI, and
   // announce the failure for screen readers.
   function reportFailure(err: unknown) {
-    const structured = sanitizeError(err)
+    const structured = sanitizeError(err, "lp-locker")
     setError(structured)
     announce(`${t(structured.title)}. ${t(structured.message)}`, "assertive")
   }
@@ -218,26 +209,6 @@ export function CreateLpLockForm() {
     } finally {
       setSubmitting(false)
       setTxPhase("idle")
-    }
-  }
-
-  async function handleApprove() {
-    setApproving(true)
-    try {
-      await submitTokenApproval(
-        poolShareAddress.trim(),
-        address!,
-        CONTRACTS.lpLocker,
-        Number(amount),
-        address!,
-        signTransaction,
-      )
-      trackEvent("token_approve")
-    } catch (err: unknown) {
-      log.error("[approve error]", err)
-      reportFailure(err)
-    } finally {
-      setApproving(false)
     }
   }
 
@@ -340,7 +311,7 @@ export function CreateLpLockForm() {
           </div>
           {validPoolShareAddress && (
             <span className="flex items-center gap-1 text-xs text-muted-foreground">
-              {balanceLoading || allowanceLoading ? (
+              {balanceLoading ? (
                 <Loader2 className="h-3 w-3 animate-spin" />
               ) : balance != null ? (
                 <>Balance: {balance.toLocaleString(undefined, { maximumFractionDigits: 7 })}</>
@@ -503,14 +474,10 @@ export function CreateLpLockForm() {
               dex: dex,
               poolShareAddress: poolShareAddress.trim(),
               balance,
-              allowance,
-              needsApproval: allowance != null && allowance < Number(amount),
             }}
             onConfirm={() => void confirmLock()}
-            onApprove={() => void handleApprove()}
             onCancel={() => setShowConfirm(false)}
             loading={submitting}
-            approving={approving}
           />
           <div className="fixed bottom-6 left-1/2 z-50 w-full max-w-sm -translate-x-1/2 px-4">
             <TxProgressSteps phase={txPhase} />

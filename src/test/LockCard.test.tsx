@@ -5,7 +5,7 @@ import userEvent from "@testing-library/user-event"
 import { render } from "./utils"
 import { LockCard } from "@/components/locks/LockCard"
 import { mockLock, mockLpLock, VALID_PUBLIC_KEY } from "./mocks"
-import type { Lock } from "@/types/lock"
+import { lockKey, type Lock } from "@/types/lock"
 
 vi.mock("@/hooks/useWallet", () => ({
   useWallet: vi.fn(),
@@ -156,13 +156,13 @@ describe("LockCard", () => {
       expect(checkbox).toBeChecked()
     })
 
-    it("calls onSelect with the lock id and new checked value when checkbox changes", async () => {
+    it("calls onSelect with the lock's kind:id key and new checked value when checkbox changes", async () => {
       const user = userEvent.setup()
       const onSelect = vi.fn()
       render(<LockCard lock={mockLock} selectable selected={false} onSelect={onSelect} />)
       const checkbox = getSelectCheckboxInput()
       await user.click(checkbox)
-      expect(onSelect).toHaveBeenCalledWith(mockLock.id, true)
+      expect(onSelect).toHaveBeenCalledWith(lockKey(mockLock), true)
     })
 
     it("calls onSelect when the card wrapper is clicked in selectable mode", async () => {
@@ -181,7 +181,7 @@ describe("LockCard", () => {
       const wrapper = document.querySelector('[role="checkbox"][tabindex="0"]') as HTMLElement
       wrapper.focus()
       await user.keyboard(" ")
-      expect(onSelect).toHaveBeenCalledWith(mockLock.id, true)
+      expect(onSelect).toHaveBeenCalledWith(lockKey(mockLock), true)
     })
 
     it("renders wrapper as checkbox role with aria-checked when selectable", () => {

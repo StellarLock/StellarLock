@@ -35,13 +35,13 @@ jobs:
         working-directory: contracts/${{ matrix.contract }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@b3b07ba8b418998c39fb20f53e8b695cdcc8de1b # stable @ 2026-11-15
 
       - name: Rust Cache
-        uses: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@9d47c6ad15e7e8b75ac0c1b9d8ba96f4e2b22ea7 # v2.7.8
         with:
           workspaces: ./contracts
 
@@ -110,7 +110,7 @@ jobs:
 
       - name: Upload mutation testing report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6098a580494f7e56b65f4b8e1b6ea # v4.6.2
         with:
           name: mutants-report-${{ matrix.contract }}
           path: contracts/${{ matrix.contract }}/mutants.out

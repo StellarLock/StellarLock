@@ -47,7 +47,7 @@ describe("LanguageSelector Component", () => {
 
     await user.click(screen.getByRole("button", { name: /select language/i }))
 
-    for (const label of ["English", "Español", "한국어", "Türkçe", "中文"]) {
+    for (const label of ["English", "Español", "한국어", "Türkçe", "中文", "العربية"]) {
       expect(screen.getByRole("menuitem", { name: label })).toBeInTheDocument()
     }
   })

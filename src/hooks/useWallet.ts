@@ -14,6 +14,8 @@ export interface WalletContextValue {
   dismissDisconnectAlert: () => void
   dismissNetworkAlert: () => void
   signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>
+  /** Sign an arbitrary message (SEP-53) with the connected wallet; resolves to the base64 signature. */
+  signMessage: (message: string) => Promise<string>
 }
 
 export const WalletContext = createContext<WalletContextValue | null>(null)

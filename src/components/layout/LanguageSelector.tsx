@@ -9,6 +9,7 @@ const languages = [
   { code: "ko", label: "한국어" },
   { code: "tr", label: "Türkçe" },
   { code: "zh", label: "中文" },
+  { code: "ar", label: "العربية" },
 ]
 
 export function LanguageSelector() {

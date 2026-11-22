@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom"
 import { ArrowRight, Repeat } from "lucide-react"
 import { useTranslation } from "react-i18next"
-import type { Lock } from "@/types/lock"
+import { lockKey, type Lock } from "@/types/lock"
 import { Card } from "@/components/ui/Card"
 import { StatusBadge } from "@/components/ui/StatusBadge"
 import { DexBadge } from "@/components/ui/DexBadge"
@@ -16,7 +16,9 @@ interface LockTableRowProps {
   lock: Lock
   selectable: boolean
   selected: boolean
-  onSelect: (id: string, checked: boolean) => void
+  // Keyed by `${kind}:${id}` (see lockKey()) — bare ids collide across
+  // token-locker and LP-locker's independent id counters (#1081).
+  onSelect: (key: string, checked: boolean) => void
 }
 
 function LockTableRow({ lock, selectable, selected, onSelect }: LockTableRowProps) {
@@ -30,10 +32,10 @@ function LockTableRow({ lock, selectable, selected, onSelect }: LockTableRowProp
         selected ? "bg-primary/5" : "hover:bg-secondary/40",
         selectable && "cursor-pointer",
       )}
-      onClick={selectable ? () => onSelect(lock.id, !selected) : undefined}
+      onClick={selectable ? () => onSelect(lockKey(lock), !selected) : undefined}
       aria-selected={selectable ? selected : undefined}
       tabIndex={selectable ? 0 : undefined}
-      onKeyDown={selectable ? (e) => e.key === " " && onSelect(lock.id, !selected) : undefined}
+      onKeyDown={selectable ? (e) => e.key === " " && onSelect(lockKey(lock), !selected) : undefined}
     >
       {selectable && (
         <td className="w-10 px-4 py-3.5">
@@ -42,7 +44,7 @@ function LockTableRow({ lock, selectable, selected, onSelect }: LockTableRowProp
             checked={selected}
             onChange={(e) => {
               e.stopPropagation()
-              onSelect(lock.id, e.target.checked)
+              onSelect(lockKey(lock), e.target.checked)
             }}
             onClick={(e) => e.stopPropagation()}
             className="h-4 w-4 accent-[oklch(0.78_0.16_175)] cursor-pointer"
@@ -127,8 +129,10 @@ function LockTableRow({ lock, selectable, selected, onSelect }: LockTableRowProp
 interface LockTableProps {
   locks: Lock[]
   selectable?: boolean
+  // Keyed by `${kind}:${id}` (see lockKey()) — bare ids collide across
+  // token-locker and LP-locker's independent id counters (#1081).
   selectedIds?: Set<string>
-  onSelect?: (id: string, checked: boolean) => void
+  onSelect?: (key: string, checked: boolean) => void
 }
 
 export function LockTable({ locks, selectable = false, selectedIds = new Set(), onSelect = () => {} }: LockTableProps) {
@@ -182,10 +186,10 @@ export function LockTable({ locks, selectable = false, selectedIds = new Set(), 
           <tbody>
             {locks.map((lock) => (
               <LockTableRow
-                key={lock.id}
+                key={lockKey(lock)}
                 lock={lock}
                 selectable={selectable}
-                selected={selectedIds.has(lock.id)}
+                selected={selectedIds.has(lockKey(lock))}
                 onSelect={onSelect}
               />
             ))}

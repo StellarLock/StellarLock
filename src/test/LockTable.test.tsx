@@ -5,7 +5,7 @@ import userEvent from "@testing-library/user-event"
 import { render } from "./utils"
 import { LockTable } from "@/components/locks/LockTable"
 import { mockLock, mockLpLock, VALID_PUBLIC_KEY } from "./mocks"
-import type { Lock } from "@/types/lock"
+import { lockKey, type Lock } from "@/types/lock"
 
 vi.mock("@/hooks/useWallet", () => ({
   useWallet: vi.fn(),
@@ -125,18 +125,18 @@ describe("LockTable", () => {
       expect(screen.queryByRole("link", { name: new RegExp(`lock ${mockLock.id}`, "i") })).not.toBeInTheDocument()
     })
 
-    it("marks a row's checkbox as checked when its id is in selectedIds", () => {
-      render(<LockTable locks={[mockLock]} selectable selectedIds={new Set([mockLock.id])} />)
+    it("marks a row's checkbox as checked when its kind:id key is in selectedIds", () => {
+      render(<LockTable locks={[mockLock]} selectable selectedIds={new Set([lockKey(mockLock)])} />)
       expect(screen.getByRole("checkbox", { name: `Select lock ${mockLock.id}` })).toBeChecked()
     })
 
-    it("calls onSelect with the lock id and new checked value when a row's checkbox is clicked", async () => {
+    it("calls onSelect with the lock's kind:id key and new checked value when a row's checkbox is clicked", async () => {
       const user = userEvent.setup()
       const onSelect = vi.fn()
       render(<LockTable locks={[mockLock]} selectable onSelect={onSelect} />)
       const checkbox = screen.getByRole("checkbox", { name: `Select lock ${mockLock.id}` })
       await user.click(checkbox)
-      expect(onSelect).toHaveBeenCalledWith(mockLock.id, true)
+      expect(onSelect).toHaveBeenCalledWith(lockKey(mockLock), true)
     })
 
     it("calls onSelect when the row itself is clicked", async () => {
@@ -146,22 +146,44 @@ describe("LockTable", () => {
       // Row 0 is the header row; row 1 is the first (and only) data row.
       const dataRow = screen.getAllByRole("row")[1]
       await user.click(dataRow)
-      expect(onSelect).toHaveBeenCalledWith(mockLock.id, true)
+      expect(onSelect).toHaveBeenCalledWith(lockKey(mockLock), true)
     })
 
     it("toggles off via onSelect when an already-selected row is clicked", async () => {
       const user = userEvent.setup()
       const onSelect = vi.fn()
-      render(<LockTable locks={[mockLock]} selectable selectedIds={new Set([mockLock.id])} onSelect={onSelect} />)
+      render(
+        <LockTable locks={[mockLock]} selectable selectedIds={new Set([lockKey(mockLock)])} onSelect={onSelect} />,
+      )
       const dataRow = screen.getAllByRole("row")[1]
       await user.click(dataRow)
-      expect(onSelect).toHaveBeenCalledWith(mockLock.id, false)
+      expect(onSelect).toHaveBeenCalledWith(lockKey(mockLock), false)
     })
 
     it("marks the selected row with aria-selected", () => {
-      render(<LockTable locks={[mockLock]} selectable selectedIds={new Set([mockLock.id])} />)
+      render(<LockTable locks={[mockLock]} selectable selectedIds={new Set([lockKey(mockLock)])} />)
       const dataRow = screen.getAllByRole("row")[1]
       expect(dataRow).toHaveAttribute("aria-selected", "true")
+    })
+
+    // #1081: token-locker and LP-locker ids are independent counters and can
+    // collide (e.g. token lock id 5000 and LP lock id 5000). A Set keyed by
+    // bare id would make selecting one also mark the other as selected.
+    it("does not conflate a token lock and an LP lock that share the same bare id", () => {
+      const tokenLock: Lock = { ...mockLock, id: "5000", kind: "token" }
+      const lpLock: Lock = { ...mockLpLock, id: "5000", kind: "lp" }
+      render(
+        <LockTable
+          locks={[tokenLock, lpLock]}
+          selectable
+          selectedIds={new Set([lockKey(tokenLock)])}
+          onSelect={() => {}}
+        />,
+      )
+      const checkboxes = screen.getAllByRole("checkbox", { name: "Select lock 5000" })
+      expect(checkboxes).toHaveLength(2)
+      expect(checkboxes[0]).toBeChecked()
+      expect(checkboxes[1]).not.toBeChecked()
     })
   })
 

@@ -912,6 +912,7 @@ impl TokenLocker {
             .ok_or(ContractError::NotInitialized)?;
         admin.require_auth();
         let execute_after = env.ledger().timestamp() + UPGRADE_DELAY;
+        let event_wasm_hash = new_wasm_hash.clone();
         let proposal = UpgradeProposal {
             new_wasm_hash,
             execute_after,
@@ -922,8 +923,14 @@ impl TokenLocker {
         env.storage()
             .instance()
             .extend_ttl(INSTANCE_THRESHOLD, INSTANCE_BUMP);
-        env.events()
-            .publish((Symbol::new(&env, "upgrade_proposed"), execute_after), ());
+        env.events().publish(
+            (
+                Symbol::new(&env, "upgrade_proposed"),
+                execute_after,
+                event_wasm_hash,
+            ),
+            (),
+        );
         Ok(())
     }
 

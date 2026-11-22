@@ -6,7 +6,6 @@ import {
   useLockCountByToken,
   useMyLocks,
   useTokenBalance,
-  useTokenAllowance,
   useDiscoverStats,
 } from "@/hooks/useLocks"
 
@@ -16,7 +15,6 @@ import {
 
 vi.mock("@/lib/stellar", () => ({
   getTokenBalance: vi.fn(),
-  getTokenAllowance: vi.fn(),
 }))
 
 vi.mock("@/lib/token-locker", () => ({
@@ -56,7 +54,7 @@ vi.mock("@/lib/token-metadata", () => ({
 // Import mocked modules
 // ---------------------------------------------------------------------------
 
-import { getTokenBalance, getTokenAllowance } from "@/lib/stellar"
+import { getTokenBalance } from "@/lib/stellar"
 import {
   getLock,
   getLocksByToken,
@@ -88,7 +86,6 @@ import {
 const TOKEN_ADDRESS = "CBFCKEOQRQIXKLGU4QBUQVOINOKFBOXJ37LXEKLKNUO6TW4FNGDU26AW"
 const CREATOR = "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF"
 const BENEFICIARY = "GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
-const SPENDER = "GCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"
 
 const mockToken = {
   address: TOKEN_ADDRESS,
@@ -411,38 +408,6 @@ describe("useTokenBalance", () => {
 })
 
 // ---------------------------------------------------------------------------
-// useTokenAllowance
-// ---------------------------------------------------------------------------
-
-describe("useTokenAllowance", () => {
-  it("returns null when any argument is missing", async () => {
-    const { result } = renderHook(() => useTokenAllowance(undefined, CREATOR, SPENDER))
-    await waitFor(() => expect(result.current.loading).toBe(false))
-    expect(result.current.data).toBeNull()
-    expect(getTokenAllowance).not.toHaveBeenCalled()
-  })
-
-  it("returns the allowance when all args are provided", async () => {
-    vi.mocked(getTokenAllowance).mockResolvedValue(9999)
-
-    const { result } = renderHook(() => useTokenAllowance(TOKEN_ADDRESS, CREATOR, SPENDER))
-    await waitFor(() => expect(result.current.loading).toBe(false))
-
-    expect(result.current.data).toBe(9999)
-    expect(getTokenAllowance).toHaveBeenCalledWith(TOKEN_ADDRESS, CREATOR, SPENDER)
-  })
-
-  it("sets error on fetch failure", async () => {
-    vi.mocked(getTokenAllowance).mockRejectedValue(new Error("allowance error"))
-
-    const { result } = renderHook(() => useTokenAllowance(TOKEN_ADDRESS, CREATOR, SPENDER))
-    await waitFor(() => expect(result.current.loading).toBe(false))
-
-    expect(result.current.error).toBe("allowance error")
-  })
-})
-
-// ---------------------------------------------------------------------------
 // useDiscoverStats
 // ---------------------------------------------------------------------------
 
@@ -450,7 +415,6 @@ describe("useDiscoverStats", () => {
   it("returns indexer-sourced stats when indexer is available", async () => {
     const mockStats = {
       totalLocks: 100,
-      totalValue: "0",
       uniqueTokens: 5,
       topTokens: [],
       recentLocks: [],

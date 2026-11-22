@@ -37,5 +37,10 @@
       "symbol": "yXLM",
       "name": "Yield XLM"
     }
-  ]
+  ],
+  "pools": {
+    "_comment": "Curated list of known Aquarius/Soroswap pool-share (LP token) contracts. Pool verification primarily queries the DEX factory (Aquarius/Soroswap) to confirm a pool_share is a genuine LP token; this list supplements that check for known pools and acts as a fallback when the factory lookup is unavailable. Entries: { address, dex, name }.",
+    "testnet": [],
+    "mainnet": []
+  }
 }

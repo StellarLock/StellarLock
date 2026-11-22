@@ -4,7 +4,7 @@ import { Plus, Wallet, Layers, Search, CheckSquare, LayoutGrid, Table2, Download
 import { Helmet } from "react-helmet-async"
 import { useTranslation } from "react-i18next"
 import { useWallet } from "@/hooks/useWallet"
-import { ALL_LOCKS_LIMIT, useMyLocks, useMyLocksStats } from "@/hooks/useLocks"
+import { ALL_LOCKS_LIMIT, useMyLocks } from "@/hooks/useLocks"
 import { extendLock, transferBeneficiary } from "@/lib/token-locker"
 import { extendLpLock, transferLpBeneficiary } from "@/lib/lp-locker"
 import { exportToCSV, exportToJSON } from "@/lib/export"
@@ -19,7 +19,7 @@ import { BulkConfirmModal } from "@/components/locks/BulkConfirmModal"
 import { ConnectGate } from "@/components/layout/ConnectGate"
 import { SkeletonLockCard, SkeletonStatCard } from "@/components/ui/Skeleton"
 import { cn, formatUsd } from "@/lib/utils"
-import type { Lock, LockStatus } from "@/types/lock"
+import { lockKey, type Lock, type LockStatus } from "@/types/lock"
 
 type Tab = "created" | "received"
 type SortKey = "unlockAt" | "amount" | "createdAt"
@@ -54,7 +54,6 @@ export function MyLocks() {
   // Fetch the full lock set so search/status/kind filters apply across every
   // lock, not just the current page; pagination is done client-side below.
   const { data, loading, error, reload } = useMyLocks(address, 0, ALL_LOCKS_LIMIT)
-  const { data: statsData, loading: statsLoading } = useMyLocksStats(address)
   const [tab, setTab] = useState<Tab>("created")
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState<LockStatus | "all">("all")
@@ -74,13 +73,20 @@ export function MyLocks() {
   const totalCreated = data?.totalCreated ?? 0
   const totalReceived = data?.totalReceived ?? 0
 
+  // Derived from the already-fetched `created` list (see `useMyLocks` above)
+  // instead of a second `queryMyLocks` call — the previous `useMyLocksStats`
+  // hook re-ran the same 8-simulation + USD-enrichment query a second time
+  // on every page load, doubling RPC work for no new data (issue #1083).
   const stats = useMemo(() => {
+    const now = Date.now()
+    const totalValue = created.reduce((sum, l) => sum + l.usdValue, 0)
+    const unlockable = created.filter((l) => l.unlockAt <= now && l.status !== "withdrawn").length
     return {
       count: totalCreated,
-      totalValue: statsData?.totalValue ?? 0,
-      unlockable: statsData?.unlockable ?? 0,
+      totalValue,
+      unlockable,
     }
-  }, [totalCreated, statsData])
+  }, [created, totalCreated])
 
   const rawList = tab === "created" ? created : received
 
@@ -119,15 +125,21 @@ export function MyLocks() {
     [filteredList, currentPage],
   )
 
-  const selectedLocks = useMemo(() => filteredList.filter((l) => selectedIds.has(l.id)), [filteredList, selectedIds])
+  // selectedIds holds `${kind}:${id}` composite keys (see lockKey()), not bare
+  // lock ids — token-locker and LP-locker ids are independent counters and can
+  // collide once token ids pass 5000 (#1081).
+  const selectedLocks = useMemo(
+    () => filteredList.filter((l) => selectedIds.has(lockKey(l))),
+    [filteredList, selectedIds],
+  )
 
-  const allSelected = pagedList.length > 0 && pagedList.every((l) => selectedIds.has(l.id))
+  const allSelected = pagedList.length > 0 && pagedList.every((l) => selectedIds.has(lockKey(l)))
 
-  function toggleSelect(id: string, checked: boolean) {
+  function toggleSelect(key: string, checked: boolean) {
     setSelectedIds((prev) => {
       const next = new Set(prev)
-      if (checked) next.add(id)
-      else next.delete(id)
+      if (checked) next.add(key)
+      else next.delete(key)
       return next
     })
   }
@@ -136,7 +148,7 @@ export function MyLocks() {
     if (allSelected) {
       setSelectedIds(new Set())
     } else {
-      setSelectedIds(new Set(pagedList.map((l) => l.id)))
+      setSelectedIds(new Set(pagedList.map(lockKey)))
     }
   }
 
@@ -177,7 +189,7 @@ export function MyLocks() {
       const newUnlockSecs = Math.floor(new Date(newDate).getTime() / 1000)
       for (const lock of selectedLocks) {
         if (Math.floor(lock.unlockAt / 1000) >= newUnlockSecs) {
-          onItemSettled(lock.id, { status: "success" })
+          onItemSettled(lockKey(lock), { status: "success" })
           continue
         }
         try {
@@ -186,9 +198,9 @@ export function MyLocks() {
           } else {
             await extendLock(lock.id, newUnlockSecs, address!, signTransaction)
           }
-          onItemSettled(lock.id, { status: "success" })
+          onItemSettled(lockKey(lock), { status: "success" })
         } catch {
-          onItemSettled(lock.id, { status: "error", error: "Extend failed" })
+          onItemSettled(lockKey(lock), { status: "error", error: "Extend failed" })
         }
       }
       reload()
@@ -209,9 +221,9 @@ export function MyLocks() {
           } else {
             await transferBeneficiary(lock.id, newBeneficiary.trim(), address!, signTransaction)
           }
-          onItemSettled(lock.id, { status: "success" })
+          onItemSettled(lockKey(lock), { status: "success" })
         } catch {
-          onItemSettled(lock.id, { status: "error", error: "Transfer failed" })
+          onItemSettled(lockKey(lock), { status: "error", error: "Transfer failed" })
         }
       }
       reload()
@@ -223,8 +235,8 @@ export function MyLocks() {
   return (
     <ConnectGate title={t("connectGate.title")}>
       <Helmet>
-        <title>My Locks | StellarLock</title>
-        <meta name="description" content="Manage and withdraw your locked token and LP positions on StellarLock." />
+        <title>{t("myLocks.pageTitle")}</title>
+        <meta name="description" content={t("myLocks.pageDescription")} />
       </Helmet>
       <div className="mx-auto max-w-6xl px-4 py-10 md:px-6">
         <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -280,7 +292,7 @@ export function MyLocks() {
         </header>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-3">
-          {loading || statsLoading ? (
+          {loading ? (
             <>
               <SkeletonStatCard />
               <SkeletonStatCard />
@@ -468,8 +480,10 @@ function LockListView({
   tab: Tab
   hasFilters: boolean
   selectable: boolean
+  // Keyed by `${kind}:${id}` (see lockKey()) — bare ids collide across
+  // token-locker and LP-locker's independent id counters (#1081).
   selectedIds: Set<string>
-  onSelect: (id: string, checked: boolean) => void
+  onSelect: (key: string, checked: boolean) => void
   viewMode: ViewMode
 }) {
   const { t } = useTranslation()
@@ -539,10 +553,10 @@ function LockListView({
     <div className="mt-6 grid gap-4 md:grid-cols-2">
       {locks.map((lock) => (
         <LockCard
-          key={lock.id}
+          key={lockKey(lock)}
           lock={lock}
           selectable={selectable}
-          selected={selectedIds.has(lock.id)}
+          selected={selectedIds.has(lockKey(lock))}
           onSelect={onSelect}
         />
       ))}

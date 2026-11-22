@@ -1,5 +1,69 @@
 import { NETWORK } from "@/lib/stellar"
 
+// The two StellarLock contracts assign different numbers to the same-named
+// error variant (e.g. CanOnlyExtend is #6 on token-locker but #5 on
+// lp-locker), so a numeric-only RPC error like "Error(Contract, #5)" can only
+// be resolved correctly once the caller says which contract it came from.
+export type ContractKind = "token-locker" | "lp-locker"
+
+// Mirrors contracts/token-locker/src/lib.rs's `ContractError` enum.
+const TOKEN_LOCKER_ERROR_CODES: Record<number, string> = {
+  1: "AmountMustBePositive",
+  2: "UnlockMustBeFuture",
+  3: "AlreadyWithdrawn",
+  4: "StillLocked",
+  5: "NothingToRelease",
+  6: "CanOnlyExtend",
+  7: "VestingEndBeforeStart",
+  8: "TooFewBeneficiaries",
+  9: "TooManyBeneficiaries",
+  10: "SharesMustSum10000",
+  11: "RateLimitExceeded",
+  12: "AmountOverflow",
+  13: "NoPendingAdmin",
+  14: "NotPendingAdmin",
+  15: "NotAdmin",
+  16: "NotInitialized",
+  19: "ReentrancyDetected",
+  20: "LockNotFound",
+  21: "ContractPaused",
+  22: "ExtensionLimitExceeded",
+  23: "LockDurationTooShort",
+  24: "LockDurationTooLong",
+}
+
+// Mirrors contracts/lp-locker/src/lib.rs's `ContractError` enum — note several
+// codes differ from token-locker's above even though the variant names match.
+const LP_LOCKER_ERROR_CODES: Record<number, string> = {
+  1: "AmountMustBePositive",
+  2: "UnlockMustBeFuture",
+  3: "AlreadyWithdrawn",
+  4: "StillLocked",
+  5: "CanOnlyExtend",
+  7: "NoPendingAdmin",
+  8: "NotPendingAdmin",
+  9: "ReentrancyDetected",
+  10: "AmountOverflow",
+  11: "LockNotFound",
+  12: "TooFewBeneficiaries",
+  13: "TooManyBeneficiaries",
+  14: "SharesMustSum10000",
+  15: "VestingEndBeforeStart",
+  16: "NothingToRelease",
+  17: "RateLimitExceeded",
+  20: "IdenticalTokens",
+  21: "ContractPaused",
+  22: "ExtensionLimitExceeded",
+  23: "LockDurationTooShort",
+  24: "LockDurationTooLong",
+  25: "NotInitialized",
+}
+
+const CONTRACT_ERROR_CODES_BY_KIND: Record<ContractKind, Record<number, string>> = {
+  "token-locker": TOKEN_LOCKER_ERROR_CODES,
+  "lp-locker": LP_LOCKER_ERROR_CODES,
+}
+
 export interface StructuredError {
   code: string
   title: string
@@ -12,7 +76,11 @@ export interface StructuredError {
 // Map Soroban contract error codes → structured errors.
 // Every variant in the Rust ContractError enum must have a corresponding entry
 // here so users see a meaningful message instead of the generic fallback.
-const CONTRACT_ERRORS: Record<string, Omit<StructuredError, "code">> = {
+// Exported (read-only, in spirit) so tests — notably the contract-error
+// coverage test in src/test/contract-error-coverage.test.ts — can assert
+// every Rust ContractError variant has an entry here, without duplicating
+// this map or going through parseError's regex matching indirectly.
+export const CONTRACT_ERRORS: Record<string, Omit<StructuredError, "code">> = {
   AmountMustBePositive: {
     title: "errors.amountMustBePositive.title",
     message: "errors.amountMustBePositive.message",
@@ -176,6 +244,49 @@ const CONTRACT_ERRORS: Record<string, Omit<StructuredError, "code">> = {
     link: null,
     i18nKey: "errors.contractPaused",
   },
+  // --- Previously missing contract error variants (#1067) ---
+  VestingOutsideLockBounds: {
+    title: "errors.vestingOutsideLockBounds.title",
+    message: "errors.vestingOutsideLockBounds.message",
+    recovery: "errors.vestingOutsideLockBounds.recovery",
+    link: null,
+    i18nKey: "errors.vestingOutsideLockBounds",
+  },
+  DuplicateBeneficiary: {
+    title: "errors.duplicateBeneficiary.title",
+    message: "errors.duplicateBeneficiary.message",
+    recovery: "errors.duplicateBeneficiary.recovery",
+    link: null,
+    i18nKey: "errors.duplicateBeneficiary",
+  },
+  AlreadyInitialized: {
+    title: "errors.alreadyInitialized.title",
+    message: "errors.alreadyInitialized.message",
+    recovery: "errors.alreadyInitialized.recovery",
+    link: null,
+    i18nKey: "errors.alreadyInitialized",
+  },
+  InvalidPoolTokens: {
+    title: "errors.invalidPoolTokens.title",
+    message: "errors.invalidPoolTokens.message",
+    recovery: "errors.invalidPoolTokens.recovery",
+    link: null,
+    i18nKey: "errors.invalidPoolTokens",
+  },
+  NoPendingUpgrade: {
+    title: "errors.noPendingUpgrade.title",
+    message: "errors.noPendingUpgrade.message",
+    recovery: "errors.noPendingUpgrade.recovery",
+    link: null,
+    i18nKey: "errors.noPendingUpgrade",
+  },
+  TimelockNotElapsed: {
+    title: "errors.timelockNotElapsed.title",
+    message: "errors.timelockNotElapsed.message",
+    recovery: "errors.timelockNotElapsed.recovery",
+    link: null,
+    i18nKey: "errors.timelockNotElapsed",
+  },
 }
 
 // Map wallet/network errors
@@ -225,20 +336,36 @@ function parseWalletError(err: unknown): StructuredError | null {
   return null
 }
 
-export function parseError(err: unknown): StructuredError {
+export function parseError(err: unknown, contractKind?: ContractKind): StructuredError {
   // Try wallet-level errors first
   const walletErr = parseWalletError(err)
   if (walletErr) return walletErr
 
-  // Try to extract Soroban contract error code. The numeric code alternative
-  // is tried first by the regex engine because it starts earlier in the
-  // string (e.g. "Error(Contract, #1): AmountMustBePositive"), so it must
-  // capture the trailing symbolic name itself rather than leaving that to a
-  // separate alternative — otherwise `code` ends up as the digit string,
-  // which never matches a key in CONTRACT_ERRORS.
   const raw = String((err as { message?: string })?.message ?? "")
-  const match = raw.match(/Error\(Contract,\s*#\d+\)\s*:\s*([A-Za-z]+)|([A-Z][a-zA-Z]+Error|[A-Z][a-zA-Z]+)/)
-  const code = match?.[1] ?? match?.[2] ?? "UNKNOWN"
+
+  // 1. Symbolic contract error, e.g. "Error(Contract, #1): AmountMustBePositive".
+  const symbolicMatch = raw.match(/Error\(Contract,\s*#\d+\)\s*:\s*([A-Za-z]+)/)
+  let code: string | undefined = symbolicMatch?.[1]
+
+  // 2. Numeric-only contract error, e.g. "Error(Contract, #4)" — this is what
+  // real RPC simulation/submission failures usually look like (issue #1066).
+  // The same number means different variants on different contracts, so this
+  // only resolves when the caller tells us which contract raised it.
+  if (!code) {
+    const numericMatch = raw.match(/Error\(Contract,\s*#(\d+)\)/)
+    if (numericMatch && contractKind) {
+      code = CONTRACT_ERROR_CODES_BY_KIND[contractKind][Number(numericMatch[1])]
+    }
+  }
+
+  // 3. Fallback: grab a bare capitalized identifier (e.g. "HostError"). This
+  // essentially never matches a real key in CONTRACT_ERRORS, but it's kept so
+  // behavior is unchanged for messages the two cases above don't recognize.
+  if (!code) {
+    code = raw.match(/([A-Z][a-zA-Z]+Error|[A-Z][a-zA-Z]+)/)?.[1]
+  }
+
+  code = code ?? "UNKNOWN"
 
   if (code in CONTRACT_ERRORS) {
     return { code, ...CONTRACT_ERRORS[code] }

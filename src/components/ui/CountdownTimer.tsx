@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { cn } from "@/lib/utils"
 
@@ -17,17 +17,38 @@ export function CountdownTimer({
   target,
   className,
   compact,
+  onComplete,
 }: {
   target: number
   className?: string
   compact?: boolean
+  /** Called once, the moment the countdown reaches zero (e.g. so a parent can re-render). */
+  onComplete?: () => void
 }) {
   const { t } = useTranslation()
   const [timeLeft, setTimeLeft] = useState(() => diff(target))
+  const onCompleteRef = useRef(onComplete)
+  onCompleteRef.current = onComplete
 
   useEffect(() => {
-    setTimeLeft(diff(target))
-    const id = setInterval(() => setTimeLeft(diff(target)), 1000)
+    let firedComplete = false
+
+    const initial = diff(target)
+    setTimeLeft(initial)
+    if (initial.ms <= 0) {
+      firedComplete = true
+      onCompleteRef.current?.()
+      return
+    }
+
+    const id = setInterval(() => {
+      const next = diff(target)
+      setTimeLeft(next)
+      if (next.ms <= 0 && !firedComplete) {
+        firedComplete = true
+        onCompleteRef.current?.()
+      }
+    }, 1000)
     return () => clearInterval(id)
   }, [target])
 

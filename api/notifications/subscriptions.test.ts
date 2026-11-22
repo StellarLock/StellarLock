@@ -21,6 +21,11 @@ vi.mock('../../indexer/db.js', () => ({
   initDb: vi.fn(),
 }))
 
+// Session auth is exercised separately — treat every request as authenticated.
+vi.mock('../_lib/notification-auth.js', () => ({
+  requireAddressSession: vi.fn(() => true),
+}))
+
 // ---------------------------------------------------------------------------
 // Import handler AFTER mocks are in place.
 // ---------------------------------------------------------------------------

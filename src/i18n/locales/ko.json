@@ -57,7 +57,9 @@
     "ctaTitle": "한 번의 트랜잭션으로 커뮤니티의 신뢰를 얻으세요",
     "ctaDesc": "유동성을 잠그고, 증거를 공유하고, 체인이 대신 말하게 하세요.",
     "ctaButton": "첫 번째 잠금 생성",
-    "step": "단계 {{n}}"
+    "step": "단계 {{n}}",
+    "pageTitle": "StellarLock — Stellar의 토큰 및 LP 잠금",
+    "pageDescription": "Stellar에서 토큰과 유동성을 잠그세요. 공개적이고 검증 가능한 잠금 탐색기로 커뮤니티에 러그풀이 없음을 증명하세요."
   },
   "createLock": {
     "title": "잠금 생성",
@@ -65,7 +67,9 @@
     "modeSimple": "단순",
     "modeWizard": "마법사",
     "tabToken": "토큰 잠금",
-    "tabLp": "LP 잠금"
+    "tabLp": "LP 잠금",
+    "pageTitle": "잠금 생성 | StellarLock",
+    "pageDescription": "Stellar의 불변 Soroban 스마트 컨트랙트에 토큰 또는 LP 포지션을 잠급니다."
   },
   "tokenForm": {
     "tokenAddress": "토큰 컨트랙트 주소",
@@ -167,11 +171,23 @@
     "typeLp": "LP",
     "sortUnlockDate": "정렬: 잠금 해제 날짜",
     "sortAmount": "정렬: 수량",
-    "sortCreated": "정렬: 생성일"
+    "sortCreated": "정렬: 생성일",
+    "selectAll": "모두 선택",
+    "deselectAll": "모두 선택 해제",
+    "selectedCount": "{{count}}개 선택됨",
+    "bulkExtend": "선택 항목 연장",
+    "bulkExtendHint": "선택한 모든 잠금에 동일한 새 잠금 해제 날짜를 적용합니다.",
+    "bulkExtendSuccess": "{{count}}개의 잠금이 연장되었습니다.",
+    "bulkExtendPartial": "{{succeeded}}개의 잠금이 연장되었고 {{failed}}개가 실패했습니다.",
+    "bulkExtendNone": "연장할 잠금을 선택하세요.",
+    "clearSelection": "선택 해제"
+    "pageTitle": "내 잠금 | StellarLock",
+    "pageDescription": "StellarLock에서 잠긴 토큰 및 LP 포지션을 관리하고 인출합니다."
   },
   "lockDetail": {
     "notFoundTitle": "잠금을 찾을 수 없음",
     "notFoundDesc": "id #{{id}}의 잠금을 찾을 수 없습니다.",
+    "archivedNotice": "이 잠금은 오래전에 출금되어 온체인 기록이 만료되었습니다. 위 세부 정보는 잠금 인덱서의 보관 기록에서 가져온 것입니다.",
     "backToLocks": "내 잠금으로 돌아가기",
     "lpLock": "LP 잠금",
     "tokenLock": "토큰 잠금",
@@ -208,9 +224,68 @@
     "vestingProgress": "진행률",
     "vestingTotal": "합계",
     "vestingReleased": "릴리스됨",
-    "vestingClaimable": "청구 가능",
     "lockDetails": "잠금 상세",
-    "projectLogoAlt": "프로젝트 로고"
+    "projectLogoAlt": "프로젝트 로고",
+    "vestingClaimable": "청구 가능",
+    "vestingClaimed": "청구됨",
+    "vestingNextRelease": "다음 릴리스",
+    "vestingNoSchedule": "베스팅 일정이 설정되지 않았습니다.",
+    "vestingCliff": "클리프",
+    "vestingCliffReached": "클리프 도달",
+    "vestingCliffPending": "클리프 대기 중",
+    "vestingClaim": "베스팅된 토큰 청구",
+    "vestingClaimSuccess": "베스팅된 토큰이 청구되었습니다.",
+    "vestingNothingToClaim": "현재 청구할 수 있는 토큰이 없습니다.",
+    "vestingClaimableAmount": "청구 가능: {{amount}} {{symbol}}",
+    "vestingReleasedPercent": "{{percent}}% 릴리스됨",
+    "vestingDuration": "기간",
+    "vestingType": "베스팅 유형",
+    "vestingTypeLinear": "선형",
+    "vestingTypeCliff": "클리프 + 선형",
+    "vestingTypeQuarterly": "분기별",
+    "vestingTypeCustom": "맞춤형",
+    "vestingInfo": "베스팅 일정은 불변입니다. 토큰은 일정에 따라 점진적으로 릴리스됩니다.",
+    "vestingClaimedAmount": "청구됨: {{amount}} {{symbol}}",
+    "vestingRemaining": "남은 베스팅",
+    "vestingComplete": "베스팅 완료",
+    "vestingNotStarted": "베스팅이 아직 시작되지 않았습니다.",
+    "vestingStartsOn": "베스팅 시작일: {{date}}",
+    "vestingEndsOn": "베스팅 종료일: {{date}}",
+    "vestingClaimTooltip": "잠금 해제 날짜 전에 베스팅된 토큰을 청구하세요.",
+    "vestingClaimDisabled": "청구할 수 있는 베스팅된 토큰이 없습니다.",
+    "vestingClaimPending": "청구 중…",
+    "vestingClaimError": "베스팅된 토큰 청구에 실패했습니다. 다시 시도해 주세요.",
+    "vestingClaimRequiresWallet": "베스팅된 토큰을 청구하려면 지갑을 연결하세요.",
+    "vestingClaimNotBeneficiary": "수혜자만 베스팅된 토큰을 청구할 수 있습니다.",
+    "vestingClaimNotStarted": "베스팅이 시작되지 않아 청구할 수 없습니다.",
+    "vestingClaimComplete": "모든 토큰이 이미 청구되었습니다.",
+    "vestingClaimAvailable": "청구 가능한 베스팅된 토큰이 있습니다.",
+    "vestingClaimAvailableAmount": "{{amount}} {{symbol}}을(를) 청구할 수 있습니다.",
+    "vestingClaimAvailableTooltip": "베스팅된 토큰을 지금 청구하세요.",
+    "vestingClaimAvailableButton": "청구",
+    "vestingClaimAvailableSuccess": "베스팅된 토큰이 성공적으로 청구되었습니다.",
+    "vestingClaimAvailableError": "청구에 실패했습니다. 다시 시도해 주세요.",
+    "vestingClaimAvailablePending": "청구 중…",
+    "vestingClaimAvailableDisabled": "청구할 수 있는 베스팅된 토큰이 없습니다.",
+    "vestingClaimAvailableRequiresWallet": "청구하려면 지갑을 연결하세요.",
+    "vestingClaimAvailableNotBeneficiary": "수혜자만 청구할 수 있습니다.",
+    "vestingClaimAvailableNotStarted": "베스팅이 시작되지 않았습니다.",
+    "vestingClaimAvailableComplete": "모든 토큰이 청구되었습니다.",
+    "vestingClaimAvailableInfo": "베스팅된 토큰은 잠금 해제 날짜 전에 청구할 수 있습니다.",
+    "vestingClaimAvailableInfoAmount": "{{amount}} {{symbol}}을(를) 청구할 수 있습니다.",
+    "vestingClaimAvailableInfoTooltip": "베스팅된 토큰을 지금 청구하세요.",
+    "vestingClaimAvailableInfoButton": "청구",
+    "vestingClaimAvailableInfoSuccess": "베스팅된 토큰이 성공적으로 청구되었습니다.",
+    "vestingClaimAvailableInfoError": "청구에 실패했습니다. 다시 시도해 주세요.",
+    "vestingClaimAvailableInfoPending": "청구 중…",
+    "vestingClaimAvailableInfoDisabled": "청구할 수 있는 베스팅된 토큰이 없습니다.",
+    "vestingClaimAvailableInfoRequiresWallet": "청구하려면 지갑을 연결하세요.",
+    "vestingClaimAvailableInfoNotBeneficiary": "수혜자만 청구할 수 있습니다.",
+    "vestingClaimAvailableInfoNotStarted": "베스팅이 시작되지 않았습니다.",
+    "vestingClaimAvailableInfoComplete": "모든 토큰이 청구되었습니다.",
+    "vestingClaimAvailableInfoInfo": "베스팅된 토큰은 잠금 해제 날짜 전에 청구할 수 있습니다."
+    "pageTitle": "잠금 #{{id}} — {{amount}} {{symbol}} {{date}}까지 잠금 | StellarLock",
+    "pageDescription": "잠금 #{{id}}: {{amount}} {{symbol}}이 StellarLock에서 {{date}}까지 잠겨 있습니다."
   },
   "explorer": {
     "backToSearch": "검색으로 돌아가기",
@@ -236,7 +311,9 @@
       "summary_other": "활성 잠금 {{count}}개 · {{value}} 보호됨",
       "copyUrl": "공유 링크 복사",
       "copyBadge": "README 배지 복사"
-    }
+    },
+    "pageTitle": "{{symbol}} 유동성 잠금 | StellarLock",
+    "pageDescription": "StellarLock에서 {{activeLocks}}개의 활성 잠금에 걸쳐 {{amount}} {{symbol}}이 잠겨 있습니다."
   },
   "discover": {
     "title": "잠금 탐색",
@@ -251,7 +328,9 @@
     "tokensSecured": "보호된 토큰",
     "viewAll": "모든 잠금 보기",
     "noLocks": "이 토큰에 대한 잠금을 찾을 수 없습니다.",
-    "searchHint": "토큰 심볼이나 컨트랙트 주소로 특정 잠금을 검색하세요."
+    "searchHint": "토큰 심볼이나 컨트랙트 주소로 특정 잠금을 검색하세요.",
+    "pageTitle": "잠금 탐색 | StellarLock",
+    "pageDescription": "StellarLock의 모든 토큰 및 LP 잠금을 탐색하세요. 최근 생성된 잠금, 다가오는 잠금 해제, 보호된 토큰을 확인하세요."
   },
   "search": {
     "placeholder": "심볼이나 컨트랙트 주소로 토큰 검색…",
@@ -346,7 +425,9 @@
     "statusPending": "대기 중",
     "statusSuccess": "성공",
     "statusFailed": "실패",
-    "cleanupNote": "90일이 지난 거래는 자동으로 삭제됩니다."
+    "cleanupNote": "90일이 지난 거래는 자동으로 삭제됩니다.",
+    "pageTitle": "거래 내역 | StellarLock",
+    "pageDescription": "StellarLock 거래 내역을 확인하세요."
   },
   "splitLock": {
     "toggle": "다중 수혜자",
@@ -444,6 +525,7 @@
       "title": "잘못된 잠금 해제 날짜"
     },
     "userRejected": {
+      "message": "지갑에서 거래를
       "message": "지갑에서 거래를 취소했습니다.",
       "recovery": "준비가 되면 버튼을 다시 클릭하세요.",
       "title": "거래가 취소됨"
@@ -527,6 +609,36 @@
       "title": "컨트랙트 일시 중단",
       "message": "유지보수 또는 긴급 상황으로 인해 관리자가 컨트랙트를 일시 중단했습니다.",
       "recovery": "운영이 재개된 후 다시 시도해 주세요."
+    },
+    "vestingOutsideLockBounds": {
+      "title": "잘못된 베스팅 기간",
+      "message": "베스팅 시작일은 락 생성일보다 이전일 수 없으며, 시작일과 종료일은 모두 잠금 해제일 이후일 수 없습니다.",
+      "recovery": "락의 생성일과 잠금 해제일 사이에 포함되는 베스팅 시작일과 종료일을 선택하세요."
+    },
+    "duplicateBeneficiary": {
+      "title": "중복된 수혜자",
+      "message": "분할 락에서 동일한 수혜자 주소가 두 번 이상 입력되었습니다.",
+      "recovery": "각 수혜자 주소가 한 번만 나타나도록 중복된 항목을 제거하세요."
+    },
+    "alreadyInitialized": {
+      "title": "이미 초기화됨",
+      "message": "이 컨트랙트는 이미 관리자로 초기화되었습니다.",
+      "recovery": "조치가 필요하지 않습니다. 컨트랙트는 배포 중에 이미 설정되었습니다."
+    },
+    "invalidPoolTokens": {
+      "title": "잘못된 풀 토큰",
+      "message": "풀 컨트랙트 자체의 토큰 A/B 주소가 이 LP 락에 제공된 토큰 주소와 일치하지 않습니다.",
+      "recovery": "풀 지분 주소와 토큰 A/B 주소를 확인하고 동일한 풀에 속하는지 확인하세요."
+    },
+    "noPendingUpgrade": {
+      "title": "대기 중인 업그레이드 없음",
+      "message": "실행하거나 취소할 대기 중인 컨트랙트 업그레이드가 없습니다.",
+      "recovery": "컨트랙트 관리자에게 먼저 업그레이드를 제안하도록 요청하세요."
+    },
+    "timelockNotElapsed": {
+      "title": "업그레이드 타임락 미경과",
+      "message": "이 컨트랙트 업그레이드에 필요한 대기 기간이 아직 지나지 않았습니다.",
+      "recovery": "업그레이드의 타임락 기간이 지난 후 다시 실행하세요."
     }
   },
   "notfound": {
@@ -535,7 +647,9 @@
     "goHome": "홈으로 돌아가기",
     "explore": "잠금 탐색",
     "helpTitle": "도움이 필요하신가요?",
-    "helpDesc": "<explorer>탐색기</explorer>를 확인하여 잠금을 찾거나 <github>GitHub을 방문하세요</github>."
+    "helpDesc": "<explorer>탐색기</explorer>를 확인하여 잠금을 찾거나 <github>GitHub을 방문하세요</github>.",
+    "pageTitle": "페이지를 찾을 수 없음 — StellarLock",
+    "pageDescription": "찾고 있는 페이지가 존재하지 않습니다."
   },
   "countdown": {
     "unlocked": "잠금 해제됨",
@@ -559,7 +673,8 @@
   "lockStatus": {
     "locked": "잠김",
     "unlockable": "잠금 해제 가능",
-    "withdrawn": "인출됨"
+    "withdrawn": "인출됨",
+    "withdrawnArchived": "인출됨 (보관됨)"
   },
   "lockCreated": {
     "title": "잠금 생성 완료 | StellarLock",

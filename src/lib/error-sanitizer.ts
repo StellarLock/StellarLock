@@ -1,4 +1,4 @@
-import type { StructuredError } from "@/lib/errors"
+import type { ContractKind, StructuredError } from "@/lib/errors"
 import { parseError } from "@/lib/errors"
 import { captureException } from "@/lib/sentry"
 
@@ -13,7 +13,7 @@ const GENERIC_ERROR: Omit<StructuredError, "code"> = {
     link: null,
 }
 
-export function sanitizeError(error: unknown): StructuredError {
+export function sanitizeError(error: unknown, contractKind?: ContractKind): StructuredError {
     // Preserve full details for debugging.
     try {
         // Intentionally only log in production-like builds.
@@ -31,7 +31,7 @@ export function sanitizeError(error: unknown): StructuredError {
 
     // `parseError` returns i18nKey + predefined strings (after the fallback fix).
     // We still enforce the contract that we never expose raw RPC strings.
-    const parsed = parseError(error)
+    const parsed = parseError(error, contractKind)
 
     // Hard guarantee: if parseError ever returns a message that doesn't look like
     // an i18n key, replace it.

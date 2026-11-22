@@ -13,6 +13,11 @@ const LATEST_LEDGER = 1_000_000
 /** A contract function's return value — fixed, or computed from the call's args. */
 export type MockResult = xdr.ScVal | ((args: xdr.ScVal[]) => xdr.ScVal | null)
 
+export interface MockInvocation {
+  fn: string
+  args: xdr.ScVal[]
+}
+
 export interface SorobanRpcMockOptions {
   /**
    * Return values keyed by contract function name (e.g. "get_lock",
@@ -49,7 +54,8 @@ const DEFAULT_RESULTS: Record<string, MockResult> = {
  */
 export async function mockSorobanRpc(page: Page, options: SorobanRpcMockOptions = {}) {
   const results = { ...DEFAULT_RESULTS, ...options.results }
-  const invoked: string[] = []
+  const invoked: string[] & { calls: MockInvocation[] } = []
+  invoked.calls = []
   // tx hash → envelope and return value, filled by sendTransaction and read
   // back by getTransaction.
   const submitted = new Map<string, { envelopeXdr: string; returnValue: xdr.ScVal }>()
@@ -79,6 +85,7 @@ export async function mockSorobanRpc(page: Page, options: SorobanRpcMockOptions 
       case "simulateTransaction": {
         const call = decodeInvocation(params.transaction as string)
         invoked.push(call.fn)
+        invoked.calls.push(call)
         const retval = resolve(results[call.fn], call.args)
         if (!retval) {
           return reply({
@@ -99,6 +106,8 @@ export async function mockSorobanRpc(page: Page, options: SorobanRpcMockOptions 
       case "sendTransaction": {
         const envelopeXdr = params.transaction as string
         const call = decodeInvocation(envelopeXdr)
+        invoked.push(call.fn)
+        invoked.calls.push(call)
         const hash = TransactionBuilder.fromXDR(envelopeXdr, NETWORK_PASSPHRASE).hash().toString("hex")
         submitted.set(hash, { envelopeXdr, returnValue: resolve(results[call.fn], call.args) ?? xdr.ScVal.scvVoid() })
         return reply({

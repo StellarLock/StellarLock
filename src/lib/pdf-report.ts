@@ -1,6 +1,7 @@
 import { jsPDF } from "jspdf"
 import type { Lock } from "@/types/lock"
 import { formatAmount, formatDateTime, formatUsd, shortAddress } from "@/lib/utils"
+import { calculateVestingClaimable } from "@/lib/vesting"
 
 const MARGIN = 14
 const PAGE_W = 210 // A4 mm
@@ -97,6 +98,8 @@ export function downloadLockReport(lock: Lock): void {
     y = drawRow(doc, y, "Vesting start", formatDateTime(lock.vesting.start))
     y = drawRow(doc, y, "Vesting end", formatDateTime(lock.vesting.end))
     y = drawRow(doc, y, "Released", `${formatAmount(lock.vesting.released)} ${lock.token.symbol}`)
+    const claimableNow = calculateVestingClaimable(lock.amount, lock.token.decimals, lock.vesting)
+    y = drawRow(doc, y, "Claimable now", `${formatAmount(claimableNow)} ${lock.token.symbol}`)
   }
 
   // ── On-Chain Verification ─────────────────────────────────────────────────

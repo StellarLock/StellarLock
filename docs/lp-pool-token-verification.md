@@ -1,7 +1,5 @@
-# Issue #979 — Document the best-effort pool-token check in `lp-locker`
+# LP pool-token verification (best-effort)
 
-**GitHub:** https://github.com/StellarLock/StellarLock/issues/979  
-**Status:** Resolved in PR #1006  
 **Area:** `contracts/lp-locker/src/lib.rs`, `contracts/README.md`
 
 ---

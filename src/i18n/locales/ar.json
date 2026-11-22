@@ -1,0 +1,716 @@
+{
+  "common": {
+    "appName": "StellarLock",
+    "tagline": "أقفال الرموز وأقفال السيولة على Stellar",
+    "testnet": "شبكة الاختبار",
+    "mainnet": "الشبكة الرئيسية",
+    "loading": "جارٍ التحميل…",
+    "tryAgain": "حاول مجددًا",
+    "back": "رجوع",
+    "dismiss": "إغلاق",
+    "you": "أنت",
+    "stellar": "Stellar",
+    "skipToContent": "الانتقال إلى المحتوى الرئيسي",
+    "pause": "إيقاف مؤقت",
+    "resume": "استئناف"
+  },
+  "nav": {
+    "createLock": "إنشاء قفل",
+    "myLocks": "أقفالي",
+    "explore": "استكشاف",
+    "connectWallet": "ربط المحفظة",
+    "disconnectWallet": "فصل المحفظة",
+    "openMenu": "فتح القائمة",
+    "closeMenu": "إغلاق القائمة",
+    "history": "السجل",
+    "analytics": "التحليلات",
+    "mainNavigation": "التنقل الرئيسي",
+    "mobileNavigation": "تنقل الجوال"
+  },
+  "landing": {
+    "badge": "مبني على Stellar · عقود Soroban الذكية",
+    "heroTitle": "أثبت أن سيولتك <1>مقفلة</1> — دون الحاجة إلى الثقة",
+    "heroDesc": "يتيح StellarLock للمشاريع قفل الرموز ومراكز السيولة في عقود غير قابلة للتعديل على السلسلة، ثم مشاركة صفحة عامة وقابلة للتحقق حتى يعرف مجتمعهم أنه لا يمكن سرقة السيولة.",
+    "lockTokens": "اقفل رموزك",
+    "viewLocks": "عرض أقفالي",
+    "valueSecured": "القيمة المؤمّنة",
+    "activeLocks": "الأقفال النشطة",
+    "supportedDexs": "البورصات المدعومة",
+    "dexHint": "Aquarius · Soroswap",
+    "network": "الشبكة",
+    "networkValue": "Stellar",
+    "problemTitle": "تحدث عمليات السرقة عندما يتمكن الفرق من سحب السيولة. أزل هذا الخيار.",
+    "problemDesc": "عندما تكون السيولة ورموز الفريق مقفلة في عقد لا يمكن لأحد سحبه مبكرًا، يختفي أكبر ناقل لسرقة السيولة. يجعل StellarLock هذا القفل عامًا وقابلًا للمشاركة.",
+    "featureTokenTitle": "أقفال الرموز والفريق",
+    "featureTokenDesc": "اقفل المخصصات بتاريخ فتح ثابت أو جدول استحقاق خطي. مدّده في أي وقت — لكن لا تقصّره أبدًا.",
+    "featureLpTitle": "أقفال سيولة LP",
+    "featureLpDesc": "اقفل حصص مجموعات Aquarius وSoroswap حتى يعرف المتداولون أن أرضية السيولة ثابتة.",
+    "featureExplorerTitle": "مستكشف عام",
+    "featureExplorerDesc": "كل قفل يحصل على صفحة قابلة للمشاركة تعرض المبالغ والمستفيدين وتواريخ الفتح — قابلة للتحقق من قِبل أي شخص.",
+    "howItWorks": "كيف يعمل",
+    "stepLockTitle": "القفل",
+    "stepLockDesc": "اربط محفظتك، واختر رمزًا أو مركز سيولة، وحدد المبلغ وتاريخ الفتح، وقم بتوقيع معاملة واحدة.",
+    "stepEnforceTitle": "التطبيق",
+    "stepEnforceDesc": "يحتفظ عقد Soroban بالأموال. لا أحد — ولا حتى أنت — يمكنه السحب قبل الطابع الزمني للفتح.",
+    "stepShareTitle": "المشاركة",
+    "stepShareDesc": "أضف رابط مستكشفك العام في README أو Telegram. يتحقق مجتمعك من القفل بأنفسهم.",
+    "ctaTitle": "اكسب ثقة مجتمعك في معاملة واحدة",
+    "ctaDesc": "اقفل سيولتك، وشارك الدليل، ودع السلسلة تتحدث عنك.",
+    "ctaButton": "أنشئ قفلك الأول",
+    "step": "الخطوة {{n}}"
+  },
+  "createLock": {
+    "title": "إنشاء قفل",
+    "subtitle": "اقفل الرموز أو مراكز السيولة في عقد Soroban غير قابل للتعديل.",
+    "modeSimple": "بسيط",
+    "modeWizard": "معالج",
+    "tabToken": "قفل الرمز",
+    "tabLp": "قفل LP"
+  },
+  "tokenForm": {
+    "tokenAddress": "عنوان عقد الرمز",
+    "tokenPlaceholder": "C… (عقد رمز Soroban)",
+    "tokenHint": "عنوان عقد Soroban للرمز الذي تريد قفله.",
+    "amount": "المبلغ المراد قفله",
+    "beneficiary": "المستفيد (اختياري)",
+    "beneficiaryHint": "من يمكنه السحب بعد الفتح. يعود افتراضيًا إلى عنوانك.",
+    "unlockDate": "تاريخ الفتح",
+    "vestingLabel": "الاستحقاق الخطي",
+    "vestingDesc": "الإفراج التدريجي من الآن حتى تاريخ الفتح، بدلًا من دفعة واحدة.",
+    "vestingTemplate": "جدول الاستحقاق",
+    "vestingTemplateHint": "اختر جدول استحقاق مسبقًا أو حدد تاريخ فتح مخصصًا.",
+    "vestingTemplateCustom": "مخصص",
+    "vestingTemplateLinear6m": "خطي 6 أشهر",
+    "vestingTemplateLinear1y": "خطي سنة",
+    "vestingTemplateLinear2y": "خطي سنتان",
+    "vestingTemplateQuarterly": "ربع سنوي (25% كل ربع)",
+    "vestingStart": "بداية الاستحقاق",
+    "vestingEnd": "نهاية الاستحقاق",
+    "lockInfo": "الأقفال غير قابلة للتعديل: يمكنك تمديد تاريخ الفتح لاحقًا، لكن لا يمكنك تقصيره أبدًا.",
+    "fundsUnlockOn": "تُفتح الأموال في <1>{{date}}</1>.",
+    "balance": "الرصيد",
+    "max": "الحد الأقصى",
+    "submit": "قفل الرموز",
+    "days30": "30 يومًا",
+    "days90": "90 يومًا",
+    "months6": "6 أشهر",
+    "year1": "سنة",
+    "metadataTitle": "معلومات المشروع (اختياري)",
+    "metadataDesc": "تظهر في صفحة التفاصيل والمستكشف حتى يتمكن مجتمعك من التحقق من الجهة التي أنشأت هذا القفل.",
+    "description": "الوصف",
+    "descriptionPlaceholder": "لماذا يتم إنشاء هذا القفل؟ (مثال: رموز الفريق مقفلة لمدة عامين)",
+    "projectUrl": "رابط المشروع",
+    "logoUrl": "رابط الشعار",
+    "insufficientBalance": "رصيد غير كافٍ. لديك {{balance}} لكنك تحتاج {{amount}}.",
+    "needsApproval": "تحتاج إلى الموافقة على العقد لنقل رموزك قبل القفل.",
+    "approveAndContinue": "الموافقة والمتابعة",
+    "approving": "جارٍ الموافقة…",
+    "openAddressBook": "فتح دفتر العناوين"
+  },
+  "lpForm": {
+    "dex": "البورصة",
+    "aquarius": "Aquarius",
+    "aquariusDesc": "مجموعات AMM وSDEX",
+    "soroswap": "Soroswap",
+    "soroswapDesc": "AMM Soroban",
+    "poolAddress": "عنوان رمز حصة المجموعة",
+    "poolPlaceholder": "C… (عقد رمز LP)",
+    "poolHint": "عنوان عقد رمز حصة مجموعة {{dex}}.",
+    "tokenA": "عنوان الرمز A",
+    "tokenB": "عنوان الرمز B",
+    "amount": "مبلغ LP المراد قفله",
+    "unlockDate": "تاريخ الفتح",
+    "lockInfo": "يشير قفل حصص LP للمتداولين إلى أن أرضية السيولة محمية.",
+    "liquidityUnlockOn": "تُفتح السيولة في <1>{{date}}</1>.",
+    "submit": "قفل السيولة",
+    "days90": "90 يومًا",
+    "months6": "6 أشهر",
+    "year1": "سنة",
+    "years2": "سنتان",
+    "insufficientBalance": "رصيد غير كافٍ. لديك {{balance}} لكنك تحتاج {{amount}}.",
+    "needsApproval": "تحتاج إلى الموافقة على العقد لنقل رموز LP قبل القفل.",
+    "approveAndContinue": "الموافقة والمتابعة",
+    "approving": "جارٍ الموافقة…",
+    "openAddressBook": "فتح دفتر العناوين",
+    "beneficiaryHint": "اتركه فارغًا لاستخدام محفظتك المتصلة كمستفيد.",
+    "description": "الوصف",
+    "descriptionPlaceholder": "لماذا يتم إنشاء هذا القفل؟ (مثال: سيولة مقفلة لمدة عامين)",
+    "projectUrl": "رابط المشروع",
+    "logoUrl": "رابط الشعار"
+  },
+  "myLocks": {
+    "title": "أقفالي",
+    "subtitle": "إدارة وسحب مراكزك المقفلة.",
+    "newLock": "قفل جديد",
+    "locksCreated": "الأقفال المنشأة",
+    "totalValueLocked": "إجمالي القيمة المقفلة",
+    "readyToWithdraw": "جاهز للسحب",
+    "actionAvailable": "إجراء متاح",
+    "nothingUnlocked": "لم يُفتح شيء بعد",
+    "createdByMe": "أنشأتها أنا",
+    "beneficiary": "المستفيد",
+    "failedToLoad": "فشل تحميل أقفالك.",
+    "noLocksCreated": "لا توجد أقفال هنا بعد",
+    "noLocksCreatedDesc": "أنشئ قفلك الأول لإثبات أن رموزك أو سيولتك مؤمّنة.",
+    "noBeneficiary": "لا توجد أقفال أنت مستفيد منها",
+    "noBeneficiaryDesc": "ستظهر هنا الأقفال التي أنشأها الآخرون لك.",
+    "createLock": "إنشاء قفل",
+    "viewMode": "وضع العرض",
+    "cardView": "عرض البطاقات",
+    "tableView": "عرض الجدول",
+    "searchPlaceholder": "البحث برمز الرمز أو معرّف القفل…",
+    "filterByStatus": "تصفية حسب الحالة",
+    "filterByType": "تصفية حسب النوع",
+    "sortLocks": "ترتيب الأقفال",
+    "allStatuses": "جميع الحالات",
+    "statusLocked": "مقفل",
+    "statusUnlockable": "قابل للفتح",
+    "statusWithdrawn": "مسحوب",
+    "allTypes": "جميع الأنواع",
+    "typeToken": "رمز",
+    "typeLp": "LP",
+    "sortUnlockDate": "الترتيب: تاريخ الفتح",
+    "sortAmount": "الترتيب: المبلغ",
+    "sortCreated": "الترتيب: تاريخ الإنشاء"
+  },
+  "lockDetail": {
+    "notFoundTitle": "القفل غير موجود",
+    "notFoundDesc": "لم نتمكن من العثور على قفل بالمعرّف #{{id}}.",
+    "backToLocks": "العودة إلى أقفالي",
+    "lpLock": "قفل LP",
+    "tokenLock": "قفل الرمز",
+    "lockedAmount": "المبلغ المقفل",
+    "lockId": "معرّف القفل",
+    "extended": "مُمدَّد {{count}}×",
+    "lockedOn": "مقفل في",
+    "unlocksOn": "يُفتح في",
+    "creator": "المنشئ",
+    "beneficiary": "المستفيد",
+    "timeRemaining": "الوقت المتبقي",
+    "withdraw": "سحب الرموز",
+    "claimVested": "المطالبة بـ {{amount}} {{symbol}} (مستحق)",
+    "extendLock": "تمديد القفل",
+    "newUnlockDate": "تاريخ الفتح الجديد",
+    "extendHint": "يجب أن يكون بعد تاريخ الفتح الحالي. يمكن تمديد الأقفال فقط، لا تقصيرها.",
+    "extendDateMustBeAfter": "يجب أن يكون بعد تاريخ الفتح الحالي ({{date}}).",
+    "confirmExtension": "تأكيد التمديد",
+    "transferBeneficiary": "نقل المستفيد",
+    "newBeneficiary": "عنوان المستفيد الجديد",
+    "transferHint": "نقل حقوق السحب إلى عنوان Stellar جديد. هذا الإجراء لا رجعة فيه.",
+    "confirmTransfer": "تأكيد النقل",
+    "securityNotice": "هذه الرموز مؤمّنة بعقد StellarLock حتى تاريخ الفتح. لا المنشئ ولا StellarLock يمكنهما نقلها مبكرًا.",
+    "viewExplorer": "عرض مستكشف الرمز",
+    "unverifiedWarning": "رمز غير موثق — غير مدرج في قائمة المجتمع المسموح بها. تابع بحذر.",
+    "withdrawSuccess": "تم تأكيد السحب.",
+    "extendSuccess": "تم تمديد القفل.",
+    "transferSuccess": "تم نقل المستفيد.",
+    "shareViaQr": "المشاركة عبر رمز QR",
+    "downloadReport": "تنزيل تقرير القفل",
+    "vestingSchedule": "جدول الاستحقاق",
+    "linear": "خطي",
+    "vestingStart": "بداية الاستحقاق",
+    "vestingEnd": "نهاية الاستحقاق",
+    "progress": "التقدم",
+    "total": "الإجمالي",
+    "released": "المُفرج عنه",
+    "claimable": "قابل للمطالبة",
+    "lockDetails": "تفاصيل القفل",
+    "projectLogoAlt": "شعار المشروع"
+  },
+  "lockStatus": {
+    "locked": "مقفل",
+    "unlockable": "قابل للفتح",
+    "withdrawn": "مسحوب"
+  },
+  "lockCreated": {
+    "title": "تم إنشاء القفل | StellarLock",
+    "description": "تم إنشاء قفلك بنجاح على Stellar.",
+    "heading": "تم إنشاء القفل!",
+    "subheading": "رموزك مقفلة الآن على السلسلة.",
+    "vestingActive": "جدول الاستحقاق نشط.",
+    "lockSummary": "ملخص القفل",
+    "lockId": "معرّف القفل",
+    "copyLockId": "نسخ معرّف القفل",
+    "type": "النوع",
+    "lpLock": "قفل LP",
+    "tokenLock": "قفل الرمز",
+    "token": "الرمز",
+    "amount": "المبلغ",
+    "beneficiary": "المستفيد",
+    "creator": "المنشئ",
+    "unlockDate": "تاريخ الفتح",
+    "vesting": "الاستحقاق",
+    "vestingEnabled": "الاستحقاق الخطي مفعّل",
+    "createdAt": "تاريخ الإنشاء",
+    "transactionDetails": "تفاصيل المعاملة",
+    "txHash": "تجزئة المعاملة",
+    "copyTxHash": "نسخ تجزئة المعاملة",
+    "viewTxStellarExpert": "عرض المعاملة على Stellar Expert",
+    "network": "الشبكة",
+    "shareTitle": "مشاركة هذا القفل",
+    "copyShareLink": "نسخ رابط المشاركة",
+    "viewLockDetail": "عرض تفاصيل القفل",
+    "createAnother": "إنشاء قفل آخر",
+    "copied": "تم نسخ {{label}}!"
+  },
+  "explorer": {
+    "backToSearch": "العودة إلى البحث",
+    "verifiedLocked": "السيولة موثّقة ومقفلة",
+    "verifiedHint": "على السلسلة، غير قابل للتعديل، عام",
+    "totalLocked": "إجمالي المقفل",
+    "acrossAllLocks": "{{symbol}} عبر جميع الأقفال",
+    "valueSecured": "القيمة المؤمّنة",
+    "approxUsd": "تقريبي بالدولار عند وقت القفل",
+    "activeLocks": "الأقفال النشطة",
+    "enforced": "مُطبَّق حاليًا على السلسلة",
+    "nextUnlock": "الفتح القادم",
+    "supplyLocked": "~{{percent}}% من العرض مقفل",
+    "shareTitle": "شارك الدليل مع مجتمعك",
+    "shareDesc": "ضع هذه الشارة في README أو موقعك أو Telegram. يمكن لأي شخص النقر والتحقق بشكل مستقل من أن السيولة مقفلة — دون الحاجة إلى الثقة.",
+    "allLocks": "جميع الأقفال ({{count}})",
+    "noLocksTitle": "لم يتم العثور على أقفال",
+    "noLocksDesc": "لم نتمكن من العثور على أقفال لـ <1>{{query}}</1>. تحقق من رمز الرمز أو عنوان العقد، أو أنشئ أول قفل لهذا الرمز.",
+    "createLock": "إنشاء قفل",
+    "badge": {
+      "title": "مقفل على StellarLock",
+      "summary": "{{count}} قفل نشط · {{value}} مؤمَّن",
+      "summary_other": "{{count}} أقفال نشطة · {{value}} مؤمَّنة",
+      "copyUrl": "نسخ رابط المشاركة",
+      "copyBadge": "نسخ شارة README"
+    }
+  },
+  "discover": {
+    "title": "استكشاف الأقفال",
+    "subtitle": "تصفح جميع أقفال الرموز والسيولة على StellarLock.",
+    "recentLocks": "الأقفال الأخيرة",
+    "upcomingUnlocks": "الفتحات القادمة",
+    "featuredTokens": "الرموز المميزة",
+    "recentActivity": "النشاط الأخير",
+    "noRecentActivity": "لا يوجد نشاط أخير بعد.",
+    "totalLocks": "إجمالي الأقفال",
+    "totalValueLocked": "إجمالي القيمة المقفلة",
+    "tokensSecured": "الرموز المؤمّنة",
+    "viewAll": "عرض جميع الأقفال",
+    "noLocks": "لم يتم العثور على أقفال لهذا الرمز.",
+    "searchHint": "ابحث برمز الرمز أو عنوان العقد للعثور على أقفال محددة."
+  },
+  "search": {
+    "placeholder": "ابحث عن رمز بالرمز أو عنوان العقد…",
+    "ariaLabel": "البحث عن رمز للتحقق من الأقفال",
+    "submit": "التحقق من الأقفال",
+    "try": "جرّب:"
+  },
+  "connectGate": {
+    "title": "ربط محفظتك",
+    "desc": "ربط محفظة Stellar للمتابعة.",
+    "connect": "ربط المحفظة"
+  },
+  "notifications": {
+    "title": "إشعارات الفتح",
+    "browser": "إشعارات المتصفح",
+    "browserDesc": "احصل على إشعار قبل 7 أيام وقبل يوم واحد وعند حدوث الفتح.",
+    "email": "تذكيرات البريد الإلكتروني",
+    "emailDesc": "احصل على تذكيرات بالبريد الإلكتروني قبل 7 أيام وقبل يوم واحد وعند الفتح. يتطلب محفظة متصلة.",
+    "emailPlaceholder": "بريدك@مثال.com",
+    "emailNeedsWallet": "اربط محفظتك لتفعيل تذكيرات البريد الإلكتروني.",
+    "emailInvalid": "أدخل عنوان بريد إلكتروني صحيحًا.",
+    "emailError": "فشل حفظ اشتراك البريد الإلكتروني. حاول مجددًا.",
+    "webhook": "Webhook",
+    "webhookDesc": "إرسال أحداث الفتح إلى رابط URL (بوت Telegram أو Discord إلخ).",
+    "enable": "تفعيل",
+    "enabled": "مفعّل",
+    "save": "حفظ",
+    "center": {
+      "lockCreatedTitle": "تم إنشاء القفل",
+      "lockCreatedMessage": "القفل #{{id}} نشط ويُفتح في {{date}}.",
+      "splitLockCreatedTitle": "تم إنشاء القفل المقسّم",
+      "splitLockCreatedMessage": "تم قفل رموزك لـ {{count}} مستفيدين.",
+      "withdrawnTitle": "تم تأكيد السحب",
+      "withdrawnMessage": "سحبت {{amount}} {{symbol}} من القفل #{{id}}.",
+      "extendedTitle": "تم تمديد القفل",
+      "extendedMessage": "القفل #{{id}} يُفتح الآن في {{date}}.",
+      "transferredTitle": "تم نقل المستفيد",
+      "transferredMessage": "يمكن الآن سحب القفل #{{id}} بواسطة {{address}}."
+    }
+  },
+  "lockCard": {
+    "lockedAmount": "المبلغ المقفل",
+    "unlocksIn": "يُفتح خلال",
+    "lock": "القفل #{{id}}",
+    "view": "عرض"
+  },
+  "wallet": {
+    "disconnected": "المحفظة غير متصلة",
+    "disconnectedDesc": "انقطع اتصال محفظة Freighter أو أصبح الامتداد غير متاح. أعد الاتصال للمتابعة.",
+    "networkChanged": "تغيّرت الشبكة",
+    "networkChangedDesc": "تغيّرت شبكة محفظتك. أعد الاتصال للاستمرار في استخدام StellarLock."
+  },
+  "breadcrumbs": {
+    "home": "الرئيسية",
+    "myLocks": "أقفالي",
+    "lockId": "القفل #{{id}}",
+    "discover": "استكشاف",
+    "createLock": "إنشاء قفل",
+    "history": "سجل المعاملات"
+  },
+  "costEstimate": {
+    "title": "التكاليف المقدّرة",
+    "networkFee": "رسوم المعاملة",
+    "storageFee": "وديعة التخزين",
+    "total": "الإجمالي",
+    "tooltip": "يتطلب Soroban وديعة تخزين قابلة للاسترداد لاستئجار الحالة على السلسلة. هذه الوديعة منفصلة عن رسوم المعاملة.",
+    "highCostWarning": "تكلفة تخزين مرتفعة بشكل غير معتاد",
+    "estimating": "جارٍ تقدير التكاليف…",
+    "error": "تعذّر تقدير التكلفة",
+    "unit": "XLM"
+  },
+  "history": {
+    "title": "سجل المعاملات",
+    "subtitle": "جميع معاملات StellarLock المُرسلة من هذا المتصفح.",
+    "empty": "لا توجد معاملات بعد",
+    "emptyDesc": "ستظهر المعاملات هنا بعد إنشاء قفل أو سحبه أو تمديده أو نقله.",
+    "filterAll": "الكل",
+    "filterType": "النوع",
+    "filterStatus": "الحالة",
+    "colHash": "المعاملة",
+    "colType": "النوع",
+    "colStatus": "الحالة",
+    "colDate": "التاريخ",
+    "colLock": "القفل",
+    "viewOnExplorer": "عرض على Stellar Expert",
+    "copyHash": "نسخ التجزئة",
+    "typeCreateLock": "إنشاء قفل",
+    "typeWithdraw": "سحب",
+    "typeExtend": "تمديد",
+    "typeTransfer": "نقل المستفيد",
+    "typeSplitLock": "قفل مقسّم",
+    "statusPending": "قيد الانتظار",
+    "statusSuccess": "ناجح",
+    "statusFailed": "فاشل",
+    "cleanupNote": "تُحذف المعاملات الأقدم من 90 يومًا تلقائيًا."
+  },
+  "splitLock": {
+    "toggle": "مستفيدون متعددون",
+    "toggleDesc": "قسّم هذا القفل بين عناوين متعددة بحصص متناسبة.",
+    "addBeneficiary": "إضافة مستفيد",
+    "removeBeneficiary": "إزالة",
+    "addressLabel": "العنوان",
+    "shareLabel": "الحصة (%)",
+    "totalShare": "الإجمالي",
+    "totalShareError": "يجب أن تبلغ الحصص 100%",
+    "minBeneficiaries": "أضف مستفيدَين على الأقل أو استخدم وضع المستفيد الواحد.",
+    "maxBeneficiaries": "الحد الأقصى 10 مستفيدين.",
+    "submit": "إنشاء قفل مقسّم"
+  },
+  "errors": {
+    "alreadyWithdrawn": {
+      "title": "تم السحب مسبقًا",
+      "message": "تم سحب الرموز من هذا القفل بالفعل.",
+      "recovery": null
+    },
+    "amountMustBePositive": {
+      "title": "مبلغ غير صحيح",
+      "message": "يجب أن يكون مبلغ القفل أكبر من صفر.",
+      "recovery": "أدخل مبلغًا موجبًا للمتابعة."
+    },
+    "canOnlyExtend": {
+      "title": "تاريخ تمديد غير صحيح",
+      "message": "يجب أن يكون التاريخ الجديد بعد تاريخ الفتح الحالي.",
+      "recovery": "اختر تاريخًا لاحقًا."
+    },
+    "nothingToRelease": {
+      "title": "لا شيء للإفراج عنه",
+      "message": "لا توجد رموز متاحة للإفراج عنها من جدول الاستحقاق في هذا الوقت.",
+      "recovery": "انتظر فترة الاستحقاق التالية أو تحقق من الجدول."
+    },
+    "vestingEndBeforeStart": {
+      "title": "جدول استحقاق غير صحيح",
+      "message": "يجب أن يكون تاريخ انتهاء الاستحقاق بعد تاريخ البداية.",
+      "recovery": "اختر تاريخ انتهاء استحقاق بعد تاريخ البداية."
+    },
+    "tooFewBeneficiaries": {
+      "title": "عدد مستفيدين غير كافٍ",
+      "message": "يجب أن يحتوي القفل المقسّم على مستفيدَين على الأقل.",
+      "recovery": "أضف مزيدًا من المستفيدين لإنشاء قفل مقسّم."
+    },
+    "tooManyBeneficiaries": {
+      "title": "عدد مستفيدين كثير جدًا",
+      "message": "لا يمكن أن يحتوي القفل المقسّم على أكثر من 10 مستفيدين.",
+      "recovery": "قلّل عدد المستفيدين إلى 10 أو أقل."
+    },
+    "sharesMustSum10000": {
+      "title": "توزيع حصص غير صحيح",
+      "message": "يجب أن تبلغ حصص المستفيدين 10,000 نقطة أساس (100%) بالضبط.",
+      "recovery": "عدّل الحصص حتى يصل مجموعها إلى 10,000 نقطة أساس بالضبط."
+    },
+    "rateLimitExceeded": {
+      "title": "تجاوزت الحد المسموح به",
+      "message": "تجاوزت حد إنشاء الأقفال. انتظر قبل إنشاء قفل آخر.",
+      "recovery": "انتظر لحظة وحاول مجددًا."
+    },
+    "lockDurationTooShort": {
+      "title": "مدة القفل قصيرة جدًا",
+      "message": "تاريخ الفتح قريب جدًا من الوقت الحالي. المدة الدنيا مطلوبة.",
+      "recovery": "اختر تاريخ فتح بعد 24 ساعة على الأقل."
+    },
+    "extensionLimitExceeded": {
+      "title": "تجاوزت حد التمديدات",
+      "message": "تم تمديد هذا القفل بالفعل الحد الأقصى من المرات المسموح بها.",
+      "recovery": "لا يمكن إجراء مزيد من التمديدات لهذا القفل."
+    },
+    "unlockTooSoon": {
+      "title": "التمديد قصير جدًا",
+      "message": "يجب أن يكون تاريخ الفتح الجديد بعيدًا بما يكفي عن التاريخ الحالي.",
+      "recovery": "اختر تاريخًا أبعد في المستقبل."
+    },
+    "extensionLimitReached": {
+      "title": "وصلت إلى حد التمديدات",
+      "message": "تم تمديد هذا القفل بالفعل الحد الأقصى من المرات المسموح بها.",
+      "recovery": "لا يمكن إجراء مزيد من التمديدات لهذا القفل."
+    },
+    "unlockExceedsMax": {
+      "title": "التمديد طويل جدًا",
+      "message": "تاريخ الفتح الجديد أبعد في المستقبل مما يسمح به العقد.",
+      "recovery": "اختر تاريخًا أقرب ضمن النطاق المسموح به."
+    },
+    "insufficientBalance": {
+      "title": "رصيد غير كافٍ",
+      "message": "ليس لديك رموز كافية لقفل هذا المبلغ.",
+      "recovery": "قلّل المبلغ أو أضف أموالًا إلى محفظتك."
+    },
+    "lockDurationTooLong": {
+      "title": "مدة القفل طويلة جدًا",
+      "message": "لا يمكن أن تتجاوز مدة القفل 10 سنوات.",
+      "recovery": "اختر تاريخ فتح في غضون 10 سنوات من اليوم."
+    },
+    "stillLocked": {
+      "title": "القفل لم ينتهِ بعد",
+      "message": "هذا القفل لم يصل بعد إلى تاريخ فتحه.",
+      "recovery": "عد في تاريخ الفتح المعروض على بطاقة القفل."
+    },
+    "timeout": {
+      "title": "انتهت مهلة المعاملة",
+      "message": "استغرق تأكيد المعاملة وقتًا طويلًا جدًا.",
+      "recovery": "تحقق من حالة المعاملة على Stellar Expert."
+    },
+    "unknown": {
+      "title": "حدث خطأ ما",
+      "message": "حدث خطأ غير متوقع.",
+      "recovery": "حاول مجددًا. إذا استمر الأمر، تواصل مع الدعم."
+    },
+    "unlockMustBeFuture": {
+      "title": "تاريخ فتح غير صحيح",
+      "message": "يجب أن يكون تاريخ الفتح في المستقبل.",
+      "recovery": "اختر تاريخًا بعد اليوم."
+    },
+    "userRejected": {
+      "title": "تم إلغاء المعاملة",
+      "message": "ألغيت المعاملة في محفظتك.",
+      "recovery": "انقر على الزر مجددًا عندما تكون مستعدًا للمتابعة."
+    },
+    "wrongNetwork": {
+      "title": "شبكة خاطئة",
+      "message": "محفظتك متصلة بالشبكة الخاطئة.",
+      "recovery": "بدّل إلى الشبكة الصحيحة في إعدادات Freighter."
+    },
+    "amountOverflow": {
+      "title": "تجاوز المبلغ",
+      "message": "مبلغ القفل كبير جدًا وتسبب في تجاوز حسابي.",
+      "recovery": "قلّل المبلغ وحاول مجددًا."
+    },
+    "notAdmin": {
+      "title": "غير مصرّح",
+      "message": "يتطلب هذا الإجراء صلاحيات المسؤول.",
+      "recovery": "فقط مسؤول العقد يمكنه تنفيذ هذا الإجراء."
+    },
+    "noPendingAdmin": {
+      "title": "لا يوجد مسؤول معلّق",
+      "message": "لا يوجد نقل مسؤول معلّق لقبوله.",
+      "recovery": "اطلب من المسؤول الحالي اقتراح نقل أولًا."
+    },
+    "notPendingAdmin": {
+      "title": "لست المسؤول المعلّق",
+      "message": "فقط المسؤول المرشّح المعلّق يمكنه قبول هذا النقل.",
+      "recovery": "تأكد من استخدام العنوان الصحيح."
+    },
+    "reentrancyDetected": {
+      "title": "تم اكتشاف إعادة دخول",
+      "message": "تم اكتشاف استدعاء متكرر وحظره بواسطة العقد.",
+      "recovery": "حاول مجددًا."
+    },
+    "identicalTokens": {
+      "title": "رموز متطابقة",
+      "message": "يجب أن يكون الرمز A والرمز B عنوانَين مختلفَين.",
+      "recovery": "اختر عنوانَين مختلفَين للرمز لزوج LP."
+    },
+    "notInitialized": {
+      "title": "العقد غير مهيّأ",
+      "message": "لم يتم تهيئة العقد بمسؤول بعد.",
+      "recovery": "تواصل مع مشغّل العقد لتهيئة النشر."
+    },
+    "lockNotFound": {
+      "title": "القفل غير موجود",
+      "message": "لم يتم العثور على سجل قفل يطابق معرّف القفل هذا.",
+      "recovery": "تحقق من معرّف القفل وعنوان العقد وحاول مجددًا."
+    },
+    "contractPaused": {
+      "title": "العقد موقوف",
+      "message": "العقد موقوف حاليًا بواسطة المسؤول للصيانة أو في حالات الطوارئ.",
+      "recovery": "حاول مجددًا لاحقًا بعد استئناف العمليات."
+    }
+  },
+  "analytics": {
+    "title": "التحليلات",
+    "subtitle": "نشاط القفل وإجمالي القيمة المقفلة عبر StellarLock.",
+    "totalValueLocked": "إجمالي القيمة المقفلة",
+    "totalLocks": "إجمالي الأقفال",
+    "tokensTracked": "الرموز المتتبَّعة",
+    "tvlOverTime": "TVL عبر الزمن",
+    "lockVolume": "حجم إنشاء الأقفال",
+    "tokenDistribution": "توزيع الرموز",
+    "noData": "لا يوجد نشاط أقفال لعرضه بعد."
+  },
+  "notfound": {
+    "title": "الصفحة غير موجودة",
+    "description": "الصفحة التي تبحث عنها غير موجودة أو ربما انتقلت.",
+    "goHome": "العودة إلى الرئيسية",
+    "explore": "استكشاف الأقفال",
+    "helpTitle": "تحتاج مساعدة؟",
+    "helpDesc": "تحقق من <explorer>مستكشفنا</explorer> للعثور على أقفال أو <github>قم بزيارة GitHub</github>."
+  },
+  "countdown": {
+    "unlocked": "مفتوح",
+    "days": "أيام",
+    "hours": "ساعات",
+    "min": "دقائق",
+    "sec": "ثوانٍ"
+  },
+  "pagination": {
+    "prev": "السابق",
+    "next": "التالي",
+    "prevAria": "الصفحة السابقة",
+    "nextAria": "الصفحة التالية",
+    "pageOf": "الصفحة {{page}} من {{totalPages}}"
+  },
+  "errorBoundary": {
+    "title": "حدث خطأ ما",
+    "message": "حدث خطأ ما. حاول مجددًا.",
+    "tryAgain": "حاول مجددًا"
+  },
+  "txProgress": {
+    "simulating": "جارٍ محاكاة المعاملة…",
+    "signing": "يرجى التوقيع في محفظتك…",
+    "submitting": "جارٍ الإرسال إلى الشبكة…",
+    "confirming": "في انتظار التأكيد…"
+  },
+  "onboardingTour": {
+    "tourAriaLabel": "جولة تعريفية بـ StellarLock",
+    "closeAriaLabel": "إغلاق الجولة"
+  },
+  "rpcStatus": {
+    "unreachable": "شبكة Stellar غير قابلة للوصول. بعض الميزات قد تكون غير متاحة…",
+    "slow": "اتصال شبكة بطيء. قد تستغرق الاستجابات وقتًا أطول من المعتاد.",
+    "unreachableIndicator": "الشبكة غير قابلة للوصول",
+    "slowIndicator": "شبكة بطيئة"
+  },
+  "qrCode": {
+    "shareAria": "مشاركة القفل عبر رمز QR",
+    "closeAria": "إغلاق نافذة رمز QR",
+    "copyUrlAria": "نسخ الرابط إلى الحافظة",
+    "downloadAria": "تنزيل رمز QR كـ PNG",
+    "copied": "تم النسخ!",
+    "copyUrl": "نسخ الرابط",
+    "downloadPng": "تنزيل PNG",
+    "scanHint": "امسح للوصول إلى هذا القفل"
+  },
+  "keyboardShortcuts": {
+    "title": "اختصارات لوحة المفاتيح",
+    "closeAria": "إغلاق",
+    "actions": {
+      "openShortcuts": "عرض اختصارات لوحة المفاتيح",
+      "closeModal": "إغلاق النافذة",
+      "search": "التركيز على البحث",
+      "createLock": "إنشاء قفل جديد",
+      "myLocks": "الذهاب إلى أقفالي",
+      "explore": "الذهاب إلى الاستكشاف",
+      "history": "الذهاب إلى سجل المعاملات",
+      "analytics": "الذهاب إلى التحليلات",
+      "toggleTheme": "تبديل السمة",
+      "submit": "إرسال النموذج",
+      "nextField": "الحقل التالي",
+      "previousField": "الحقل السابق"
+    }
+  },
+  "health": {
+    "monitoring": "المراقبة",
+    "systemHealth": "صحة النظام",
+    "checkingDependencies": "جارٍ التحقق من التبعيات…",
+    "statusHealthy": "جميع الأنظمة تعمل بشكل طبيعي",
+    "statusUnhealthy": "بعض الأنظمة تعاني من تدهور",
+    "statusChecking": "جارٍ التحقق…",
+    "environmentLabel": "البيئة",
+    "networkLabel": "الشبكة",
+    "healthCheckFailed": "فشل فحص الصحة",
+    "unreachable": "غير قابل للوصول",
+    "extensionAvailable": "متاح",
+    "extensionNotDetected": "غير مكتشف"
+  },
+  "verifiedBadge": {
+    "verifiedTooltip": "رمز موثّق — مدرج في قائمة مجتمع StellarLock المسموح بها",
+    "unverifiedTooltip": "رمز غير موثّق — غير مدرج في قائمة المجتمع. تابع بحذر.",
+    "verified": "موثّق",
+    "unverified": "غير موثّق"
+  },
+  "addressBook": {
+    "title": "دفتر العناوين",
+    "close": "إغلاق دفتر العناوين",
+    "searchPlaceholder": "البحث في العناوين…",
+    "export": "تصدير دفتر العناوين",
+    "import": "استيراد دفتر العناوين",
+    "add": "إضافة عنوان",
+    "label": "التسمية",
+    "stellarAddress": "عنوان Stellar",
+    "address": "العنوان",
+    "empty": "لا توجد عناوين محفوظة بعد",
+    "noResults": "لا توجد عناوين مطابقة",
+    "save": "حفظ العنوان",
+    "cancel": "إلغاء",
+    "delete": "حذف العنوان",
+    "invalidAddress": "أدخل عنوان Stellar صحيحًا.",
+    "labelRequired": "أدخل تسمية لهذا العنوان.",
+    "importError": "تعذّر استيراد ملف دفتر العناوين.",
+    "exportSuccess": "تم تصدير دفتر العناوين.",
+    "importSuccess": "تم استيراد دفتر العناوين."
+  },
+  "tokenLockList": {
+    "amount": "المبلغ",
+    "beneficiary": "المستفيد",
+    "unlockDate": "تاريخ الفتح",
+    "unlocksIn": "يُفتح خلال",
+    "status": "الحالة",
+    "empty": "لم يتم العثور على أقفال لهذا الرمز"
+  },
+  "notificationCenter": {
+    "title": "الإشعارات",
+    "markAllRead": "تحديد الكل كمقروء",
+    "clearAll": "مسح الكل",
+    "empty": "لا توجد إشعارات بعد"
+  },
+  "confirmLockModal": {
+    "review": "راجع التفاصيل قبل التوقيع.",
+    "invalidUnlockDate": "تاريخ فتح غير صحيح.",
+    "linearVesting": "الاستحقاق الخطي مفعّل",
+    "insufficientBalance": "رصيد غير كافٍ.",
+    "approvalRequired": "الموافقة مطلوبة",
+    "title": "تأكيد القفل",
+    "confirm": "تأكيد",
+    "cancel": "إلغاء"
+  },
+  "breadcrumb": {
+    "ariaLabel": "مسار التنقل"
+  },
+  "lockTable": {
+    "select": "تحديد",
+    "actions": "الإجراءات"
+  }
+}

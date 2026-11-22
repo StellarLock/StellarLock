@@ -15,6 +15,7 @@ export const mockWallet = {
   signTransaction: vi.fn().mockResolvedValue({
     signedTxXdr: "AAAAAgAAAAB7D4kmWHhYN8LD0gCTiROgXqrwOlZqvGH7JcYYvEL8AAAAZAA4IjAAAAABAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAA",
   }),
+  signMessage: vi.fn().mockResolvedValue("c2lnbmF0dXJl"),
 }
 
 export const mockLock = {

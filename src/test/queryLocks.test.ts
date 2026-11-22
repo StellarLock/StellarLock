@@ -7,6 +7,7 @@ import {
   queryMyLocks,
   querySiteStats,
 } from "@/lib/queryLocks"
+import { CONTRACTS } from "@/lib/stellar"
 import type { Lock, TokenLockSummary } from "@/types/lock"
 
 const TOKEN_ADDR = "CBFCKEOQRQIXKLGU4QBUQVOINOKFBOXJ37LXEKLKNUO6TW4FNGDU26AW"
@@ -30,7 +31,9 @@ const {
   getLpLockCountByBeneficiary,
   fetchIndexerStats,
   fetchIndexerLocksForToken,
+  fetchIndexerLockById,
   mapIndexerLocks,
+  mapIndexerLock,
   mapIndexerLocksPageToSummary,
   fetchPricesBatch,
   getOnChainTokenMeta,
@@ -49,7 +52,9 @@ const {
   getLpLockCountByBeneficiary: vi.fn(),
   fetchIndexerStats: vi.fn(),
   fetchIndexerLocksForToken: vi.fn(),
+  fetchIndexerLockById: vi.fn(),
   mapIndexerLocks: vi.fn(),
+  mapIndexerLock: vi.fn(),
   mapIndexerLocksPageToSummary: vi.fn(),
   fetchPricesBatch: vi.fn(),
   getOnChainTokenMeta: vi.fn(),
@@ -76,7 +81,9 @@ vi.mock("@/lib/lp-locker", () => ({
 vi.mock("@/lib/indexer-client", () => ({
   fetchIndexerStats,
   fetchIndexerLocksForToken,
+  fetchIndexerLockById,
   mapIndexerLocks,
+  mapIndexerLock,
   mapIndexerLocksPageToSummary,
 }))
 
@@ -145,10 +152,29 @@ describe("queryLocks", () => {
       expect(fetchPricesBatch).toHaveBeenCalledWith([TOKEN_ADDR])
     })
 
-    it("returns null and skips the price oracle when the lock does not exist", async () => {
+    it("returns null and skips the price oracle when the lock does not exist anywhere", async () => {
       getLock.mockResolvedValue(null)
+      fetchIndexerLockById.mockResolvedValue(null)
       expect(await queryTokenLock("999")).toBeNull()
       expect(fetchPricesBatch).not.toHaveBeenCalled()
+    })
+
+    // #1084: once a withdrawn lock's on-chain TTL lapses, get_lock returns
+    // None forever — queryTokenLock must fall back to the indexer's archive
+    // instead of reporting "not found" for a lock that really did exist.
+    it("falls back to the indexer archive when RPC returns null, and flags the lock as archived", async () => {
+      getLock.mockResolvedValue(null)
+      const archived = makeLock({ id: "5", status: "withdrawn" })
+      fetchIndexerLockById.mockResolvedValue({ id: `${CONTRACTS.tokenLocker}:5` })
+      mapIndexerLock.mockResolvedValue(archived)
+
+      const lock = await queryTokenLock("5")
+
+      expect(fetchIndexerLockById).toHaveBeenCalledWith(`${CONTRACTS.tokenLocker}:5`)
+      expect(lock).not.toBeNull()
+      expect(lock!.archived).toBe(true)
+      expect(lock!.status).toBe("withdrawn")
+      expect(lock!.usdValue).toBe(200) // still enriched via the price oracle
     })
   })
 
@@ -161,9 +187,24 @@ describe("queryLocks", () => {
       expect(lock!.usdValue).toBe(200)
     })
 
-    it("returns null when the LP lock does not exist", async () => {
+    it("returns null when the LP lock does not exist anywhere", async () => {
       getLpLock.mockResolvedValue(null)
+      fetchIndexerLockById.mockResolvedValue(null)
       expect(await queryLpLock("999")).toBeNull()
+    })
+
+    it("falls back to the indexer archive when RPC returns null (#1084)", async () => {
+      getLpLock.mockResolvedValue(null)
+      const archived = makeLpLock({ id: "9", status: "withdrawn" })
+      fetchIndexerLockById.mockResolvedValue({ id: `${CONTRACTS.lpLocker}:9` })
+      mapIndexerLock.mockResolvedValue(archived)
+
+      const lock = await queryLpLock("9")
+
+      expect(fetchIndexerLockById).toHaveBeenCalledWith(`${CONTRACTS.lpLocker}:9`)
+      expect(lock).not.toBeNull()
+      expect(lock!.archived).toBe(true)
+      expect(lock!.status).toBe("withdrawn")
     })
   })
 
@@ -265,14 +306,45 @@ describe("queryLocks", () => {
       getLpLocksByBeneficiary.mockResolvedValue([])
       getLockCountByCreator.mockResolvedValue(1)
       getLpLockCountByCreator.mockResolvedValue(0)
-      getLockCountByBeneficiary.mockResolvedValue(2)
-      getLpLockCountByBeneficiary.mockResolvedValue(0)
 
       const result = await queryMyLocks(CREATOR)
 
       expect(result.created.map((l) => l.id)).toEqual(["1"])
       expect(result.received.map((l) => l.id)).toEqual(["2"])
-      expect(result.totalReceived).toBe(2) // count comes from the contract, not the filtered list
+      // #1082: totalReceived must match the filtered `received` list (self-
+      // created locks excluded), not the raw ByBeneficiary index length that
+      // still counts the self-created lock.
+      expect(result.totalReceived).toBe(1)
+      expect(result.totalReceived).toBe(result.received.length)
+    })
+
+    // #1081: token-locker ids and LP-locker ids are independent on-chain
+    // counters (token locks start at 1000, LP locks at 5000) and can collide.
+    // A Map keyed by bare id would make the LP lock's enrichment overwrite
+    // (or be overwritten by) the token lock's, corrupting one of them.
+    it("does not conflate a token lock and an LP lock that share the same bare id", async () => {
+      const tokenLock = makeLock({ id: "5000", amount: 111 })
+      const lpLock = makeLpLock({ id: "5000", amount: 222 })
+      getLocksByCreator.mockResolvedValue([tokenLock])
+      getLpLocksByCreator.mockResolvedValue([lpLock])
+      getLocksByBeneficiary.mockResolvedValue([])
+      getLpLocksByBeneficiary.mockResolvedValue([])
+      getLockCountByCreator.mockResolvedValue(1)
+      getLpLockCountByCreator.mockResolvedValue(1)
+      getLockCountByBeneficiary.mockResolvedValue(0)
+      getLpLockCountByBeneficiary.mockResolvedValue(0)
+
+      const result = await queryMyLocks(CREATOR, 0, 50)
+
+      expect(result.created).toHaveLength(2)
+      const resultToken = result.created.find((l) => l.kind === "token")
+      const resultLp = result.created.find((l) => l.kind === "lp")
+      expect(resultToken?.amount).toBe(111)
+      expect(resultLp?.amount).toBe(222)
+      // Both enriched with USD (2 USD per unit) from their own amount, not a
+      // value borrowed from the other kind's lock of the same id.
+      expect(resultToken?.usdValue).toBe(222)
+      expect(resultLp?.usdValue).toBe(444)
     })
   })
 
@@ -296,7 +368,6 @@ describe("queryLocks", () => {
     it("builds indexer-backed stats with token groups, prices and enriched locks", async () => {
       fetchIndexerStats.mockResolvedValue({
         totalLocks: 10,
-        totalValue: "1000",
         uniqueTokens: 2,
         recentLocks: [{ id: "1" }],
         upcomingUnlocks: [{ id: "2" }],

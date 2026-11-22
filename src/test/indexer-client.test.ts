@@ -20,7 +20,6 @@ const FETCH_TIMEOUT_MS = 3000
 
 const STATS = {
   totalLocks: 3,
-  totalValue: "1000",
   uniqueTokens: 2,
   recentLocks: [],
   upcomingUnlocks: [],

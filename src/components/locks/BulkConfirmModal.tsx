@@ -5,22 +5,26 @@ import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
 import { formatAmount } from "@/lib/utils"
 import { isValidStellarAddress } from "@/lib/stellar-address"
-import type { Lock } from "@/types/lock"
+import { lockKey, type Lock } from "@/types/lock"
 
 type Action = "extend" | "transfer"
 
 interface LockResult {
+  // Keyed by `${kind}:${id}` (see lockKey()), not the bare lock id — token
+  // locks and LP locks can share a bare id once token ids pass 5000 (#1081),
+  // which would otherwise make one lock's result overwrite the other's here.
+  key: string
   id: string
   status: "pending" | "success" | "error"
   error?: string
 }
 
-type ItemOutcome = Omit<LockResult, "id">
+type ItemOutcome = Omit<LockResult, "id" | "key">
 
 interface Props {
   action: Action
   locks: Lock[]
-  onConfirm: (value: string, onItemSettled: (id: string, outcome: ItemOutcome) => void) => Promise<void>
+  onConfirm: (value: string, onItemSettled: (key: string, outcome: ItemOutcome) => void) => Promise<void>
   onClose: () => void
 }
 
@@ -46,9 +50,9 @@ export function BulkConfirmModal({ action, locks, onConfirm, onClose }: Props) {
 
   async function handleConfirm() {
     setRunning(true)
-    setResults(locks.map((l) => ({ id: l.id, status: "pending" })))
-    await onConfirm(value, (id, outcome) => {
-      setResults((prev) => prev.map((r) => (r.id === id ? { id, ...outcome } : r)))
+    setResults(locks.map((l) => ({ key: lockKey(l), id: l.id, status: "pending" })))
+    await onConfirm(value, (key, outcome) => {
+      setResults((prev) => prev.map((r) => (r.key === key ? { ...r, ...outcome } : r)))
     })
     setRunning(false)
   }
@@ -83,7 +87,7 @@ export function BulkConfirmModal({ action, locks, onConfirm, onClose }: Props) {
             <div className="mb-4 max-h-48 overflow-y-auto rounded-lg border border-border">
               {locks.map((l) => (
                 <div
-                  key={l.id}
+                  key={lockKey(l)}
                   className="flex items-center justify-between border-b border-border px-3 py-2 last:border-b-0 text-sm"
                 >
                   <span className="font-medium">
@@ -136,7 +140,7 @@ export function BulkConfirmModal({ action, locks, onConfirm, onClose }: Props) {
           <>
             <div className="mb-4 max-h-64 overflow-y-auto space-y-2">
               {results.map((r) => (
-                <div key={r.id} className="flex items-center gap-3 rounded-lg border border-border px-3 py-2 text-sm">
+                <div key={r.key} className="flex items-center gap-3 rounded-lg border border-border px-3 py-2 text-sm">
                   {r.status === "pending" ? (
                     <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                   ) : r.status === "success" ? (

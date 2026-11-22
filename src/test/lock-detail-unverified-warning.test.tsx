@@ -7,10 +7,16 @@ import { MemoryRouter, Routes, Route } from "react-router-dom"
 import i18n from "@/i18n"
 import { AnnouncerProvider } from "@/hooks/AnnouncerProvider"
 import { LockDetail } from "@/pages/LockDetail"
-import { useVerifiedToken } from "@/hooks/useVerifiedToken"
+import { useVerifiedToken, useVerifiedPool, isVerifiedPool } from "@/hooks/useVerifiedToken"
 import { mockLock, mockWallet } from "./mocks"
 
 const activeLock = { ...mockLock, unlockAt: Date.now() + 86400000 * 30, metadata: {} }
+
+const activeLpLock = {
+  ...activeLock,
+  kind: "lp",
+  poolShare: "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM",
+}
 
 vi.mock("@/hooks/useWallet", () => ({
   useWallet: () => mockWallet,
@@ -22,10 +28,13 @@ vi.mock("@/hooks/WalletProvider", () => ({
 
 vi.mock("@/hooks/useLocks", () => ({
   useLock: vi.fn(() => ({ data: activeLock, loading: false, error: null, reload: vi.fn() })),
+  useLpLock: vi.fn(() => ({ data: activeLpLock, loading: false, error: null, reload: vi.fn() })),
 }))
 
 vi.mock("@/hooks/useVerifiedToken", () => ({
   useVerifiedToken: vi.fn(),
+  useVerifiedPool: vi.fn(),
+  isVerifiedPool: vi.fn(),
 }))
 
 vi.mock("@/lib/token-locker", () => ({
@@ -81,5 +90,38 @@ describe("LockDetail unverified-token warning banner", () => {
     renderLockDetail()
 
     expect(screen.queryByText(i18n.t("lockDetail.unverifiedWarning"))).not.toBeInTheDocument()
+  })
+})
+
+describe("LockDetail unverified-pool warning banner", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(useVerifiedToken).mockReturnValue(true)
+  })
+
+  it("renders the unverified pool warning for an LP lock with an unknown pool", () => {
+    vi.mocked(useVerifiedPool).mockReturnValue(false)
+    renderLockDetail()
+
+    expect(screen.getByText(i18n.t("lockDetail.unverifiedPoolWarning"))).toBeInTheDocument()
+  })
+
+  it("does not render the unverified pool warning for a verified pool", () => {
+    vi.mocked(useVerifiedPool).mockReturnValue(true)
+    renderLockDetail()
+
+    expect(screen.queryByText(i18n.t("lockDetail.unverifiedPoolWarning"))).not.toBeInTheDocument()
+  })
+})
+
+describe("isVerifiedPool pool classification", () => {
+  it("returns true for a curated Aquarius/Soroswap pool address", () => {
+    vi.mocked(isVerifiedPool).mockReturnValue(true)
+    expect(isVerifiedPool("CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM")).toBe(true)
+  })
+
+  it("returns false for an arbitrary contract address", () => {
+    vi.mocked(isVerifiedPool).mockReturnValue(false)
+    expect(isVerifiedPool("CBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB")).toBe(false)
   })
 })

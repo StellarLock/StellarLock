@@ -1,4 +1,5 @@
 import { useCallback, useState, useSyncExternalStore } from "react"
+import { getJson, setJson, getItem, setItem, removeItem } from "../lib/safe-storage"
 
 const STORAGE_KEY_PREFS = "stellarlock:notification_prefs"
 const STORAGE_KEY_HISTORY = "stellarlock:notification_history"
@@ -43,12 +44,95 @@ export interface NotificationPrefs {
 // ---------------------------------------------------------------------------
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? ""
+const STORAGE_KEY_SESSION = "stellarlock:notification_session"
+/** Refresh the session this long before it actually expires. */
+const SESSION_EXPIRY_MARGIN_S = 60
+
+/** Signs a message with the connected wallet (SEP-53) and returns the base64 signature. */
+export type SignMessageFn = (message: string) => Promise<string>
+
+interface StoredSession {
+  address: string
+  token: string
+  expiresAt: number
+}
+
+function loadSession(address: string): string | null {
+  try {
+    const raw = getItem(STORAGE_KEY_SESSION)
+    if (!raw) return null
+    const session = JSON.parse(raw) as StoredSession
+    if (session.address !== address) return null
+    if (session.expiresAt - SESSION_EXPIRY_MARGIN_S <= Date.now() / 1000) return null
+    return session.token
+  } catch {
+    return null
+  }
+}
+
+function saveSession(session: StoredSession | null) {
+  if (session) setItem(STORAGE_KEY_SESSION, JSON.stringify(session))
+  else removeItem(STORAGE_KEY_SESSION)
+}
+
+/**
+ * Obtain a notification API session for `address`, proving ownership by
+ * signing a server-issued nonce with the wallet. Cached in sessionStorage
+ * until shortly before it expires.
+ */
+async function getNotificationSession(address: string, signMessage: SignMessageFn | undefined): Promise<string> {
+  const cached = loadSession(address)
+  if (cached) return cached
+  if (!signMessage) throw new Error("Wallet does not support message signing")
+
+  const challengeRes = await fetch(
+    `${API_BASE}/api/notifications/challenge?${new URLSearchParams({ address }).toString()}`,
+  )
+  if (!challengeRes.ok) throw new Error(`Challenge failed (${challengeRes.status})`)
+  const { nonce, message } = (await challengeRes.json()) as { nonce: string; message: string }
+
+  const signature = await signMessage(message)
+
+  const sessionRes = await fetch(`${API_BASE}/api/notifications/session`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ address, nonce, signature }),
+  })
+  if (!sessionRes.ok) {
+    const body = (await sessionRes.json().catch(() => ({}))) as { error?: string }
+    throw new Error(body.error ?? `Sign-in failed (${sessionRes.status})`)
+  }
+  const { token, expiresAt } = (await sessionRes.json()) as { token: string; expiresAt: number }
+  saveSession({ address, token, expiresAt })
+  return token
+}
+
+/**
+ * fetch() with a notification session for `address`. If the server rejects a
+ * cached session (e.g. secret rotated), re-sign once and retry.
+ */
+async function authedFetch(
+  address: string,
+  signMessage: SignMessageFn | undefined,
+  url: string,
+  init: RequestInit,
+): Promise<Response> {
+  const send = (token: string) =>
+    fetch(url, { ...init, headers: { ...(init.headers as Record<string, string>), Authorization: `Bearer ${token}` } })
+
+  const res = await send(await getNotificationSession(address, signMessage))
+  if (res.status !== 401) return res
+  saveSession(null)
+  return send(await getNotificationSession(address, signMessage))
+}
 
 interface SubscribeParams {
   lockId: string
   address: string
   email?: string
   webhookUrl?: string
+  /** Wallet signer used to prove ownership of `address`. */
+  signMessage?: SignMessageFn
 }
 
 /**
@@ -56,7 +140,7 @@ interface SubscribeParams {
  * Returns the subscription id on success, throws on network or validation error.
  */
 export async function subscribeNotifications(params: SubscribeParams): Promise<string> {
-  const res = await fetch(`${API_BASE}/api/notifications/subscribe`, {
+  const res = await authedFetch(params.address, params.signMessage, `${API_BASE}/api/notifications/subscribe`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -77,9 +161,13 @@ export async function subscribeNotifications(params: SubscribeParams): Promise<s
 /**
  * Remove an email / webhook subscription for a lock.
  */
-export async function unsubscribeNotifications(lockId: string, address: string): Promise<void> {
+export async function unsubscribeNotifications(
+  lockId: string,
+  address: string,
+  signMessage?: SignMessageFn,
+): Promise<void> {
   const params = new URLSearchParams({ lockId, address })
-  const res = await fetch(`${API_BASE}/api/notifications/subscribe?${params.toString()}`, {
+  const res = await authedFetch(address, signMessage, `${API_BASE}/api/notifications/unsubscribe?${params.toString()}`, {
     method: "DELETE",
   })
   if (!res.ok && res.status !== 404) {
@@ -88,27 +176,19 @@ export async function unsubscribeNotifications(lockId: string, address: string):
 }
 
 function loadPrefs(): Record<string, NotificationPrefs> {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY_PREFS) ?? "{}") as Record<string, NotificationPrefs>
-  } catch {
-    return {}
-  }
+  return getJson<Record<string, NotificationPrefs>>(STORAGE_KEY_PREFS, {})
 }
 
 function savePrefs(prefs: Record<string, NotificationPrefs>) {
-  localStorage.setItem(STORAGE_KEY_PREFS, JSON.stringify(prefs))
+  setJson(STORAGE_KEY_PREFS, prefs)
 }
 
 function loadNotifications(): Notification[] {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY_HISTORY) ?? "[]") as Notification[]
-  } catch {
-    return []
-  }
+  return getJson<Notification[]>(STORAGE_KEY_HISTORY, [])
 }
 
 function saveNotifications(notifications: Notification[]) {
-  localStorage.setItem(STORAGE_KEY_HISTORY, JSON.stringify(notifications))
+  setJson(STORAGE_KEY_HISTORY, notifications)
 }
 
 export function useNotificationPrefs(lockId?: string) {

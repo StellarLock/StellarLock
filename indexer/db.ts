@@ -22,6 +22,7 @@ export function initDb() {
     CREATE TABLE IF NOT EXISTS locks (
       id TEXT PRIMARY KEY,
       kind TEXT NOT NULL,
+      contract_id TEXT NOT NULL DEFAULT '',
       creator TEXT NOT NULL,
       beneficiary TEXT NOT NULL,
       token TEXT NOT NULL,
@@ -35,7 +36,12 @@ export function initDb() {
       created_at INTEGER NOT NULL,
       extended_count INTEGER DEFAULT 0,
       withdrawn INTEGER DEFAULT 0,
-      released TEXT NOT NULL DEFAULT '0'
+      released TEXT NOT NULL DEFAULT '0',
+      vesting_start INTEGER,
+      vesting_end INTEGER,
+      description TEXT,
+      project_url TEXT,
+      logo_url TEXT
     );
 
     CREATE INDEX IF NOT EXISTS idx_locks_token ON locks(token);
@@ -51,16 +57,51 @@ export function initDb() {
       id TEXT PRIMARY KEY,
       ledger_seq INTEGER NOT NULL,
       event_type TEXT NOT NULL,
-      lock_id TEXT NOT NULL
+      lock_id TEXT NOT NULL,
+      tx_hash TEXT,
+      ledger_closed_at INTEGER,
+      payload TEXT
     );
 
     CREATE INDEX IF NOT EXISTS idx_lock_events_ledger ON lock_events(ledger_seq);
+    CREATE INDEX IF NOT EXISTS idx_lock_events_lock_id ON lock_events(lock_id);
+
+    -- Events that failed to process are recorded here and retried on later
+    -- polls (#1122): a transient DB error or decoding bug must never silently
+    -- drop a lock state change, since the RPC cursor has already moved past it.
+    CREATE TABLE IF NOT EXISTS failed_events (
+      id TEXT PRIMARY KEY,
+      ledger_seq INTEGER NOT NULL,
+      event_type TEXT,
+      attempts INTEGER NOT NULL DEFAULT 0,
+      last_error TEXT,
+      last_attempt_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      payload TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_failed_events_ledger ON failed_events(ledger_seq);
+
+    CREATE TABLE IF NOT EXISTS contract_status (
+      contract_id TEXT PRIMARY KEY,
+      paused INTEGER NOT NULL DEFAULT 0,
+      pending_upgrade_hash TEXT,
+      pending_upgrade_execute_after INTEGER,
+      last_upgrade_hash TEXT,
+      admin TEXT,
+      pending_admin TEXT,
+      last_event TEXT,
+      last_event_ledger INTEGER,
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
 
     CREATE TABLE IF NOT EXISTS notification_subscriptions (
       id          TEXT PRIMARY KEY,
       lock_id     TEXT NOT NULL,
       address     TEXT NOT NULL,
       email       TEXT,
+      email_verified INTEGER NOT NULL DEFAULT 0,
+      email_verify_token_hash TEXT,
+      email_verify_sent_at INTEGER,
       webhook_url TEXT,
       reminded_7d INTEGER DEFAULT 0,
       reminded_1d INTEGER DEFAULT 0,
@@ -96,6 +137,23 @@ export function initDb() {
     })()
   }
 
+  // Double opt-in columns were added after notification_subscriptions first
+  // shipped. Existing rows start unverified, so they only resume receiving
+  // reminder emails once the address is confirmed via a fresh subscribe.
+  const subColumns = db.prepare(`PRAGMA table_info(notification_subscriptions)`).all() as { name: string }[]
+  if (!subColumns.some((c) => c.name === "email_verified")) {
+    db.exec(`ALTER TABLE notification_subscriptions ADD COLUMN email_verified INTEGER NOT NULL DEFAULT 0`)
+  }
+  if (!subColumns.some((c) => c.name === "email_verify_token_hash")) {
+    db.exec(`ALTER TABLE notification_subscriptions ADD COLUMN email_verify_token_hash TEXT`)
+  }
+  if (!subColumns.some((c) => c.name === "email_verify_sent_at")) {
+    db.exec(`ALTER TABLE notification_subscriptions ADD COLUMN email_verify_sent_at INTEGER`)
+  }
+  db.exec(
+    `CREATE INDEX IF NOT EXISTS idx_subs_verify_token ON notification_subscriptions(email_verify_token_hash)`,
+  )
+
   // `released` was added after `locks` first shipped — back-fill it for
   // databases created before this column existed. Every already-indexed
   // lock defaulted to being marked fully withdrawn as soon as any withdrawal
@@ -104,6 +162,54 @@ export function initDb() {
   const lockColumns = db.prepare(`PRAGMA table_info(locks)`).all() as { name: string }[]
   if (!lockColumns.some((c) => c.name === "released")) {
     db.exec(`ALTER TABLE locks ADD COLUMN released TEXT NOT NULL DEFAULT '0'`)
+  }
+
+  // Vesting schedule and project metadata columns — added for Issue #1130.
+  // Populated asynchronously after a create event via a get_lock simulation.
+  if (!lockColumns.some((c) => c.name === "vesting_start")) {
+    db.exec(`ALTER TABLE locks ADD COLUMN vesting_start INTEGER`)
+  }
+  if (!lockColumns.some((c) => c.name === "vesting_end")) {
+    db.exec(`ALTER TABLE locks ADD COLUMN vesting_end INTEGER`)
+  }
+  if (!lockColumns.some((c) => c.name === "description")) {
+    db.exec(`ALTER TABLE locks ADD COLUMN description TEXT`)
+  }
+  if (!lockColumns.some((c) => c.name === "project_url")) {
+    db.exec(`ALTER TABLE locks ADD COLUMN project_url TEXT`)
+  }
+  if (!lockColumns.some((c) => c.name === "logo_url")) {
+    db.exec(`ALTER TABLE locks ADD COLUMN logo_url TEXT`)
+  }
+
+  // lock_events enrichment columns — added for Issue #1129.
+  const eventColumns = db.prepare(`PRAGMA table_info(lock_events)`).all() as { name: string }[]
+  if (!eventColumns.some((c) => c.name === "tx_hash")) {
+    db.exec(`ALTER TABLE lock_events ADD COLUMN tx_hash TEXT`)
+  }
+  if (!eventColumns.some((c) => c.name === "ledger_closed_at")) {
+    db.exec(`ALTER TABLE lock_events ADD COLUMN ledger_closed_at INTEGER`)
+  }
+  if (!eventColumns.some((c) => c.name === "payload")) {
+    db.exec(`ALTER TABLE lock_events ADD COLUMN payload TEXT`)
+  }
+
+  // Index to serve GET /api/indexer-lock-events?lockId= efficiently.
+  // CREATE INDEX IF NOT EXISTS is idempotent — safe to run on every startup.
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_lock_events_lock_id ON lock_events(lock_id)`)
+
+  // contract_id on locks — added for Issue #1127 (namespace by contract address).
+  // Rows created before this column existed keep the empty-string default;
+  // they will be re-indexed with the correct contract_id when the events are
+  // replayed, or operators can clear the DB and let the indexer re-index from
+  // the beginning.
+  if (!lockColumns.some((c) => c.name === "contract_id")) {
+    db.exec(`ALTER TABLE locks ADD COLUMN contract_id TEXT NOT NULL DEFAULT ''`)
+  }
+
+  // contract_id on lock_events — mirrors the locks column for join/filter use.
+  if (!eventColumns.some((c) => c.name === "contract_id")) {
+    db.exec(`ALTER TABLE lock_events ADD COLUMN contract_id TEXT NOT NULL DEFAULT ''`)
   }
 }
 

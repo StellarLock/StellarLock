@@ -46,6 +46,33 @@ export default tseslint.config(
     rules: {
       ...reactHooks.configs.recommended.rules,
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
+      // Direct localStorage access throws in Safari private mode, when site
+      // data is blocked, or when the quota is exceeded. Use the safe wrapper
+      // in src/lib/safe-storage.ts instead.
+      "no-restricted-globals": [
+        "error",
+        {
+          name: "localStorage",
+          message: "Use the safe helpers from @/lib/safe-storage instead of accessing localStorage directly.",
+        },
+      ],
+      "no-restricted-properties": [
+        "error",
+        {
+          object: "window",
+          property: "localStorage",
+          message: "Use the safe helpers from @/lib/safe-storage instead of accessing localStorage directly.",
+        },
+      ],
+    },
+  },
+  {
+    // The helper itself (and tests that intentionally simulate a throwing or
+    // missing storage) must be allowed to touch localStorage directly.
+    files: ["src/lib/safe-storage.ts", "src/lib/safe-storage.test.ts", "src/**/*.test.ts", "src/**/*.test.tsx"],
+    rules: {
+      "no-restricted-globals": "off",
+      "no-restricted-properties": "off",
     },
   },
   prettierConfig,

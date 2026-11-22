@@ -1,9 +1,23 @@
 export type LockKind = "token" | "lp"
 
+/**
+ * Stable, collision-free identifier for a lock across kinds.
+ *
+ * Token-locker and LP-locker ids are independent on-chain counters (token
+ * locks start at 1000, LP locks at 5000), so once either counter grows past
+ * the other's starting point, a token lock and an LP lock can share the same
+ * bare `id`. Any client-side Map/Set that needs to key on a lock (dedup,
+ * selection, per-item status tracking, etc.) must use this composite key
+ * instead of the bare id — see #1081.
+ */
+export function lockKey(l: { kind: LockKind; id: string }): string {
+  return `${l.kind}:${l.id}`
+}
+
 export const DEX_VALUES = ["aquarius", "soroswap"] as const
 export type Dex = (typeof DEX_VALUES)[number]
 
-export type LockStatus = "locked" | "unlockable" | "withdrawn"
+export type LockStatus = "locked" | "unlockable" | "withdrawn" | "archived"
 
 export interface TokenMeta {
   /** Contract address of the token (C...) */
@@ -39,6 +53,12 @@ export interface Lock {
   id: string
   kind: LockKind
   status: LockStatus
+  /**
+   * Set when this lock could no longer be read live from the contract (its
+   * withdrawn-TTL has lapsed) and was recovered from the lock indexer's
+   * archival record instead. Always `status === "withdrawn"` when true.
+   */
+  archived?: boolean
 
   /** Token being locked. For LP locks this is the pool share token. */
   token: TokenMeta

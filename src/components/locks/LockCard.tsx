@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom"
 import { ArrowRight, Repeat } from "lucide-react"
 import { useTranslation } from "react-i18next"
-import type { Lock } from "@/types/lock"
+import { lockKey, type Lock } from "@/types/lock"
 import { Card } from "@/components/ui/Card"
 import { TokenAvatar } from "@/components/ui/TokenAvatar"
 import { StatusBadge } from "@/components/ui/StatusBadge"
@@ -17,7 +17,9 @@ interface LockCardProps {
   lock: Lock
   selectable?: boolean
   selected?: boolean
-  onSelect?: (id: string, checked: boolean) => void
+  // Keyed by `${kind}:${id}` (see lockKey()) — bare ids collide across
+  // token-locker and LP-locker's independent id counters (#1081).
+  onSelect?: (key: string, checked: boolean) => void
 }
 
 export function LockCard({ lock, selectable = false, selected = false, onSelect }: LockCardProps) {
@@ -39,7 +41,7 @@ export function LockCard({ lock, selectable = false, selected = false, onSelect 
               checked={selected}
               onChange={(e) => {
                 e.stopPropagation()
-                onSelect?.(lock.id, e.target.checked)
+                onSelect?.(lockKey(lock), e.target.checked)
               }}
               onClick={(e) => e.stopPropagation()}
               className="h-4 w-4 shrink-0 accent-[oklch(0.78_0.16_175)] cursor-pointer"
@@ -101,11 +103,11 @@ export function LockCard({ lock, selectable = false, selected = false, onSelect 
     return (
       <div
         className="group block cursor-pointer"
-        onClick={() => onSelect?.(lock.id, !selected)}
+        onClick={() => onSelect?.(lockKey(lock), !selected)}
         role="checkbox"
         aria-checked={selected}
         tabIndex={0}
-        onKeyDown={(e) => e.key === " " && onSelect?.(lock.id, !selected)}
+        onKeyDown={(e) => e.key === " " && onSelect?.(lockKey(lock), !selected)}
       >
         {inner}
       </div>

@@ -26,4 +26,13 @@ describe("StatusBadge", () => {
     expect(badge).toBeInTheDocument()
     expect(badge).toHaveClass("border-border")
   })
+
+  // #1084: an indexer-archived withdrawn lock should read differently from a
+  // normal withdrawn lock, so viewers understand it's historical data.
+  it("renders a distinct archived label when a withdrawn lock is flagged archived", () => {
+    render(<StatusBadge status="withdrawn" archived />)
+
+    expect(screen.getByText("Withdrawn (archived)")).toBeInTheDocument()
+    expect(screen.queryByText("Withdrawn")).not.toBeInTheDocument()
+  })
 })

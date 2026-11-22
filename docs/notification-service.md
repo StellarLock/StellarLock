@@ -35,6 +35,8 @@ REST endpoints for the frontend to register/unregister notification preferences.
 | POST | `/api/notifications/subscribe` | Register for lock notifications |
 | DELETE | `/api/notifications/unsubscribe?lockId=...&address=...` | Unsubscribe from a lock |
 | GET | `/api/notifications/subscriptions` | List user's subscriptions |
+| GET | `/api/notifications/verify?token=...` | Confirm an email address (double opt-in link) |
+| GET / POST | `/api/notifications/unsubscribe-email?id=...&token=...` | Signed one-click email unsubscribe (GET shows a confirm button; POST unsubscribes, RFC 8058) |
 
 #### Subscribe payload
 
@@ -48,6 +50,13 @@ REST endpoints for the frontend to register/unregister notification preferences.
 ```
 
 At least one of `email` or `webhookUrl` must be provided.
+
+Emails use double opt-in: a new or changed address is stored unverified and
+sent a confirmation link (`/api/notifications/verify`, valid for 48 hours).
+Reminders are only emailed to verified addresses. Every reminder email
+includes a signed unsubscribe link and `List-Unsubscribe` /
+`List-Unsubscribe-Post` headers. Subscriptions for withdrawn locks are closed
+out without sending further reminders.
 
 #### Unsubscribe parameters
 
@@ -83,6 +92,8 @@ CREATE INDEX IF NOT EXISTS idx_subs_pending ON notification_subscriptions(remind
 
 ```json
 {
+  "deliveryId": "6f1c2a9e-3b7d-4e0a-9c2f-1d5e8b7a4c30",
+  "timestamp": 1735084800,
   "event": "unlock_reminder",
   "lockId": "1042",
   "unlockAt": 1735689600,
@@ -94,6 +105,55 @@ CREATE INDEX IF NOT EXISTS idx_subs_pending ON notification_subscriptions(remind
 ```
 
 Events: `unlock_reminder` (7d, 1d before) and `unlocked` (at unlock time).
+
+Each subscription receives at most one reminder per notifier run. If the
+subscriber signs up late (e.g. inside the 1-day window), only the most specific
+due reminder is sent and the earlier ones are skipped. When a lock is extended,
+reminders whose thresholds are in the future again are re-armed for the new
+unlock date.
+
+### Webhook headers
+
+| Header | Description |
+|--------|-------------|
+| `X-StellarLock-Timestamp` | Unix seconds when the delivery was signed (also in the body as `timestamp`) |
+| `X-StellarLock-Delivery` | Unique id for this delivery (also in the body as `deliveryId`) — use it to drop duplicates |
+| `X-StellarLock-Signature` | Hex HMAC-SHA256 of `` `${timestamp}.${rawBody}` `` keyed with `WEBHOOK_SECRET` (omitted when no secret is configured) |
+
+### Verifying a webhook
+
+Receivers should verify the signature over the **raw** request body, reject
+deliveries whose timestamp falls outside a tolerance window (5 minutes is a
+sensible default), and ignore delivery ids they've already processed. Without
+the timestamp check, a captured delivery could be replayed indefinitely.
+
+```ts
+import { createHmac, timingSafeEqual } from 'node:crypto'
+
+const TOLERANCE_S = 300
+
+export function verifyStellarLockWebhook(
+  rawBody: string,
+  headers: Record<string, string | undefined>,
+  secret: string,
+): boolean {
+  const timestamp = Number(headers['x-stellarlock-timestamp'])
+  const signature = headers['x-stellarlock-signature'] ?? ''
+  if (!Number.isInteger(timestamp)) return false
+
+  // Reject stale (or far-future) deliveries to defeat replays.
+  const ageS = Math.abs(Math.floor(Date.now() / 1000) - timestamp)
+  if (ageS > TOLERANCE_S) return false
+
+  const expected = createHmac('sha256', secret).update(`${timestamp}.${rawBody}`).digest('hex')
+  const a = Buffer.from(expected, 'hex')
+  const b = Buffer.from(signature, 'hex')
+  return a.length === b.length && timingSafeEqual(a, b)
+}
+```
+
+After a successful verification, record `X-StellarLock-Delivery` and discard
+any later delivery with the same id.
 
 ## Security Considerations
 

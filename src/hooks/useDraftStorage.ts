@@ -1,5 +1,6 @@
 import { useEffect } from "react"
 import { createLogger } from "@/lib/logger"
+import { safeStorage } from "@/lib/safe-storage"
 
 const log = createLogger("useDraftStorage")
 
@@ -13,17 +14,17 @@ export function getDraftKey(type: DraftType): string {
 }
 
 export function saveDraft(type: DraftType, data: Record<string, string>): void {
-  try {
-    localStorage.setItem(getDraftKey(type), JSON.stringify(data))
-  } catch (e) {
-    log.warn("Failed to save draft", e)
+  const ok = safeStorage.setItem(getDraftKey(type), JSON.stringify(data))
+  if (!ok) {
+    log.warn("Failed to save draft")
   }
 }
 
 export function loadDraft(type: DraftType): Record<string, string> | null {
+  const data = safeStorage.getItem(getDraftKey(type))
+  if (!data) return null
   try {
-    const data = localStorage.getItem(getDraftKey(type))
-    return data ? (JSON.parse(data) as Record<string, string>) : null
+    return JSON.parse(data) as Record<string, string>
   } catch (e) {
     log.warn("Failed to load draft", e)
     return null
@@ -31,10 +32,9 @@ export function loadDraft(type: DraftType): Record<string, string> | null {
 }
 
 export function clearDraft(type: DraftType): void {
-  try {
-    localStorage.removeItem(getDraftKey(type))
-  } catch (e) {
-    log.warn("Failed to clear draft", e)
+  const ok = safeStorage.removeItem(getDraftKey(type))
+  if (!ok) {
+    log.warn("Failed to clear draft")
   }
 }
 

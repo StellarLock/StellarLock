@@ -24,10 +24,8 @@ vi.mock("@/hooks/WalletProvider", () => ({
 }))
 
 const mockUseTokenBalance = vi.fn()
-const mockUseTokenAllowance = vi.fn()
 vi.mock("@/hooks/useLocks", () => ({
   useTokenBalance: () => mockUseTokenBalance() as unknown as Record<string, unknown>,
-  useTokenAllowance: () => mockUseTokenAllowance() as unknown as Record<string, unknown>,
 }))
 
 vi.mock("@/lib/stellar", () => ({
@@ -46,7 +44,6 @@ describe("CreateLpLockForm Validation Requirements", () => {
       signTransaction: vi.fn(),
     })
     mockUseTokenBalance.mockReturnValue({ data: 100, loading: false })
-    mockUseTokenAllowance.mockReturnValue({ data: 0, loading: false })
   })
 
   it("should enable submission exclusively when all Stellar contract paths and amounts match parameters", async () => {
