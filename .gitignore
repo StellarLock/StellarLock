@@ -16,15 +16,15 @@ dist/
 # TypeScript incremental build cache
 *.tsbuildinfo
 
-# Test coverage reports
-coverage/
-.nyc_output/
-
 # Vitest cache and snapshots
 .vitest-cache/
 **/__snapshots__/
 src/test/__snapshots__/
 *.snap
+
+# Vitest coverage
+coverage/
+.nyc_output/
 
 # Rust / Soroban build artifacts
 contracts/target/

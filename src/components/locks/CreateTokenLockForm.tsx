@@ -13,7 +13,7 @@ import { createTokenLock } from "@/lib/token-locker"
 import { createSplitLock, type SplitBeneficiary } from "@/lib/split-lock"
 import { trackEvent } from "@/lib/analytics"
 import { addTransaction } from "@/lib/transaction-history"
-import { cn, formatDate, notify } from "@/lib/utils"
+import { cn, formatDate, formatUnits, notify, parseUnits } from "@/lib/utils"
 import { validateTokenLockForm, type FieldKey } from "@/lib/validation/lockFormValidation"
 import { FormValidationErrors } from "@/components/locks/FormValidationErrors"
 import { sanitizeError } from "@/lib/error-sanitizer"
@@ -28,6 +28,7 @@ import { AddressBookModal } from "@/components/ui/AddressBookModal"
 import { createLogger } from "@/lib/logger"
 import { useDraftAutoSave } from "@/hooks/useDraftStorage"
 import { addNotification } from "@/hooks/useNotifications"
+import { getOnChainTokenMeta } from "@/lib/token-metadata"
 
 const log = createLogger("CreateTokenLockForm")
 
@@ -75,6 +76,9 @@ export function CreateTokenLockForm() {
   // template dropdown back to "Custom" so their own choice isn't silently wiped.
   const userUnlockDateRef = useRef("")
   const [addressBookOpen, setAddressBookOpen] = useState(false)
+  // Token's on-chain decimals — fetched once per valid address so costArgs can use
+  // the correct scale factor instead of the hardcoded 1e7.
+  const [tokenDecimals, setTokenDecimals] = useState<number>(7)
 
   const COOLDOWN_SECONDS = 60
   const COOLDOWN_KEY = "stellarlock:last_lock_created_at"
@@ -169,14 +173,19 @@ export function CreateTokenLockForm() {
   }, [validation, tokenAddress, amount, beneficiary, unlockDate, multiMode, splitBeneficiaries])
 
   const validTokenAddress = hasIssue("tokenAddress") ? undefined : trimmedTokenAddress
+  // Fetch the token's decimals once per valid address so costArgs uses the correct scale.
+  useEffect(() => {
+    if (!validTokenAddress) { setTokenDecimals(7); return }
+    void getOnChainTokenMeta(validTokenAddress).then((m) => setTokenDecimals(m?.decimals ?? 7))
+  }, [validTokenAddress])
   const {
     balance: balanceStroops,
     isLoading: balanceLoading,
     isRevalidating: balanceRevalidating,
   } = useTokenBalanceSWR(validTokenAddress, address ?? null)
-  // Convert stroops (bigint) to a human-readable float for display/validation.
+  // Convert base-unit bigint to a human-readable float for display/validation.
   // While revalidating we keep the stale value visible — that's the SWR benefit.
-  const balance = balanceStroops !== null ? Number(balanceStroops) / 1e7 : null
+  const balance = balanceStroops !== null ? Number(formatUnits(balanceStroops, tokenDecimals)) : null
   const { data: allowance, loading: allowanceLoading } = useTokenAllowance(
     validTokenAddress,
     address ?? null,
@@ -199,7 +208,8 @@ export function CreateTokenLockForm() {
     try {
       if (!validTokenAddress || !address || Number(amount) <= 0 || unlockTs <= Date.now()) return null
       const beneficiaryAddr = beneficiary.trim().length > 0 ? beneficiary.trim() : address
-      const amountStroops = BigInt(Math.round(Number(amount) * 1e7))
+      // Use the same decimals-aware encoding as the submit path (#1061)
+      const amountStroops = parseUnits(amount, tokenDecimals)
       const args: xdr.ScVal[] = [
         new Address(address).toScVal(),
         new Address(validTokenAddress).toScVal(),
@@ -231,7 +241,7 @@ export function CreateTokenLockForm() {
     } catch {
       return null
     }
-  }, [validTokenAddress, address, amount, beneficiary, unlockTs, vesting])
+  }, [validTokenAddress, address, amount, beneficiary, unlockTs, vesting, tokenDecimals])
 
   function applyPreset(days: number) {
     const date = new Date(Date.now() + days * DAY).toISOString().slice(0, 10)

@@ -63,7 +63,7 @@ export function LockCard({ lock, selectable = false, selected = false, onSelect 
         <div>
           <p className="text-xs text-muted-foreground">{t("lockCard.lockedAmount")}</p>
           <p className="text-lg font-semibold tabular-nums">
-            {formatAmount(lock.amount, { compact: true })}{" "}
+            {formatAmount(lock.amount, { compact: true, tokenDecimals: lock.token.decimals })}{" "}
             <span className="text-sm font-normal text-muted-foreground">({formatUsd(lock.usdValue)})</span>
           </p>
         </div>

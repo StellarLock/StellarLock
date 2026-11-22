@@ -46,5 +46,27 @@ export default tseslint.config(
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
     },
   },
+  // ── #1062: Ban 1e7 literal for token-amount math ──────────────────────────
+  // The only legitimate use of 1e7 is XLM fee conversion, which must go
+  // through the named `XLM_STROOPS_PER_UNIT` constant in src/lib/stellar.ts.
+  // Any new occurrence in src/ is a bug waiting to happen on non-7-decimal tokens.
+  {
+    files: ["src/**/*.ts", "src/**/*.tsx"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          // Matches numeric literals equal to 1e7 (10000000) used in
+          // multiplicative or divisive expressions — the typical amount-encoding pattern.
+          selector:
+            "BinaryExpression[operator=/[*\\/]/] Literal[value=10000000]",
+          message:
+            "Do not use 1e7 / 10000000 for token amount math. " +
+            "Use parseUnits(str, decimals) from @/lib/utils instead. " +
+            "XLM fee conversions must use XLM_STROOPS_PER_UNIT from @/lib/stellar.",
+        },
+      ],
+    },
+  },
   prettierConfig,
 )

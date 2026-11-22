@@ -90,7 +90,7 @@ export function BulkConfirmModal({ action, locks, onConfirm, onClose }: Props) {
                     #{l.id} {l.token.symbol}
                   </span>
                   <span className="text-muted-foreground tabular-nums">
-                    {formatAmount(l.amount, { compact: true })}
+                    {formatAmount(l.amount, { compact: true, tokenDecimals: l.token.decimals })}
                   </span>
                 </div>
               ))}

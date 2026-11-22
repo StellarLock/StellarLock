@@ -36,7 +36,7 @@ export function TokenLockList({ locks }: { locks: Lock[] }) {
               className="grid grid-cols-1 gap-3 border-b border-border px-5 py-4 last:border-b-0 transition-colors hover:bg-secondary/40 md:grid-cols-12 md:items-center md:gap-4"
             >
               <div className="col-span-3 flex flex-col gap-1">
-                <span className="font-semibold tabular-nums">{formatAmount(lock.amount, { compact: true })}</span>
+                <span className="font-semibold tabular-nums">{formatAmount(lock.amount, { compact: true, tokenDecimals: lock.token.decimals })}</span>
                 <span className="flex items-center gap-2 text-xs text-muted-foreground">
                   {formatUsd(lock.usdValue)}
                   {lock.kind === "lp" && lock.dex && <DexBadge dex={lock.dex} />}

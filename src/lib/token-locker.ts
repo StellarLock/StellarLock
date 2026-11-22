@@ -2,6 +2,7 @@ import { Address, nativeToScVal, xdr } from "@stellar/stellar-sdk"
 import type { Lock, LockMetadata, TokenLockSummary } from "@/types/lock"
 import { CONTRACTS, simulateCall, submitCallWithHash, type TxPhase } from "@/lib/stellar"
 import { getOnChainTokenMeta, type OnChainTokenMeta } from "@/lib/token-metadata"
+import { parseUnits } from "@/lib/utils"
 
 export interface CreateTokenLockArgs {
   tokenAddress: string
@@ -18,7 +19,6 @@ export interface CreateTokenLockArgs {
 function toLock(raw: Record<string, unknown>, meta?: OnChainTokenMeta): Lock {
   const token = raw.token as string
   const decimals = meta?.decimals ?? 7
-  const multiplier = 10 ** decimals
 
   // Vesting is stored non-optionally on-chain using a sentinel schedule
   // (start == 0 && end == 0) to mean "no vesting".
@@ -38,7 +38,8 @@ function toLock(raw: Record<string, unknown>, meta?: OnChainTokenMeta): Lock {
     },
     creator: raw.creator as string,
     beneficiary: raw.beneficiary as string,
-    amount: Number(raw.amount) / multiplier,
+    // Store raw base-unit bigint; display callers use formatUnits(amount, token.decimals)
+    amount: BigInt(raw.amount as bigint | string | number),
     usdValue: 0, // computed client-side if needed
     createdAt: Number(raw.created_at) * 1000,
     unlockAt: Number(raw.unlock_at) * 1000,
@@ -47,7 +48,7 @@ function toLock(raw: Record<string, unknown>, meta?: OnChainTokenMeta): Lock {
       ? {
           start: Number(vestingRaw.start) * 1000,
           end: Number(vestingRaw.end) * 1000,
-          released: Number(vestingRaw.released) / multiplier,
+          released: BigInt(vestingRaw.released),
         }
       : undefined,
     metadata,
@@ -221,7 +222,7 @@ export async function getLocksByToken(
 
   const locks = await enrichLocks(raw)
   const active = locks.filter((l) => l.status !== "withdrawn")
-  const totalLocked = active.reduce((s, l) => s + l.amount, 0)
+  const totalLocked = active.reduce((s, l) => s + l.amount, 0n)
   const upcoming = active
     .filter((l) => l.status === "locked")
     .map((l) => l.unlockAt)
@@ -276,7 +277,10 @@ export async function createTokenLock(
   onProgress?: (phase: TxPhase) => void,
 ): Promise<{ id: string; txHash: string }> {
   const unlockAtSecs = Math.floor(args.unlockAt)
-  const amountStroops = BigInt(Math.round(args.amount * 1e7))
+  // Fetch token decimals so the encoded amount matches what the user typed exactly
+  const meta = await getOnChainTokenMeta(args.tokenAddress)
+  const decimals = meta?.decimals ?? 7
+  const amountStroops = parseUnits(String(args.amount), decimals)
 
   const scArgs: xdr.ScVal[] = [
     addressArg(sourceAddress),

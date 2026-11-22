@@ -46,7 +46,7 @@ export const MOCK_LOCKS: Lock[] = [
     token: TOKENS.GLOW,
     creator: WALLET,
     beneficiary: WALLET,
-    amount: 12_500_000,
+    amount: 125_000_000n, // 12.5 GLOW at 7 decimals
     usdValue: 487_500,
     createdAt: now - 40 * DAY,
     unlockAt: now + 320 * DAY,
@@ -61,7 +61,7 @@ export const MOCK_LOCKS: Lock[] = [
     poolPair: ["GLOW", "XLM"],
     creator: WALLET,
     beneficiary: WALLET,
-    amount: 845_000,
+    amount: 8_450_000n, // 0.845 LP at 7 decimals
     usdValue: 1_240_000,
     createdAt: now - 12 * DAY,
     unlockAt: now + 540 * DAY,
@@ -74,12 +74,12 @@ export const MOCK_LOCKS: Lock[] = [
     token: TOKENS.GLOW,
     creator: WALLET,
     beneficiary: "GTEAMVESTINGBENEFICIARY9ASDFGHJKLZXCVBNMQWERTYUIOP1234",
-    amount: 6_000_000,
+    amount: 60_000_000n, // 6 GLOW at 7 decimals
     usdValue: 234_000,
     createdAt: now - 90 * DAY,
     unlockAt: now + 90 * DAY,
     extendedCount: 2,
-    vesting: { start: now - 90 * DAY, end: now + 270 * DAY, released: 1_500_000 },
+    vesting: { start: now - 90 * DAY, end: now + 270 * DAY, released: 15_000_000n },
   },
   {
     id: "1101",
@@ -90,7 +90,7 @@ export const MOCK_LOCKS: Lock[] = [
     poolPair: ["NOVA", "USDC"],
     creator: "GNOVATEAMTREASURYADDRESS2WERTYUIOPASDFGHJKLZXCVBNMQ987",
     beneficiary: "GNOVATEAMTREASURYADDRESS2WERTYUIOPASDFGHJKLZXCVBNMQ987",
-    amount: 2_100_000,
+    amount: 21_000_000n, // 2.1 LP at 7 decimals
     usdValue: 3_780_000,
     createdAt: now - 5 * DAY,
     unlockAt: now + 730 * DAY,
@@ -103,7 +103,7 @@ export const MOCK_LOCKS: Lock[] = [
     token: TOKENS.REEF,
     creator: WALLET,
     beneficiary: WALLET,
-    amount: 350_000,
+    amount: 3_500_000n, // 0.35 REEF at 7 decimals
     usdValue: 28_000,
     createdAt: now - 200 * DAY,
     unlockAt: now - 2 * DAY,
@@ -116,7 +116,7 @@ export const MOCK_LOCKS: Lock[] = [
     token: TOKENS.REEF,
     creator: WALLET,
     beneficiary: WALLET,
-    amount: 120_000,
+    amount: 1_200_000n, // 0.12 REEF at 7 decimals
     usdValue: 9_600,
     createdAt: now - 400 * DAY,
     unlockAt: now - 120 * DAY,
@@ -129,7 +129,7 @@ export const MOCK_LOCKS: Lock[] = [
     token: TOKENS.NOVA,
     creator: "GCOMMUNITYMEMBERADDR55WERTYUIOPASDFGHJKLZXCVBNMQ1234567",
     beneficiary: "GCOMMUNITYMEMBERADDR55WERTYUIOPASDFGHJKLZXCVBNMQ1234567",
-    amount: 980_000,
+    amount: 9_800_000n, // 0.98 NOVA at 7 decimals
     usdValue: 215_600,
     createdAt: now - 2 * DAY,
     unlockAt: now + 180 * DAY,

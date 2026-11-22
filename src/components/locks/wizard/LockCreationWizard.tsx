@@ -4,7 +4,7 @@ import { Coins, Droplets, ArrowLeft, ArrowRight, Check } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/Button"
 import { Card } from "@/components/ui/Card"
-import { cn, formatDate } from "@/lib/utils"
+import { cn, formatDate, formatUnits } from "@/lib/utils"
 import { Input, Label } from "@/components/ui/Input"
 import { useWallet } from "@/hooks/useWallet"
 import { useTokenBalanceSWR } from "@/hooks/useTokenBalanceSWR"
@@ -18,6 +18,8 @@ import { TxErrorAlert } from "@/components/ui/TxErrorAlert"
 import { TxProgressSteps } from "@/components/ui/TxProgressSteps"
 import type { TxPhase } from "@/lib/stellar"
 import { addNotification } from "@/hooks/useNotifications"
+import { getOnChainTokenMeta } from "@/lib/token-metadata"
+import { useState, useEffect } from "react"
 
 type LockType = "token" | "lp"
 
@@ -292,7 +294,12 @@ function Step2({ state, updateState }: { state: WizardState; updateState: (updat
     ? state.tokenAddress.trim()
     : undefined
   const { balance: balanceStroops } = useTokenBalanceSWR(validTokenAddress, address ?? null)
-  const balance = balanceStroops !== null ? Number(balanceStroops) / 1e7 : null
+  const [tokenDecimals, setTokenDecimals] = useState<number>(7)
+  useEffect(() => {
+    if (!validTokenAddress) { setTokenDecimals(7); return }
+    void getOnChainTokenMeta(validTokenAddress).then((m) => setTokenDecimals(m?.decimals ?? 7))
+  }, [validTokenAddress])
+  const balance = balanceStroops !== null ? Number(formatUnits(balanceStroops, tokenDecimals)) : null
 
   return (
     <div>

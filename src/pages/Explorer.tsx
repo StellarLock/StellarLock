@@ -38,7 +38,7 @@ export function Explorer() {
           <title>{data.token.symbol} Liquidity Locks | StellarLock</title>
           <meta
             name="description"
-            content={`${formatAmount(data.totalLocked)} ${data.token.symbol} locked across ${data.activeLocks} active locks on StellarLock.`}
+            content={`${formatAmount(data.totalLocked, { tokenDecimals: data.token.decimals, tokenDecimals: data.token.decimals })} ${data.token.symbol} locked across ${data.activeLocks} active locks on StellarLock.`}
           />
         </Helmet>
       )}
@@ -96,7 +96,7 @@ export function Explorer() {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard
               label={t("explorer.totalLocked")}
-              value={formatAmount(data.totalLocked, { compact: true })}
+              value={formatAmount(data.totalLocked, { tokenDecimals: data.token.decimals, compact: true })}
               hint={t("explorer.acrossAllLocks", { symbol: data.token.symbol })}
               icon={<Coins className="h-4 w-4" />}
             />

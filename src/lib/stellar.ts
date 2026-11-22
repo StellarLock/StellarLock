@@ -39,7 +39,8 @@ export const CONTRACTS = {
 // Soroban transactions need a higher base fee than classic Stellar
 const SOROBAN_FEE = "1000000" // 0.1 XLM — covers resource fees
 
-export const STELLAR_DECIMALS = 1e7 // Stellar tokens use 7 decimal places
+/** Stroops per XLM — only for XLM fee calculations, not token amounts. */
+export const XLM_STROOPS_PER_UNIT = 10_000_000
 const POLL_INTERVAL_MS = 1500
 const MAX_CONCURRENT = 5
 const MAX_RETRIES = 3
@@ -394,17 +395,16 @@ export async function estimateLockCost(
   }
 
   const minResourceFee = Number((result as { minResourceFee?: string }).minResourceFee ?? "0")
-  const networkFee = Number(BASE_FEE) / 1e7
-  const resourceFee = minResourceFee / 1e7
+  const networkFee = Number(BASE_FEE) / XLM_STROOPS_PER_UNIT
+  const resourceFee = minResourceFee / XLM_STROOPS_PER_UNIT
   return { networkFee, resourceFee, total: networkFee + resourceFee }
 }
 
 // ── Token helpers ────────────────────────────────────────────────────────────
 
-export async function getTokenBalance(tokenAddress: string, owner: string): Promise<number> {
+export async function getTokenBalance(tokenAddress: string, owner: string): Promise<bigint> {
   const raw = await simulateCall<bigint>(tokenAddress, "balance", [new Address(owner).toScVal()])
-  const { decimals } = await getOnChainTokenMeta(tokenAddress)
-  return Number(raw ?? 0n) / 10 ** decimals
+  return raw ?? 0n
 }
 
 export async function getTokenAllowance(tokenAddress: string, owner: string, spender: string): Promise<number> {
@@ -424,7 +424,9 @@ export async function submitTokenApproval(
   sourceAddress: string,
   signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>,
 ): Promise<void> {
-  const amountStroops = BigInt(Math.round(amount * 1e7))
+  const { decimals } = await getOnChainTokenMeta(tokenAddress)
+  const { parseUnits } = await import("@/lib/utils")
+  const amountStroops = parseUnits(String(amount), decimals)
   const expirationLedger = 0
 
   const scArgs: xdr.ScVal[] = [

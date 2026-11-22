@@ -68,7 +68,7 @@ function LockTableRow({ lock, selectable, selected, onSelect }: LockTableRowProp
 
       {/* Amount */}
       <td className="px-4 py-3.5 tabular-nums">
-        <span className="font-semibold text-sm">{formatAmount(lock.amount, { compact: true })}</span>
+        <span className="font-semibold text-sm">{formatAmount(lock.amount, { compact: true, tokenDecimals: lock.token.decimals })}</span>
         <p className="text-xs text-muted-foreground">{formatUsd(lock.usdValue)}</p>
       </td>
 

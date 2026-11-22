@@ -107,7 +107,6 @@ export async function mapIndexerLocks(dtoLocks: IndexerLockDTO[]): Promise<Lock[
   return dtoLocks.map((raw): Lock => {
     const meta = metaMap.get(raw.token)
     const decimals = meta?.decimals ?? 7
-    const multiplier = 10 ** decimals
     const unlockAtMs = raw.unlockAt * 1000
 
     return {
@@ -122,7 +121,8 @@ export async function mapIndexerLocks(dtoLocks: IndexerLockDTO[]): Promise<Lock[
       },
       creator: raw.creator,
       beneficiary: raw.beneficiary,
-      amount: Number(BigInt(raw.amount)) / multiplier,
+      // Store raw base-unit bigint; display callers use formatUnits(amount, token.decimals)
+      amount: BigInt(raw.amount),
       usdValue: 0,
       createdAt: raw.createdAt * 1000,
       unlockAt: unlockAtMs,
@@ -141,7 +141,7 @@ export async function mapIndexerLocksPageToSummary(page: IndexerLocksPageDTO): P
 
   const locks = await mapIndexerLocks(tokenLocks)
   const active = locks.filter((l) => l.status !== "withdrawn")
-  const totalLocked = active.reduce((s, l) => s + l.amount, 0)
+  const totalLocked = active.reduce((s, l) => s + l.amount, 0n)
   const upcoming = active
     .filter((l) => l.status === "locked")
     .map((l) => l.unlockAt)

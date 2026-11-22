@@ -2,6 +2,7 @@ import { Address, nativeToScVal, xdr } from "@stellar/stellar-sdk"
 import type { Dex, Lock, LockMetadata } from "@/types/lock"
 import { CONTRACTS, simulateCall, submitCall, submitCallWithHash, type TxPhase } from "@/lib/stellar"
 import { getOnChainTokenMeta } from "@/lib/token-metadata"
+import { parseUnits } from "@/lib/utils"
 
 export interface CreateLpLockArgs {
   poolShareAddress: string
@@ -43,7 +44,9 @@ export async function submitTokenApproval(
   sourceAddress: string,
   signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>,
 ): Promise<void> {
-  const amountStroops = BigInt(Math.round(amount * 1e7))
+  const meta = await getOnChainTokenMeta(tokenAddress)
+  const decimals = meta?.decimals ?? 7
+  const amountStroops = parseUnits(String(amount), decimals)
   const expirationLedger = 0
 
   const scArgs: xdr.ScVal[] = [
@@ -125,7 +128,6 @@ function toLpLock(raw: Record<string, unknown>, meta?: LpMeta): Lock {
   const tokenASymbol = meta?.tokenASymbol ?? tokenA.slice(0, 4)
   const tokenBSymbol = meta?.tokenBSymbol ?? tokenB.slice(0, 4)
   const poolDecimals = meta?.poolDecimals ?? 7
-  const multiplier = 10 ** poolDecimals
 
   return {
     id: String(raw.id),
@@ -141,7 +143,8 @@ function toLpLock(raw: Record<string, unknown>, meta?: LpMeta): Lock {
     poolPair: [tokenA, tokenB],
     creator: raw.creator as string,
     beneficiary: raw.beneficiary as string,
-    amount: Number(raw.amount) / multiplier,
+    // Store raw base-unit bigint; display callers use formatUnits(amount, token.decimals)
+    amount: BigInt(raw.amount as bigint | string | number),
     usdValue: 0,
     createdAt: Number(raw.created_at) * 1000,
     unlockAt: Number(raw.unlock_at) * 1000,
@@ -293,13 +296,17 @@ export async function createLpLock(
   signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>,
   onProgress?: (phase: TxPhase) => void,
 ): Promise<{ id: string; txHash: string }> {
+  // Fetch pool-share token decimals for precision-safe encoding
+  const meta = await getOnChainTokenMeta(args.poolShareAddress)
+  const decimals = meta?.decimals ?? 7
+  const amountStroops = parseUnits(String(args.amount), decimals)
   const scArgs: xdr.ScVal[] = [
     addressArg(sourceAddress),
     addressArg(args.poolShareAddress),
     dexArg(args.dex),
     addressArg(args.tokenA),
     addressArg(args.tokenB),
-    nativeToScVal(BigInt(Math.round(args.amount * 1e7)), { type: "i128" }),
+    nativeToScVal(amountStroops, { type: "i128" }),
     addressArg(args.beneficiary),
     nativeToScVal(BigInt(Math.floor(args.unlockAt)), { type: "u64" }),
     metadataArg(args.metadata),

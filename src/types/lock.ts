@@ -20,8 +20,11 @@ export interface VestingSchedule {
   start: number
   /** Unix ms when fully vested. */
   end: number
-  /** Amount already released to the beneficiary. */
-  released: number
+  /**
+   * Amount already released to the beneficiary, in base units (bigint).
+   * Use `formatUnits(released, token.decimals)` for display.
+   */
+  released: bigint
 }
 
 /** Optional contextual metadata attached at lock creation. Immutable after creation. */
@@ -52,8 +55,13 @@ export interface Lock {
   /** Address that can withdraw once unlocked. */
   beneficiary: string
 
-  /** Total locked amount (token units, not stroops). */
-  amount: number
+  /**
+   * Total locked amount in base units (integer, token-decimals-scaled).
+   * Use `formatUnits(lock.amount, lock.token.decimals)` for display.
+   * Previously this was a JS number (whole tokens); it is now a bigint to
+   * prevent precision loss for large or high-decimal tokens (#1064).
+   */
+  amount: bigint
   /** Approx USD value at lock time, for display. */
   usdValue: number
 
@@ -83,7 +91,8 @@ export interface SplitAllocation {
 export interface SplitLock {
   groupId: string
   token: TokenMeta
-  totalAmount: number
+  /** Total amount in base units (bigint, token-decimals-scaled). */
+  totalAmount: bigint
   creator: string
   unlockAt: number
   createdAt: number
@@ -94,7 +103,8 @@ export interface SplitLock {
 /** Aggregate stats for a single token's explorer page. */
 export interface TokenLockSummary {
   token: TokenMeta
-  totalLocked: number
+  /** Total locked in base units (bigint, token-decimals-scaled). */
+  totalLocked: bigint
   totalUsdValue: number
   activeLocks: number
   /** Earliest upcoming unlock across all active locks. */

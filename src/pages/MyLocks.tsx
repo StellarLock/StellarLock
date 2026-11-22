@@ -104,7 +104,7 @@ export function MyLocks() {
         return true
       })
       .sort((a, b) => {
-        if (sortKey === "amount") return b.amount - a.amount
+        if (sortKey === "amount") return b.amount > a.amount ? 1 : b.amount < a.amount ? -1 : 0
         if (sortKey === "createdAt") return b.createdAt - a.createdAt
         return a.unlockAt - b.unlockAt
       })

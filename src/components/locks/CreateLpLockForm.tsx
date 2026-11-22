@@ -7,7 +7,7 @@ import type { Dex } from "@/types/lock"
 import { Input, Label } from "@/components/ui/Input"
 import { Button } from "@/components/ui/Button"
 import { TxProgressSteps } from "@/components/ui/TxProgressSteps"
-import { cn, formatDate, notify } from "@/lib/utils"
+import { cn, formatDate, notify, parseUnits } from "@/lib/utils"
 import { isValidStellarAddress } from "@/lib/stellar-address"
 import { validateLpLockForm, type FieldKey } from "@/lib/validation/lockFormValidation"
 import { FormValidationErrors } from "@/components/locks/FormValidationErrors"
@@ -28,6 +28,8 @@ import { BookUser } from "lucide-react"
 import { createLogger } from "@/lib/logger"
 import { useDraftAutoSave } from "@/hooks/useDraftStorage"
 import { addNotification } from "@/hooks/useNotifications"
+import { useEffect } from "react"
+import { getOnChainTokenMeta } from "@/lib/token-metadata"
 
 const log = createLogger("CreateLpLockForm")
 
@@ -56,6 +58,9 @@ export function CreateLpLockForm() {
   const [logoUrl, setLogoUrl] = useState("")
   const [beneficiaryOverride, setBeneficiaryOverride] = useState("")
   const [addressBookOpen, setAddressBookOpen] = useState(false)
+  // Pool-share token's on-chain decimals — fetched once per valid address so costArgs
+  // uses the correct scale factor instead of the hardcoded 1e7 (#1061).
+  const [poolShareDecimals, setPoolShareDecimals] = useState<number>(7)
 
   useDraftAutoSave("lp", {
     poolShareAddress,
@@ -64,6 +69,13 @@ export function CreateLpLockForm() {
     amount,
     unlockDate,
   })
+
+  // Fetch pool-share token decimals once per valid address.
+  const validPoolShareForDecimals = poolShareAddress.trim().length > 4 ? poolShareAddress.trim() : undefined
+  useEffect(() => {
+    if (!validPoolShareForDecimals) { setPoolShareDecimals(7); return }
+    void getOnChainTokenMeta(validPoolShareForDecimals).then((m) => setPoolShareDecimals(m?.decimals ?? 7))
+  }, [validPoolShareForDecimals])
 
   const dexes: { value: Dex; label: string; desc: string }[] = [
     { value: "aquarius", label: t("lpForm.aquarius"), desc: t("lpForm.aquariusDesc") },
@@ -141,7 +153,8 @@ export function CreateLpLockForm() {
       ) {
         return null
       }
-      const amountStroops = BigInt(Math.round(Number(amount) * 1e7))
+      // Use the same decimals-aware encoding as the submit path (#1061)
+      const amountStroops = parseUnits(amount, poolShareDecimals)
       const dexScVal = xdr.ScVal.scvVec([xdr.ScVal.scvSymbol(dex === "aquarius" ? "Aquarius" : "Soroswap")])
       return [
         new Address(address).toScVal(),
@@ -156,7 +169,7 @@ export function CreateLpLockForm() {
     } catch {
       return null
     }
-  }, [address, dex, poolShareAddress, tokenA, tokenB, amount, unlockTs, effectiveBeneficiary])
+  }, [address, dex, poolShareAddress, tokenA, tokenB, amount, unlockTs, effectiveBeneficiary, poolShareDecimals])
 
   function applyPreset(days: number) {
     setUnlockDate(new Date(Date.now() + days * DAY).toISOString().slice(0, 10))

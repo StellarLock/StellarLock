@@ -54,9 +54,8 @@ export function useTokenBalanceSWR(
 
         setIsRevalidating(true)
         try {
-            // getTokenBalance returns a float in whole tokens; convert to stroops as bigint for stability
-            const fresh = await getTokenBalanceNumber(token, addr)
-            const freshStroops = BigInt(Math.round(fresh * 1e7))
+            // getTokenBalance returns raw base-unit bigint (no float arithmetic)
+            const freshStroops = await getTokenBalanceNumber(token, addr)
 
             cache.set(cacheKey, { balance: freshStroops, fetchedAt: Date.now() })
 

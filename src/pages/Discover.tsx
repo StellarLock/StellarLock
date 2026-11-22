@@ -100,7 +100,7 @@ export function Discover() {
                     </Badge>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    {formatAmount(lock.amount)} · {formatDate(lock.createdAt)}
+                    {formatAmount(lock.amount, { tokenDecimals: lock.token.decimals })} · {formatDate(lock.createdAt)}
                   </p>
                 </div>
                 <StatusBadge status={lock.status} />
@@ -138,7 +138,7 @@ export function Discover() {
                     </Badge>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    {formatAmount(lock.amount)} · unlocks {formatDate(lock.unlockAt)}
+                    {formatAmount(lock.amount, { tokenDecimals: lock.token.decimals })} · unlocks {formatDate(lock.unlockAt)}
                   </p>
                 </div>
                 <span className="shrink-0 text-xs text-muted-foreground">{formatDate(lock.unlockAt)}</span>

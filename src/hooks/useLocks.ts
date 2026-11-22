@@ -26,12 +26,16 @@ import {
 import { getOnChainTokenMeta } from "@/lib/token-metadata"
 import { MOCK_LOCKS } from "@/lib/mock-data"
 import type { Lock, TokenMeta } from "@/types/lock"
+import { formatUnits } from "@/lib/utils"
 
 async function withUsdValues(locks: Lock[]): Promise<Lock[]> {
   if (locks.length === 0) return locks
   const addresses = locks.map((l) => l.token.address)
   const prices = await fetchPricesBatch(addresses)
-  return locks.map((l) => ({ ...l, usdValue: (prices.get(l.token.address) ?? 0) * l.amount }))
+  return locks.map((l) => {
+    const wholeTokens = Number(formatUnits(l.amount, l.token.decimals))
+    return { ...l, usdValue: (prices.get(l.token.address) ?? 0) * wholeTokens }
+  })
 }
 
 /**

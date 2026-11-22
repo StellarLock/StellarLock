@@ -42,7 +42,7 @@ import { VerifiedBadge } from "@/components/ui/VerifiedBadge"
 import { NotificationSettings } from "@/components/locks/NotificationSettings"
 import { addNotification } from "@/hooks/useNotifications"
 import { useVerifiedToken } from "@/hooks/useVerifiedToken"
-import { formatAmount, formatUsd, formatDateTime, shortAddress, notify } from "@/lib/utils"
+import { formatAmount, formatUsd, formatDateTime, shortAddress, formatUnits, notify } from "@/lib/utils"
 import type { Lock } from "@/types/lock"
 import { createLogger } from "@/lib/logger"
 
@@ -89,12 +89,12 @@ export function LockDetail() {
     <>
       <Helmet>
         <title>
-          Lock #{lock.id} — {formatAmount(lock.amount)} {lock.token.symbol} locked until {formatDateTime(lock.unlockAt)}{" "}
+          Lock #{lock.id} — {formatAmount(lock.amount, { tokenDecimals: lock.token.decimals })} {lock.token.symbol} locked until {formatDateTime(lock.unlockAt)}{" "}
           | StellarLock
         </title>
         <meta
           name="description"
-          content={`Lock #${lock.id}: ${formatAmount(lock.amount)} ${lock.token.symbol} locked until ${formatDateTime(lock.unlockAt)} on StellarLock.`}
+          content={`Lock #${lock.id}: ${formatAmount(lock.amount, { tokenDecimals: lock.token.decimals })} ${lock.token.symbol} locked until ${formatDateTime(lock.unlockAt)} on StellarLock.`}
         />
       </Helmet>
       <LockDetailView lock={lock} onChange={reload} />
@@ -121,17 +121,18 @@ function LockDetailView({ lock: sourceLock, onChange }: { lock: Lock; onChange: 
   const isBeneficiary = address === lock.beneficiary
   const isCreator = address === lock.creator
 
-  const vestingClaimable = lock.vesting
-    ? Math.max(
-        0,
-        (lock.amount * Math.max(0, Math.min(now, lock.vesting.end) - lock.vesting.start)) /
-          Math.max(1, lock.vesting.end - lock.vesting.start) -
-          lock.vesting.released,
-      )
-    : 0
+  const vestingClaimable: bigint = lock.vesting
+    ? (() => {
+        const elapsed = BigInt(Math.max(0, Math.min(now, lock.vesting.end) - lock.vesting.start))
+        const duration = BigInt(Math.max(1, lock.vesting.end - lock.vesting.start))
+        const vested = (lock.amount * elapsed) / duration
+        const claimable = vested - lock.vesting.released
+        return claimable > 0n ? claimable : 0n
+      })()
+    : 0n
 
   const canWithdraw =
-    isBeneficiary && lock.status !== "withdrawn" && lock.unlockAt <= now && (lock.vesting ? vestingClaimable > 0 : true)
+    isBeneficiary && lock.status !== "withdrawn" && lock.unlockAt <= now && (lock.vesting ? vestingClaimable > 0n : true)
   const canExtend = isCreator && lock.status !== "withdrawn"
   const canTransfer = isBeneficiary && lock.status !== "withdrawn"
 
@@ -192,7 +193,7 @@ function LockDetailView({ lock: sourceLock, onChange }: { lock: Lock; onChange: 
         lockKind: lock.kind,
         title: t("notifications.center.withdrawnTitle"),
         message: t("notifications.center.withdrawnMessage", {
-          amount: formatAmount(lock.amount),
+          amount: formatAmount(lock.amount, { tokenDecimals: lock.token.decimals }),
           symbol: lock.token.symbol,
           id: lock.id,
         }),
@@ -349,7 +350,7 @@ function LockDetailView({ lock: sourceLock, onChange }: { lock: Lock; onChange: 
         <div className="grid gap-px bg-border sm:grid-cols-2">
           <Field label={t("lockDetail.lockedAmount")} className="bg-card">
             <span className="text-lg font-semibold tabular-nums">
-              {formatAmount(lock.amount)} {lock.token.symbol}
+              {formatAmount(lock.amount, { tokenDecimals: lock.token.decimals })} {lock.token.symbol}
             </span>
             <span className="ml-2 text-sm text-muted-foreground">{formatUsd(lock.usdValue)}</span>
           </Field>
@@ -434,19 +435,19 @@ function LockDetailView({ lock: sourceLock, onChange }: { lock: Lock; onChange: 
               <div className="rounded-lg bg-secondary/30 p-3 text-center">
                 <p className="text-xs text-muted-foreground">Total</p>
                 <p className="font-semibold tabular-nums">
-                  {formatAmount(lock.amount)} {lock.token.symbol}
+                  {formatAmount(lock.amount, { tokenDecimals: lock.token.decimals })} {lock.token.symbol}
                 </p>
               </div>
               <div className="rounded-lg bg-secondary/30 p-3 text-center">
                 <p className="text-xs text-muted-foreground">Released</p>
                 <p className="font-semibold tabular-nums text-success">
-                  {formatAmount(lock.vesting.released)} {lock.token.symbol}
+                  {formatAmount(lock.vesting.released, { tokenDecimals: lock.token.decimals })} {lock.token.symbol}
                 </p>
               </div>
               <div className="rounded-lg bg-secondary/30 p-3 text-center">
                 <p className="text-xs text-muted-foreground">Claimable</p>
                 <p className="font-semibold tabular-nums text-primary">
-                  {formatAmount(vestingClaimable)} {lock.token.symbol}
+                  {formatAmount(vestingClaimable, { tokenDecimals: lock.token.decimals })} {lock.token.symbol}
                 </p>
               </div>
             </div>
@@ -505,7 +506,7 @@ function LockDetailView({ lock: sourceLock, onChange }: { lock: Lock; onChange: 
               <Button onClick={() => void handleWithdraw()} loading={busy === "withdraw"} className="flex-1">
                 <LockIcon className="h-4 w-4" />
                 {lock.vesting
-                  ? t("lockDetail.claimVested", { amount: formatAmount(vestingClaimable), symbol: lock.token.symbol })
+                  ? t("lockDetail.claimVested", { amount: formatAmount(vestingClaimable, { tokenDecimals: lock.token.decimals }), symbol: lock.token.symbol })
                   : t("lockDetail.withdraw")}
               </Button>
             )}
