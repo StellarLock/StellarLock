@@ -13,6 +13,13 @@ import { join, resolve, basename } from "node:path"
 
 const LOCALES_DIR = resolve(__dirname, "../i18n/locales")
 
+/**
+ * Namespaces that are expected to exist in every locale file.
+ * Add new namespaces here as they are introduced so the parity test
+ * fails loudly if a translation bundle is missing them.
+ */
+const REQUIRED_NAMESPACES = ["wizard"] as const
+
 // ── helpers ───────────────────────────────────────────────────────────────────
 
 type JsonObject = { [key: string]: JsonValue }
@@ -50,6 +57,14 @@ const otherFiles = readdirSync(LOCALES_DIR)
 describe("i18n locale parity", () => {
   for (const file of otherFiles) {
     const locale = basename(file, ".json")
+
+    it.each(REQUIRED_NAMESPACES)("contains the '%s' namespace", (namespace) => {
+      const bundle = loadJson(join(LOCALES_DIR, file))
+      expect(
+        Object.prototype.hasOwnProperty.call(bundle, namespace),
+        `Missing namespace '${namespace}' in ${locale}`,
+      ).toBe(true)
+    })
 
     it(`${locale}.json has no missing keys vs en.json`, () => {
       const other = loadJson(join(LOCALES_DIR, file))
