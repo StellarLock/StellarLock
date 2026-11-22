@@ -14,7 +14,7 @@ import { CheckCircle2, Copy, ExternalLink, ArrowRight, PlusCircle } from "lucide
 import { Helmet } from "react-helmet-async"
 import { toast } from "react-hot-toast"
 import { Card } from "@/components/ui/Card"
-import { buttonVariants } from "@/components/ui/Button"
+import { buttonVariants } from "@/components/ui/buttonVariants"
 import { Badge } from "@/components/ui/Badge"
 import { CopyButton } from "@/components/ui/CopyButton"
 import { NETWORK } from "@/lib/stellar"
@@ -67,8 +67,19 @@ export function LockCreated() {
     return null // will redirect via useEffect
   }
 
-  const { lockId, lockKind, txHash, tokenAddress, tokenSymbol, amount, beneficiary, creator, unlockAt, vesting, timestamp } =
-    state
+  const {
+    lockId,
+    lockKind,
+    txHash,
+    tokenAddress,
+    tokenSymbol,
+    amount,
+    beneficiary,
+    creator,
+    unlockAt,
+    vesting,
+    timestamp,
+  } = state
 
   const lockPath = `/app/lock/${lockKind}/${lockId}`
   const stellarExpertUrl = `https://stellar.expert/explorer/${NETWORK.networkName}/tx/${txHash}`
@@ -94,15 +105,16 @@ export function LockCreated() {
         </div>
         <h1 className="text-2xl font-bold tracking-tight">{t("lockCreated.heading")}</h1>
         <p className="text-sm text-muted-foreground">
-          {t("lockCreated.subheading")}{" "}
-          {vesting && <span>{t("lockCreated.vestingActive")}</span>}
+          {t("lockCreated.subheading")} {vesting && <span>{t("lockCreated.vestingActive")}</span>}
         </p>
       </div>
 
       {/* Lock summary card */}
       <Card className="mb-4 divide-y divide-border overflow-hidden p-0">
         <div className="bg-secondary/40 px-5 py-3">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("lockCreated.lockSummary")}</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            {t("lockCreated.lockSummary")}
+          </p>
         </div>
 
         <DetailRow label={t("lockCreated.lockId")}>
@@ -178,7 +190,9 @@ export function LockCreated() {
       {/* Transaction details card */}
       <Card className="mb-6 divide-y divide-border overflow-hidden p-0">
         <div className="bg-secondary/40 px-5 py-3">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("lockCreated.transactionDetails")}</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            {t("lockCreated.transactionDetails")}
+          </p>
         </div>
 
         <DetailRow label={t("lockCreated.txHash")}>
