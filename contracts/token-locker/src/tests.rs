@@ -874,6 +874,95 @@ fn vesting_proportional_release_at_midpoint() {
     );
 }
 
+// ── Vesting end must be after unlock_at (#1045) ─────────────────────────────
+
+#[test]
+fn create_lock_rejects_vesting_end_before_unlock_at() {
+    let (env, contract_id, token_id) = setup_env();
+    let client = TokenLockerClient::new(&env, &contract_id);
+    let creator = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    mint(&env, &token_id, &creator, 1_000);
+    let now = env.ledger().timestamp();
+    let unlock_at = now + 100_000;
+    let vesting = Vesting {
+        start: now,
+        end: unlock_at - 1,
+        released: 0,
+    };
+    let result = client.try_create_lock(
+        &creator,
+        &token_id,
+        &100_i128,
+        &beneficiary,
+        &unlock_at,
+        &Some(vesting),
+        &empty_metadata(&env),
+    );
+    assert_eq!(
+        result,
+        Err(Ok(ContractError::VestingEndBeforeStart)),
+        "vesting end must be after unlock_at"
+    );
+}
+
+#[test]
+fn create_lock_accepts_vesting_end_after_unlock_at() {
+    let (env, contract_id, token_id) = setup_env();
+    let client = TokenLockerClient::new(&env, &contract_id);
+    let creator = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    mint(&env, &token_id, &creator, 1_000);
+    let now = env.ledger().timestamp();
+    let unlock_at = now + 100_000;
+    let vesting = Vesting {
+        start: now,
+        end: unlock_at + 100_000,
+        released: 0,
+    };
+    let lock_id = client.create_lock(
+        &creator,
+        &token_id,
+        &100_i128,
+        &beneficiary,
+        &unlock_at,
+        &Some(vesting),
+        &empty_metadata(&env),
+    );
+    let lock = client.get_lock(&lock_id).unwrap();
+    assert_eq!(lock.vesting.end, unlock_at + 100_000);
+}
+
+#[test]
+fn create_split_lock_rejects_vesting_end_before_unlock_at() {
+    let (env, contract_id, token_id) = setup_env();
+    let client = TokenLockerClient::new(&env, &contract_id);
+    let creator = Address::generate(&env);
+    let b1 = Address::generate(&env);
+    let b2 = Address::generate(&env);
+    mint(&env, &token_id, &creator, 10_000);
+    let now = env.ledger().timestamp();
+    let unlock_at = now + 100_000;
+    let vesting = Vesting {
+        start: now,
+        end: unlock_at - 1,
+        released: 0,
+    };
+    let result = client.try_create_split_lock(
+        &creator,
+        &token_id,
+        &1_000_i128,
+        &vec![&env, (b1, 7_000_u64), (b2, 3_000_u64)],
+        &unlock_at,
+        &Some(vesting),
+    );
+    assert_eq!(
+        result,
+        Err(Ok(ContractError::VestingEndBeforeStart)),
+        "split vesting end must be after unlock_at"
+    );
+}
+
 // ── Split lock ────────────────────────────────────────────────────────────────
 
 #[test]

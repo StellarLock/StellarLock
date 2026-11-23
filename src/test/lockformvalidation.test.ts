@@ -78,6 +78,25 @@ describe("validateTokenLockForm", () => {
     expect(result.issues.find((i) => i.field === "unlockDate")).toBeDefined()
   })
 
+  it("rejects a vesting end that is not after the unlock date", () => {
+    const unlockSeconds = Math.floor(new Date(futureDate()).getTime() / 1000)
+    const result = validateTokenLockForm(
+      validTokenParams({ vestingEndSeconds: unlockSeconds }),
+    )
+    expect(result.isValid).toBe(false)
+    expect(
+      result.issues.find((i) => i.field === "unlockDate")?.message,
+    ).toContain("Vesting must end after the unlock date")
+  })
+
+  it("accepts a vesting end after the unlock date", () => {
+    const unlockSeconds = Math.floor(new Date(futureDate()).getTime() / 1000)
+    const result = validateTokenLockForm(
+      validTokenParams({ vestingEndSeconds: unlockSeconds + 200_000 }),
+    )
+    expect(result.isValid).toBe(true)
+  })
+
   describe("split mode", () => {
     const splitBase = {
       multiMode: true,
@@ -177,6 +196,21 @@ describe("validateLpLockForm", () => {
     const result = validateLpLockForm(validLpParams({ unlockDate: pastDate() }))
     expect(result.isValid).toBe(false)
     expect(result.issues.find((i) => i.field === "unlockDate")?.message).toContain("Unlock date must be in the future")
+  })
+
+  it("rejects a vesting end that is not after the unlock date", () => {
+    const unlockSeconds = Math.floor(new Date(futureDate()).getTime() / 1000)
+    const result = validateLpLockForm(validLpParams({ vestingEndSeconds: unlockSeconds }))
+    expect(result.isValid).toBe(false)
+    expect(
+      result.issues.find((i) => i.field === "unlockDate")?.message,
+    ).toContain("Vesting must end after the unlock date")
+  })
+
+  it("accepts a vesting end after the unlock date", () => {
+    const unlockSeconds = Math.floor(new Date(futureDate()).getTime() / 1000)
+    const result = validateLpLockForm(validLpParams({ vestingEndSeconds: unlockSeconds + 200_000 }))
+    expect(result.isValid).toBe(true)
   })
 
   it("reports a token allowance that is lower than the requested amount", () => {

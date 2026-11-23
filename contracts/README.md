@@ -20,6 +20,10 @@ Locks SEP-41 tokens with an optional linear vesting schedule.
 - Only the beneficiary can withdraw, only after `unlock_at`
 - Only the creator can extend
 - Tokens are held by the contract until withdrawal
+- With a vesting schedule, `vesting.end` must be after `unlock_at`. A schedule
+  ending at or before `unlock_at` vests 100 % at the unlock date (plain cliff
+  behaviour) and is rejected, so a gradual-release vesting window always exists
+  after the lock matures.
 
 **Split locks** (`create_split_lock`)
 - Lock one token amount, split across 2–10 beneficiaries via basis-point shares (must sum to 10 000)
@@ -48,6 +52,9 @@ Locks LP pool share tokens from Aquarius or Soroswap with optional linear vestin
 - Without a vesting schedule, the full amount is released at `unlock_at`
 - With a vesting schedule, each withdrawal releases only the linearly vested
   portion since the last claim; the lock stays open until fully released
+- `vesting.end` must be after `unlock_at`; a schedule ending at or before
+  `unlock_at` vests 100 % at the unlock date (plain cliff behaviour) and is
+  rejected.
 
 **Split locks** (`create_split_lock`)
 - Transfer one pool-share token amount, split across 2–10 beneficiaries via basis-point shares (must sum to 10 000)

@@ -1361,6 +1361,80 @@ fn split_lock_vesting_end_before_start_is_rejected() {
     assert_eq!(result, Err(Ok(ContractError::VestingEndBeforeStart)));
 }
 
+// ── Vesting end must be after unlock_at (#1045) ─────────────────────────────
+
+#[test]
+fn create_lp_lock_rejects_vesting_end_before_unlock_at() {
+    let (env, contract_id, pool_share_id, token_a, token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    mint(&env, &pool_share_id, &creator, 1_000);
+
+    let now = env.ledger().timestamp();
+    let unlock_at = now + 100_000;
+    let vesting = Vesting {
+        start: now,
+        end: unlock_at - 1,
+        released: 0,
+    };
+
+    let result = client.try_create_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &100_i128,
+        &beneficiary,
+        &unlock_at,
+        &Some(vesting),
+        &empty_metadata(&env),
+    );
+    assert_eq!(
+        result,
+        Err(Ok(ContractError::VestingEndBeforeStart)),
+        "vesting end must be after unlock_at"
+    );
+}
+
+#[test]
+fn create_split_lock_rejects_vesting_end_before_unlock_at() {
+    let (env, contract_id, pool_share_id, token_a, token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let b1 = Address::generate(&env);
+    let b2 = Address::generate(&env);
+    mint(&env, &pool_share_id, &creator, 10_000);
+
+    let now = env.ledger().timestamp();
+    let unlock_at = now + 100_000;
+    let vesting = Vesting {
+        start: now,
+        end: unlock_at - 1,
+        released: 0,
+    };
+
+    let result = client.try_create_split_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &1_000_i128,
+        &soroban_sdk::vec![&env, (b1, 7_000_u64), (b2, 3_000_u64)],
+        &unlock_at,
+        &Some(vesting),
+    );
+    assert_eq!(
+        result,
+        Err(Ok(ContractError::VestingEndBeforeStart)),
+        "split vesting end must be after unlock_at"
+    );
+}
+
 // ── Rate limiting (#203) ──────────────────────────────────────────────────────
 
 #[test]

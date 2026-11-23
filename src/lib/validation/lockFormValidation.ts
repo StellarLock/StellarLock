@@ -66,6 +66,22 @@ function validateLockDuration(unlockAtMs: number): { isValid: boolean; issue?: F
   return { isValid: true }
 }
 
+function validateVestingEnd(
+  unlockAtMs: number,
+  vestingEndSeconds?: number,
+): FieldValidationIssue | undefined {
+  if (vestingEndSeconds == null) return undefined
+  const unlockAtSeconds = Math.floor(unlockAtMs / 1000)
+  if (vestingEndSeconds <= unlockAtSeconds) {
+    return {
+      field: "unlockDate",
+      message: "Vesting must end after the unlock date.",
+      guidance: "Choose a vesting end date later than the unlock date so tokens release gradually.",
+    }
+  }
+  return undefined
+}
+
 export function validateTokenLockForm(params: {
   tokenAddress: string
   amount: string
@@ -74,6 +90,9 @@ export function validateTokenLockForm(params: {
   unlockDate: string
   multiMode: boolean
   splitBeneficiaries: SplitBeneficiary[]
+  /** Vesting end in unix seconds; when vesting is active it must fall after the
+   * unlock date so tokens release gradually instead of vesting 100% at unlock. */
+  vestingEndSeconds?: number
   allowance?: number | null
 }): LockFormValidationResult {
   const issues: FieldValidationIssue[] = []
@@ -121,6 +140,11 @@ export function validateTokenLockForm(params: {
     if (!durationCheck.isValid && durationCheck.issue) {
       issues.push(durationCheck.issue)
     }
+  }
+
+  if (params.unlockDate && Number.isFinite(unlockAtMs) && mustBeFuture(unlockAtMs)) {
+    const vestingIssue = validateVestingEnd(unlockAtMs, params.vestingEndSeconds)
+    if (vestingIssue) issues.push(vestingIssue)
   }
 
   if (params.multiMode) {
@@ -173,6 +197,9 @@ export function validateLpLockForm(params: {
   amount: string
   unlockDate: string
   walletAddress: string | null
+  /** Vesting end in unix seconds; when vesting is active it must fall after the
+   * unlock date so tokens release gradually instead of vesting 100% at unlock. */
+  vestingEndSeconds?: number
   allowance?: number | null
 }): LockFormValidationResult {
   const issues: FieldValidationIssue[] = []
@@ -256,6 +283,11 @@ export function validateLpLockForm(params: {
     if (!durationCheck.isValid && durationCheck.issue) {
       issues.push(durationCheck.issue)
     }
+  }
+
+  if (params.unlockDate && Number.isFinite(unlockAtMs) && mustBeFuture(unlockAtMs)) {
+    const vestingIssue = validateVestingEnd(unlockAtMs, params.vestingEndSeconds)
+    if (vestingIssue) issues.push(vestingIssue)
   }
 
   const allowance = params.allowance
