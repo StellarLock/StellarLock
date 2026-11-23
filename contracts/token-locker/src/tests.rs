@@ -491,6 +491,83 @@ fn beneficiary_can_transfer_to_self() {
     assert_eq!(client.get_lock(&lock_id).unwrap().beneficiary, beneficiary);
 }
 
+// ── Beneficiary must not be the locker contract (#1046) ─────────────────────
+
+#[test]
+fn create_lock_rejects_contract_address_as_beneficiary() {
+    let (env, contract_id, token_id) = setup_env();
+    let client = TokenLockerClient::new(&env, &contract_id);
+    let creator = Address::generate(&env);
+    mint(&env, &token_id, &creator, 1_000);
+    let unlock_at = env.ledger().timestamp() + 100_000;
+    let result = client.try_create_lock(
+        &creator,
+        &token_id,
+        &100_i128,
+        &contract_id,
+        &unlock_at,
+        &None,
+        &empty_metadata(&env),
+    );
+    assert_eq!(
+        result,
+        Err(Ok(ContractError::InvalidBeneficiary)),
+        "contract address as beneficiary must be rejected"
+    );
+}
+
+#[test]
+fn create_split_lock_rejects_contract_address_as_beneficiary() {
+    let (env, contract_id, token_id) = setup_env();
+    let client = TokenLockerClient::new(&env, &contract_id);
+    let creator = Address::generate(&env);
+    let other = Address::generate(&env);
+    mint(&env, &token_id, &creator, 10_000);
+    let unlock_at = env.ledger().timestamp() + 100_000;
+    let result = client.try_create_split_lock(
+        &creator,
+        &token_id,
+        &1_000_i128,
+        &vec![
+            &env,
+            (contract_id.clone(), 5_000_u64),
+            (other.clone(), 5_000_u64),
+        ],
+        &unlock_at,
+        &None,
+    );
+    assert_eq!(
+        result,
+        Err(Ok(ContractError::InvalidBeneficiary)),
+        "contract address as split beneficiary must be rejected"
+    );
+}
+
+#[test]
+fn transfer_beneficiary_rejects_contract_address() {
+    let (env, contract_id, token_id) = setup_env();
+    let client = TokenLockerClient::new(&env, &contract_id);
+    let creator = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    mint(&env, &token_id, &creator, 1_000);
+    let unlock_at = env.ledger().timestamp() + 100_000;
+    let lock_id = client.create_lock(
+        &creator,
+        &token_id,
+        &100_i128,
+        &beneficiary,
+        &unlock_at,
+        &None,
+        &empty_metadata(&env),
+    );
+    let result = client.try_transfer_beneficiary(&lock_id, &contract_id);
+    assert_eq!(
+        result,
+        Err(Ok(ContractError::InvalidBeneficiary)),
+        "transferring beneficiary to contract address must be rejected"
+    );
+}
+
 // ── Cross-account query isolation ─────────────────────────────────────────────
 
 #[test]
