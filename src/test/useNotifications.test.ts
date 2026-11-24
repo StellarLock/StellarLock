@@ -12,6 +12,11 @@ import {
   unsubscribeNotifications,
 } from "@/hooks/useNotifications"
 
+type GlobalWithNotification = Omit<typeof globalThis, "Notification"> & {
+  Notification?: typeof Notification
+}
+const globalWithNotification = globalThis as GlobalWithNotification
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -405,21 +410,7 @@ describe("sendWebhook", () => {
 // subscribeNotifications / unsubscribeNotifications (API helpers)
 // ---------------------------------------------------------------------------
 
-// The helpers require a notification session; seed a valid cached one so
-// these tests exercise only the subscribe / unsubscribe request itself.
-function seedSession() {
-  sessionStorage.setItem(
-    "stellarlock:notification_session",
-    JSON.stringify({
-      address: "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF",
-      token: "test-token",
-      expiresAt: Math.floor(Date.now() / 1000) + 3600,
-    }),
-  )
-}
-
 describe("subscribeNotifications", () => {
-  beforeEach(seedSession)
   afterEach(() => {
     vi.restoreAllMocks()
   })
@@ -459,7 +450,6 @@ describe("subscribeNotifications", () => {
 })
 
 describe("unsubscribeNotifications", () => {
-  beforeEach(seedSession)
   afterEach(() => {
     vi.restoreAllMocks()
   })

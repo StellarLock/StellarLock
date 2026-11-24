@@ -1,5 +1,4 @@
-import { useRef } from "react"
-import { useTranslation } from "react-i18next"
+import { useState, useRef } from "react"
 import { Helmet } from "react-helmet-async"
 import { BookUser, Plus, Pencil, Trash2, Check, Download, Upload, Search, Bell, Compass } from "lucide-react"
 import { Button } from "@/components/ui/Button"
@@ -7,64 +6,139 @@ import { Input, Label } from "@/components/ui/Input"
 import { Card } from "@/components/ui/Card"
 import { shortAddress } from "@/lib/utils"
 import { isValidStellarAddress } from "@/lib/stellar-address"
-import { useAddressBookUI } from "@/hooks/useAddressBookUI"
+import { useAddressBook, type AddressBookEntry } from "@/hooks/useAddressBook"
 import { NotificationPreferences } from "@/components/ui/NotificationPreferences"
-import { startOnboardingTour } from "@/components/onboarding/startOnboardingTour"
+import { startOnboardingTour } from "@/components/onboarding/OnboardingTour"
 
 export function Settings() {
-  const { t } = useTranslation()
-  const ui = useAddressBookUI()
+  const book = useAddressBook()
+  const [search, setSearch] = useState("")
+  const [editId, setEditId] = useState<string | null>(null)
+  const [editLabel, setEditLabel] = useState("")
+  const [editAddress, setEditAddress] = useState("")
+  const [addMode, setAddMode] = useState(false)
+  const [newLabel, setNewLabel] = useState("")
+  const [newAddress, setNewAddress] = useState("")
+  const [error, setError] = useState<string | null>(null)
+  const [importStatus, setImportStatus] = useState<string | null>(null)
   const importRef = useRef<HTMLInputElement>(null)
+
+  const filtered = book.entries.filter(
+    (e) =>
+      e.label.toLowerCase().includes(search.toLowerCase()) || e.address.toLowerCase().includes(search.toLowerCase()),
+  )
+
+  function handleAdd() {
+    setError(null)
+    if (!newLabel.trim()) return setError("Label is required.")
+    if (!isValidStellarAddress(newAddress.trim())) return setError("Invalid Stellar address.")
+    book.add(newLabel, newAddress)
+    setNewLabel("")
+    setNewAddress("")
+    setAddMode(false)
+  }
+
+  function handleEditSave() {
+    if (!editId) return
+    setError(null)
+    if (!editLabel.trim()) return setError("Label is required.")
+    if (!isValidStellarAddress(editAddress.trim())) return setError("Invalid Stellar address.")
+    book.update(editId, editLabel, editAddress)
+    setEditId(null)
+  }
+
+  function handleEditStart(entry: AddressBookEntry) {
+    setEditId(entry.id)
+    setEditLabel(entry.label)
+    setEditAddress(entry.address)
+    setError(null)
+    setAddMode(false)
+  }
+
+  function handleExport() {
+    const json = book.exportJson()
+    const blob = new Blob([json], { type: "application/json" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = "stellarlock-address-book.json"
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
+    setImportStatus(null)
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      const text = ev.target?.result as string
+      const result = book.importJson(text)
+      if (result.errors > 0 && result.imported === 0) {
+        setImportStatus("Import failed: no valid entries found.")
+      } else {
+        setImportStatus(
+          `Imported ${result.imported} address${result.imported !== 1 ? "es" : ""}${result.errors > 0 ? ` (${result.errors} skipped)` : ""}.`,
+        )
+      }
+    }
+    reader.readAsText(file)
+    e.target.value = ""
+  }
 
   return (
     <>
       <Helmet>
-        <title>{t("settings.pageTitle")}</title>
-        <meta name="description" content={t("settings.pageDescription")} />
+        <title>Settings — StellarLock</title>
+        <meta name="description" content="Manage your address book and app settings on StellarLock." />
       </Helmet>
 
       <div className="mx-auto max-w-3xl px-4 py-10 md:px-6">
-        <h1 className="mb-6 text-3xl font-bold tracking-tight">{t("settings.title")}</h1>
+        <h1 className="mb-6 text-3xl font-bold tracking-tight">Settings</h1>
 
         <Card className="overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-border px-6 py-4">
             <div className="flex items-center gap-2">
               <BookUser className="h-5 w-5 text-primary" />
-              <h2 className="text-lg font-semibold">{t("settings.addressBook")}</h2>
+              <h2 className="text-lg font-semibold">Address Book</h2>
               <span className="ml-1 rounded-full bg-secondary px-2 py-0.5 text-xs text-muted-foreground">
-                {ui.allEntries.length}
+                {book.entries.length}
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={ui.handleExport} title={t("settings.exportAsJson")}>
+              <Button variant="outline" size="sm" onClick={handleExport} title="Export as JSON">
                 <Download className="h-4 w-4" />
-                {t("settings.export")}
+                Export
               </Button>
-              <Button variant="outline" size="sm" onClick={() => importRef.current?.click()} title={t("settings.importFromJson")}>
+              <Button variant="outline" size="sm" onClick={() => importRef.current?.click()} title="Import from JSON">
                 <Upload className="h-4 w-4" />
-                {t("settings.import")}
+                Import
               </Button>
               <input
                 ref={importRef}
                 type="file"
                 accept=".json,application/json"
                 className="hidden"
-                onChange={ui.handleImportFile}
+                onChange={handleImportFile}
               />
               <Button
                 size="sm"
-                onClick={ui.toggleAddMode}
+                onClick={() => {
+                  setAddMode((v) => !v)
+                  setEditId(null)
+                  setError(null)
+                }}
               >
                 <Plus className="h-4 w-4" />
-                {t("settings.addAddress")}
+                Add Address
               </Button>
             </div>
           </div>
 
-          {ui.importError && (
+          {importStatus && (
             <div className="border-b border-border bg-secondary/30 px-6 py-3 text-sm text-muted-foreground">
-              {ui.importError}
+              {importStatus}
             </div>
           )}
 
@@ -74,68 +148,71 @@ export function Settings() {
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <input
                 type="search"
-                placeholder={t("settings.searchPlaceholder")}
-                value={ui.search}
-                onChange={(e) => ui.setSearch(e.target.value)}
+                placeholder="Search by label or address…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
                 className="h-9 w-full rounded-md border border-border bg-background pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </div>
 
             {/* Add new entry form */}
-            {ui.addMode && (
+            {addMode && (
               <div className="mb-4 rounded-lg border border-border bg-secondary/30 p-4">
-                <h3 className="mb-3 text-sm font-medium">{t("settings.newAddress")}</h3>
+                <h3 className="mb-3 text-sm font-medium">New Address</h3>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
-                    <Label htmlFor="ab-new-label">{t("settings.label")}</Label>
+                    <Label htmlFor="ab-new-label">Label</Label>
                     <Input
                       id="ab-new-label"
-                      placeholder={t("settings.labelPlaceholder")}
-                      value={ui.newLabel}
-                      onChange={(e) => ui.setNewLabel(e.target.value)}
+                      placeholder="e.g. Team Wallet"
+                      value={newLabel}
+                      onChange={(e) => setNewLabel(e.target.value)}
                       autoFocus
                     />
                   </div>
                   <div>
-                    <Label htmlFor="ab-new-address">{t("settings.stellarAddress")}</Label>
+                    <Label htmlFor="ab-new-address">Stellar Address</Label>
                     <Input
                       id="ab-new-address"
-                      placeholder={t("settings.addressPlaceholder")}
-                      value={ui.newAddress}
-                      onChange={(e) => ui.setNewAddress(e.target.value)}
+                      placeholder="G… or C…"
+                      value={newAddress}
+                      onChange={(e) => setNewAddress(e.target.value)}
                       className={
-                        ui.newAddress && !isValidStellarAddress(ui.newAddress)
+                        newAddress && !isValidStellarAddress(newAddress)
                           ? "border-destructive focus:ring-destructive"
                           : ""
                       }
                     />
                   </div>
                 </div>
-                {ui.error && <p className="mt-2 text-xs text-destructive">{ui.error}</p>}
+                {error && <p className="mt-2 text-xs text-destructive">{error}</p>}
                 <div className="mt-3 flex justify-end gap-2">
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={ui.handleAddCancel}
+                    onClick={() => {
+                      setAddMode(false)
+                      setError(null)
+                    }}
                   >
-                    {t("settings.cancel")}
+                    Cancel
                   </Button>
-                  <Button size="sm" onClick={ui.handleAdd}>
+                  <Button size="sm" onClick={handleAdd}>
                     <Check className="h-4 w-4" />
-                    {t("settings.saveAddress")}
+                    Save Address
                   </Button>
                 </div>
               </div>
             )}
 
             {/* Entry list */}
-            {ui.filtered.length === 0 ? (
+            {filtered.length === 0 ? (
               <div className="rounded-lg border border-dashed border-border py-12 text-center">
                 <BookUser className="mx-auto mb-3 h-10 w-10 text-muted-foreground/40" />
                 <p className="text-sm text-muted-foreground">
-                  {ui.allEntries.length === 0
-                    ? t("settings.emptyState")
-                    : t("settings.noMatches")}
+                  {book.entries.length === 0
+                    ? 'No saved addresses yet. Click "Add Address" to save your first beneficiary.'
+                    : "No addresses match your search."}
                 </p>
               </div>
             ) : (
@@ -143,45 +220,45 @@ export function Settings() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-border bg-secondary/50">
-                      <th className="px-4 py-2 text-left font-medium text-muted-foreground">{t("settings.label")}</th>
-                      <th className="px-4 py-2 text-left font-medium text-muted-foreground">{t("settings.address")}</th>
-                      <th className="px-4 py-2 text-right font-medium text-muted-foreground">{t("settings.actions")}</th>
+                      <th className="px-4 py-2 text-left font-medium text-muted-foreground">Label</th>
+                      <th className="px-4 py-2 text-left font-medium text-muted-foreground">Address</th>
+                      <th className="px-4 py-2 text-right font-medium text-muted-foreground">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
-                    {ui.filtered.map((entry) =>
-                      ui.editId === entry.id ? (
+                    {filtered.map((entry) =>
+                      editId === entry.id ? (
                         <tr key={entry.id} className="bg-secondary/20">
                           <td className="px-4 py-2" colSpan={3}>
                             <div className="grid gap-3 sm:grid-cols-2">
                               <div>
-                                <Label htmlFor={`ab-edit-label-${entry.id}`}>{t("settings.label")}</Label>
+                                <Label htmlFor={`ab-edit-label-${entry.id}`}>Label</Label>
                                 <Input
                                   id={`ab-edit-label-${entry.id}`}
-                                  value={ui.editLabel}
-                                  onChange={(e) => ui.setEditLabel(e.target.value)}
+                                  value={editLabel}
+                                  onChange={(e) => setEditLabel(e.target.value)}
                                   autoFocus
                                 />
                               </div>
                               <div>
-                                <Label htmlFor={`ab-edit-addr-${entry.id}`}>{t("settings.address")}</Label>
+                                <Label htmlFor={`ab-edit-addr-${entry.id}`}>Address</Label>
                                 <Input
                                   id={`ab-edit-addr-${entry.id}`}
-                                  value={ui.editAddress}
-                                  onChange={(e) => ui.setEditAddress(e.target.value)}
+                                  value={editAddress}
+                                  onChange={(e) => setEditAddress(e.target.value)}
                                   className={
-                                    ui.editAddress && !isValidStellarAddress(ui.editAddress) ? "border-destructive" : ""
+                                    editAddress && !isValidStellarAddress(editAddress) ? "border-destructive" : ""
                                   }
                                 />
                               </div>
-                              {ui.error && <p className="col-span-2 text-xs text-destructive">{ui.error}</p>}
+                              {error && <p className="col-span-2 text-xs text-destructive">{error}</p>}
                               <div className="col-span-2 flex justify-end gap-2">
-                                <Button variant="ghost" size="sm" onClick={ui.handleEditCancel}>
-                                  {t("settings.cancel")}
+                                <Button variant="ghost" size="sm" onClick={() => setEditId(null)}>
+                                  Cancel
                                 </Button>
-                                <Button size="sm" onClick={ui.handleEditSave}>
+                                <Button size="sm" onClick={handleEditSave}>
                                   <Check className="h-4 w-4" />
-                                  {t("settings.save")}
+                                  Save
                                 </Button>
                               </div>
                             </div>
@@ -196,15 +273,15 @@ export function Settings() {
                           <td className="px-4 py-3 text-right">
                             <div className="flex justify-end gap-1">
                               <button
-                                onClick={() => ui.handleEditStart(entry)}
-                                aria-label={t("settings.editEntry", { label: entry.label })}
+                                onClick={() => handleEditStart(entry)}
+                                aria-label={`Edit ${entry.label}`}
                                 className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
                               >
                                 <Pencil className="h-4 w-4" />
                               </button>
                               <button
-                                onClick={() => ui.remove(entry.id)}
-                                aria-label={t("settings.deleteEntry", { label: entry.label })}
+                                onClick={() => book.remove(entry.id)}
+                                aria-label={`Delete ${entry.label}`}
                                 className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
                               >
                                 <Trash2 className="h-4 w-4" />
@@ -225,7 +302,7 @@ export function Settings() {
         <Card className="mt-8 overflow-hidden">
           <div className="flex items-center gap-2 border-b border-border px-6 py-4">
             <Bell className="h-5 w-5 text-primary" />
-            <h2 className="text-lg font-semibold">{t("settings.notificationPreferences")}</h2>
+            <h2 className="text-lg font-semibold">Notification Preferences</h2>
           </div>
           <div className="p-6">
             <NotificationPreferences />
@@ -236,17 +313,17 @@ export function Settings() {
         <Card className="mt-8 overflow-hidden">
           <div className="flex items-center gap-2 border-b border-border px-6 py-4">
             <Compass className="h-5 w-5 text-primary" />
-            <h2 className="text-lg font-semibold">{t("settings.onboarding")}</h2>
+            <h2 className="text-lg font-semibold">Onboarding</h2>
           </div>
           <div className="flex items-center justify-between p-6">
             <div>
-              <p className="text-sm font-medium">{t("settings.firstTimeTour")}</p>
+              <p className="text-sm font-medium">First-time tour</p>
               <p className="text-xs text-muted-foreground">
-                {t("settings.tourDescription")}
+                Replay the guided tour covering wallets, lock types, vesting, and the explorer.
               </p>
             </div>
             <Button variant="outline" size="sm" onClick={() => startOnboardingTour()}>
-              {t("settings.replayTour")}
+              Replay tour
             </Button>
           </div>
         </Card>

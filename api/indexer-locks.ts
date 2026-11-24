@@ -1,6 +1,4 @@
-import { getLocksForTokenPage, getStats } from "../indexer/index"
 import { getLocksForTokenPage } from "../indexer/index"
-import { serializeLock } from "./_lib/serialize-lock"
 
 type JsonRes = { status: (code: number) => { json: (payload: unknown) => void } }
 type QueryReq = { query?: Record<string, string | string[] | undefined> }
@@ -37,15 +35,9 @@ export default function handler(req: QueryReq, res: JsonRes) {
 
   try {
     const { locks, total } = getLocksForTokenPage(token, offset, limit)
-    const stats = getStats()
     res.status(200).json({
       total,
       locks: locks.map((lock) => ({ ...lock, amount: lock.amount.toString() })),
-      lastIndexedLedger: stats.lastIndexedLedger,
-      latestLedger: stats.latestLedger,
-      lagLedgers: stats.lagLedgers,
-      locks: locks.map((lock) => ({ ...lock, amount: lock.amount.toString(), released: lock.released.toString() })),
-      locks: locks.map(serializeLock),
     })
   } catch (err) {
     res.status(503).json({

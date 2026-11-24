@@ -34,12 +34,7 @@ interface RawSorobanEvent {
 
 interface GetEventsResponse {
   error?: { message?: string }
-  result?: { events?: RawSorobanEvent[]; latestLedger?: number }
-}
-
-interface GetLatestLedgerResponse {
-  error?: { message?: string }
-  result?: { sequence?: number }
+  result?: { events?: RawSorobanEvent[] }
 }
 
 const EVENT_POLL_INTERVAL = 3000
@@ -67,17 +62,13 @@ export function useContractEvents(options: EventPollingOptions = {}) {
             filters: [
               {
                 type: "contract",
-                // Issue #743: an explicit contractAddress override still
-                // filters to just that one contract; the default (no
-                // override) case must include both known contracts, not
-                // fall through to only the first one that's set — the
-                // token-locker env var is always present, so the lp-locker
-                // fallback was unreachable dead code.
-                contractIds: contractAddress
-                  ? [contractAddress]
-                  : [import.meta.env.VITE_TOKEN_LOCKER_CONTRACT, import.meta.env.VITE_LP_LOCKER_CONTRACT].filter(
-                      (id): id is string => Boolean(id),
-                    ),
+                contractIds: (() => {
+                  const addr =
+                    contractAddress ??
+                    import.meta.env.VITE_TOKEN_LOCKER_CONTRACT ??
+                    import.meta.env.VITE_LP_LOCKER_CONTRACT
+                  return addr ? [addr] : []
+                })(),
               },
             ],
           },
@@ -126,64 +117,24 @@ export function useContractEvents(options: EventPollingOptions = {}) {
         if (onEvent) {
           onEvent(contractEvent)
         }
-      }
 
-      // Issue #744: advance the cursor every poll, regardless of whether any
-      // event matched — advancing only inside the loop above meant a poll
-      // with zero matching events (the common case) never moved the cursor
-      // forward, so every subsequent poll kept re-requesting from the same
-      // (eventually ledger-1) startLedger forever.
-      if (typeof data.result?.latestLedger === "number") {
-        lastSequenceRef.current = Math.max(lastSequenceRef.current, data.result.latestLedger)
+        lastSequenceRef.current = Math.max(lastSequenceRef.current, event.ledger || 0)
       }
     } catch (err) {
       log.error("[contract events polling error]", err)
     }
-  }, [onEvent, contractAddress])
-
-  // Issue #744: seed the cursor from the RPC's current ledger instead of
-  // leaving it at 0 — otherwise the very first poll computes
-  // startLedger = max(1, 0 - 1000) = 1, almost certainly outside the RPC's
-  // retention window, so the live event feed never works from a fresh mount.
-  const initLastSequence = useCallback(async () => {
-    try {
-      const rpc = import.meta.env.VITE_RPC_URL || NETWORK.rpcUrl
-      const response = await fetch(rpc, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "getLatestLedger", params: {} }),
-      })
-      if (!response.ok) return
-      const data = (await response.json()) as GetLatestLedgerResponse
-      if (data.error) {
-        log.error("[getLatestLedger error]", { error: data.error })
-        return
-      }
-      if (typeof data.result?.sequence === "number") {
-        lastSequenceRef.current = data.result.sequence
-      }
-    } catch (err) {
-      log.error("[getLatestLedger error]", err)
-    }
-  }, [])
+  }, [onEvent])
 
   useEffect(() => {
-    let cancelled = false
-
-    void (async () => {
-      await initLastSequence()
-      if (cancelled) return
-      void fetchEvents()
-      pollIntervalRef.current = setInterval(() => void fetchEvents(), pollInterval)
-    })()
+    void fetchEvents()
+    pollIntervalRef.current = setInterval(() => void fetchEvents(), pollInterval)
 
     return () => {
-      cancelled = true
       if (pollIntervalRef.current) {
         clearInterval(pollIntervalRef.current)
       }
     }
-  }, [fetchEvents, initLastSequence, pollInterval])
+  }, [fetchEvents, pollInterval])
 
   return { events }
 }

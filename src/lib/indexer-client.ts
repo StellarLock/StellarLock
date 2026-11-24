@@ -9,8 +9,6 @@ const log = createLogger("indexer-client")
 export interface IndexerLockDTO {
   id: string
   kind: "token" | "lp"
-  /** Contract address that created this lock (token-locker or lp-locker). */
-  contractId: string
   creator: string
   beneficiary: string
   token: string
@@ -19,7 +17,6 @@ export interface IndexerLockDTO {
   dex?: string | null
   pool_share?: string | null
   amount: string
-  released: string
   unlockAt: number
   status: "locked" | "withdrawn"
   createdAt: number
@@ -35,91 +32,31 @@ export interface IndexerTokenAggregateDTO {
 
 export interface IndexerStatsDTO {
   totalLocks: number
+  totalValue: string
   uniqueTokens: number
   recentLocks: IndexerLockDTO[]
   upcomingUnlocks: IndexerLockDTO[]
   topTokens: IndexerTokenAggregateDTO[]
-  lastIndexedLedger?: number
-  latestLedger?: number
-  lagLedgers?: number
-  contractStatus?: Array<{
-    contractId: string
-    paused: boolean
-    pendingUpgradeHash: string | null
-    pendingUpgradeExecuteAfter: number | null
-  }>
 }
 
 export interface IndexerLocksPageDTO {
   total: number
   locks: IndexerLockDTO[]
-  lastIndexedLedger?: number
-  latestLedger?: number
-  lagLedgers?: number
 }
 
 const FETCH_TIMEOUT_MS = 3000
 const CACHE_TTL_MS = 10_000
-// Maximum number of entries kept in the cache at any time. When the cap is
-// reached the oldest-inserted entry is evicted (insertion-order LRU) before
-// adding the new one. This prevents unbounded growth when a user browses many
-// token/page combinations in a long-lived session (fixes #755).
-const CACHE_MAX_SIZE = 100
-const MAX_ACCEPTABLE_LAG = Number(import.meta.env.VITE_INDEXER_MAX_LAG_LEDGERS ?? 20)
 
 interface CacheEntry<T> {
   data: T
   expiry: number
 }
 
-/**
- * Indexer-backed lock ids are namespaced by kind (e.g. `token:1000`,
- * `lp:5000`) to stay unique in the indexer's own storage. The frontend's
- * on-chain `Lock.id` is just the bare numeric id (as returned by RPC), and
- * Discover/Explorer build detail links as `/app/lock/${kind}/${id}` — so an
- * un-stripped namespaced id produces a broken `/app/lock/token/token:1000`
- * link (#1079).
- */
-function stripKindPrefix(id: string, kind: IndexerLockDTO["kind"]): string {
-  const prefix = `${kind}:`
-  return id.startsWith(prefix) ? id.slice(prefix.length) : id
-}
-
-/**
- * Remaining (unclaimed) amount for an indexer lock row, in token units:
- * cumulative on-chain `amount` minus cumulative `released`, clamped to zero.
- * `released` is dropped by the public `Lock` type (whose optional `vesting`
- * needs a start/end the indexer doesn't currently serve), so aggregates that
- * need the vested-aware remaining total must read it straight off the DTO
- * instead of off the mapped `Lock.amount` (which stays the full original
- * amount, matching the RPC-sourced `Lock` shape) — see #1080.
- */
-function remainingAmount(raw: IndexerLockDTO, decimals: number): number {
-  const amount = BigInt(raw.amount)
-  const released = BigInt(raw.released || "0")
-  const remaining = amount > released ? amount - released : 0n
-  return Number(remaining) / 10 ** decimals
-}
-
 const statsCache = new Map<string, CacheEntry<unknown>>()
-
-/** Remove all entries whose TTL has already elapsed. */
-function pruneExpiredEntries(): void {
-  const now = Date.now()
-  for (const [key, entry] of statsCache) {
-    if (entry.expiry <= now) {
-      statsCache.delete(key)
-    }
-  }
-}
 
 async function fetchJson<T>(url: string): Promise<T | null> {
   const cached = statsCache.get(url)
   if (cached && cached.expiry > Date.now()) return cached.data as T
-
-  // Sweep expired entries on every fetch so the Map does not grow unbounded
-  // across pagination (each unique offset/limit combination is a new key).
-  pruneExpiredEntries()
 
   try {
     const res = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) })
@@ -128,27 +65,6 @@ async function fetchJson<T>(url: string): Promise<T | null> {
       return null
     }
     const data = (await res.json()) as T
-
-    const lagLedgers = (data as { lagLedgers?: unknown }).lagLedgers
-    if (typeof lagLedgers === "number" && lagLedgers > MAX_ACCEPTABLE_LAG) {
-      log.warn("indexer lag exceeds fallback threshold", {
-        lagLedgers,
-        maxAcceptableLag: MAX_ACCEPTABLE_LAG,
-        url,
-      })
-      return null
-    }
-
-    // Enforce hard size cap: evict the oldest entry (Maps preserve insertion
-    // order) before inserting a new one so memory stays bounded even when
-    // every unexpired entry happens to share the same TTL window.
-    if (statsCache.size >= CACHE_MAX_SIZE) {
-      const oldestKey = statsCache.keys().next().value
-      if (oldestKey !== undefined) {
-        statsCache.delete(oldestKey)
-      }
-    }
-
     statsCache.set(url, { data, expiry: Date.now() + CACHE_TTL_MS })
     return data
   } catch (err) {
@@ -172,14 +88,9 @@ export function fetchIndexerLocksForToken(
   return fetchJson<IndexerLocksPageDTO>(`/api/indexer-locks?${params}`)
 }
 
-/**
- * Fetch a single lock by the indexer's internal id (`${contractId}:${numericId}`)
- * from the lock indexer. Returns null if unavailable or not indexed — callers
- * should treat that the same as a direct-RPC miss (#1084's archival fallback).
- */
-export function fetchIndexerLockById(id: string): Promise<IndexerLockDTO | null> {
-  const params = new URLSearchParams({ id })
-  return fetchJson<IndexerLockDTO>(`/api/indexer-lock?${params}`)
+/** Invalidate cached indexer responses (e.g. after a mutation that should be reflected immediately). */
+export function invalidateIndexerCache(): void {
+  statsCache.clear()
 }
 
 // ── DTO → frontend Lock mapping ────────────────────────────────────────────────
@@ -196,11 +107,10 @@ export async function mapIndexerLocks(dtoLocks: IndexerLockDTO[]): Promise<Lock[
   return dtoLocks.map((raw): Lock => {
     const meta = metaMap.get(raw.token)
     const decimals = meta?.decimals ?? 7
-    const multiplier = 10 ** decimals
     const unlockAtMs = raw.unlockAt * 1000
 
     return {
-      id: stripKindPrefix(raw.id, raw.kind),
+      id: raw.id,
       kind: raw.kind,
       status: raw.withdrawn || raw.status === "withdrawn" ? "withdrawn" : unlockAtMs <= now ? "unlockable" : "locked",
       token: {
@@ -211,19 +121,14 @@ export async function mapIndexerLocks(dtoLocks: IndexerLockDTO[]): Promise<Lock[
       },
       creator: raw.creator,
       beneficiary: raw.beneficiary,
-      amount: Number(BigInt(raw.amount)) / multiplier,
+      // Store raw base-unit bigint; display callers use formatUnits(amount, token.decimals)
+      amount: BigInt(raw.amount),
       usdValue: 0,
       createdAt: raw.createdAt * 1000,
       unlockAt: unlockAtMs,
       extendedCount: raw.extendedCount ?? 0,
     }
   })
-}
-
-/** Map a single indexer lock row to the frontend Lock type. Convenience wrapper around mapIndexerLocks. */
-export async function mapIndexerLock(dtoLock: IndexerLockDTO): Promise<Lock> {
-  const [lock] = await mapIndexerLocks([dtoLock])
-  return lock
 }
 
 /** Build a TokenLockSummary (same shape token-locker.ts's getLocksByToken returns) from an indexer page. */
@@ -235,16 +140,11 @@ export async function mapIndexerLocksPageToSummary(page: IndexerLocksPageDTO): P
   if (tokenLocks.length === 0) return null
 
   const locks = await mapIndexerLocks(tokenLocks)
-  // locks[] is produced 1:1, in the same order, from tokenLocks[] by
-  // mapIndexerLocks — zip them back together so the aggregate below can use
-  // each row's cumulative `released` (#1080), which the mapped Lock itself
-  // doesn't carry.
-  const pairs = locks.map((lock, i) => ({ lock, raw: tokenLocks[i] }))
-  const active = pairs.filter(({ lock }) => lock.status !== "withdrawn")
-  const totalLocked = active.reduce((s, { lock, raw }) => s + remainingAmount(raw, lock.token.decimals), 0)
+  const active = locks.filter((l) => l.status !== "withdrawn")
+  const totalLocked = active.reduce((s, l) => s + l.amount, 0n)
   const upcoming = active
-    .filter(({ lock }) => lock.status === "locked")
-    .map(({ lock }) => lock.unlockAt)
+    .filter((l) => l.status === "locked")
+    .map((l) => l.unlockAt)
     .sort((a, b) => a - b)
 
   return {

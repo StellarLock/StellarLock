@@ -1,16 +1,13 @@
-import { useTranslation } from "react-i18next"
-import { Lock as LockIcon, Unlock, Check, ArchiveX } from "lucide-react"
+import { Lock as LockIcon, Unlock, Check } from "lucide-react"
 import type { LockStatus } from "@/types/lock"
 import { Badge } from "@/components/ui/Badge"
 
-export function StatusBadge({ status, archived }: { status: LockStatus; archived?: boolean }) {
-  const { t } = useTranslation()
-
+export function StatusBadge({ status }: { status: LockStatus }) {
   if (status === "locked") {
     return (
       <Badge variant="primary">
         <LockIcon className="h-3 w-3" />
-        {t("lockStatus.locked")}
+        Locked
       </Badge>
     )
   }
@@ -18,22 +15,14 @@ export function StatusBadge({ status, archived }: { status: LockStatus; archived
     return (
       <Badge variant="warning">
         <Unlock className="h-3 w-3" />
-        {t("lockStatus.unlockable")}
-      </Badge>
-    )
-  }
-  if (status === "archived") {
-    return (
-      <Badge variant="destructive">
-        <ArchiveX className="h-3 w-3" />
-        {t("lockStatus.archived")}
+        Unlockable
       </Badge>
     )
   }
   return (
     <Badge variant="outline">
       <Check className="h-3 w-3" />
-      {archived ? t("lockStatus.withdrawnArchived") : t("lockStatus.withdrawn")}
+      Withdrawn
     </Badge>
   )
 }

@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from "@storybook/react"
-import { fn } from "@storybook/test"
 import { KeyboardShortcutsModal } from "./KeyboardShortcutsModal"
 
 const meta = {
@@ -25,14 +24,14 @@ type Story = StoryObj<typeof meta>
 export const Open: Story = {
   args: {
     open: true,
-    onClose: fn(),
+    onClose: () => console.log("onClose"),
   },
 }
 
 export const Closed: Story = {
   args: {
     open: false,
-    onClose: fn(),
+    onClose: () => console.log("onClose"),
   },
   render: (args) => (
     <div>

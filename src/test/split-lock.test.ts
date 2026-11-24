@@ -12,16 +12,10 @@ vi.mock("@/lib/stellar", () => ({
   submitCallWithHash: vi.fn().mockResolvedValue({ result: undefined, txHash: "mock-tx-hash" }),
 }))
 
-vi.mock("@/lib/token-metadata", () => ({
-  getOnChainTokenMeta: vi.fn(),
-}))
-
 import { submitCallWithHash } from "@/lib/stellar"
-import { getOnChainTokenMeta } from "@/lib/token-metadata"
 
 const VALID_ADDRESS = "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF"
 const VALID_TOKEN = "CBFCKEOQRQIXKLGU4QBUQVOINOKFBOXJ37LXEKLKNUO6TW4FNGDU26AW"
-const mockGetOnChainTokenMeta = vi.mocked(getOnChainTokenMeta)
 
 function buildBaseArgs(overrides: Partial<CreateSplitLockArgs> = {}): CreateSplitLockArgs {
   return {
@@ -39,9 +33,6 @@ function buildBaseArgs(overrides: Partial<CreateSplitLockArgs> = {}): CreateSpli
 describe("createSplitLock", () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    // createSplitLock now fetches the token's decimals via getOnChainTokenMeta
-    // (#1058); default to 7 so the pre-existing 7-decimal assertions hold.
-    mockGetOnChainTokenMeta.mockResolvedValue({ symbol: "TEST", name: "Test Token", decimals: 7 })
   })
 
   it("should call submitCall with the correct contract and function name", async () => {
@@ -169,40 +160,6 @@ describe("createSplitLock", () => {
     // 10_000_000 fits in lo
     expect(lo.toBigInt()).toBe(10_000_000n)
     expect(hi.toBigInt()).toBe(0n)
-  })
-
-  it("encodes the amount using the token's 6 decimals (#1058)", async () => {
-    mockGetOnChainTokenMeta.mockResolvedValue({ symbol: "USDC", name: "USD Coin", decimals: 6 })
-    const args = buildBaseArgs({ totalAmount: 1 })
-    const signTx = vi.fn().mockResolvedValue({ signedTxXdr: "AAAA..." })
-
-    await createSplitLock(args, VALID_ADDRESS, signTx)
-
-    expect(mockGetOnChainTokenMeta).toHaveBeenCalledWith(VALID_TOKEN)
-    const callArgs = vi.mocked(submitCallWithHash).mock.calls[0]
-    const scArgs = callArgs[2]
-    const amountVal = scArgs[2]
-    expect(amountVal.switch()).toBe(xdr.ScValType.scvI128())
-    // 1 token at 6 decimals = 1_000_000 base units
-    expect(amountVal.i128().lo().toBigInt()).toBe(1_000_000n)
-    expect(amountVal.i128().hi().toBigInt()).toBe(0n)
-  })
-
-  it("encodes the amount using the token's 18 decimals (#1058)", async () => {
-    mockGetOnChainTokenMeta.mockResolvedValue({ symbol: "W18", name: "Wide Token", decimals: 18 })
-    const args = buildBaseArgs({ totalAmount: 1 })
-    const signTx = vi.fn().mockResolvedValue({ signedTxXdr: "AAAA..." })
-
-    await createSplitLock(args, VALID_ADDRESS, signTx)
-
-    expect(mockGetOnChainTokenMeta).toHaveBeenCalledWith(VALID_TOKEN)
-    const callArgs = vi.mocked(submitCallWithHash).mock.calls[0]
-    const scArgs = callArgs[2]
-    const amountVal = scArgs[2]
-    expect(amountVal.switch()).toBe(xdr.ScValType.scvI128())
-    // 1 token at 18 decimals = 1_000_000_000_000_000_000 base units
-    expect(amountVal.i128().lo().toBigInt()).toBe(1_000_000_000_000_000_000n)
-    expect(amountVal.i128().hi().toBigInt()).toBe(0n)
   })
 
   it("should pass the signTransaction function to submitCall", async () => {

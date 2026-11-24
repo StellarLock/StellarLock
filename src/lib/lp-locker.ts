@@ -1,9 +1,10 @@
 import { Address, nativeToScVal, xdr } from "@stellar/stellar-sdk"
 import type { Dex, Lock, LockMetadata } from "@/types/lock"
-import { CONTRACTS, simulateCall, submitCall, submitCallWithHash, submitRestoreFootprint, type TxPhase } from "@/lib/stellar"
+import { CONTRACTS, simulateCall, submitCall, submitCallWithHash, type TxPhase } from "@/lib/stellar"
 import { getOnChainTokenMeta } from "@/lib/token-metadata"
+import { parseUnits } from "@/lib/utils"
 
-interface CreateLpLockArgs {
+export interface CreateLpLockArgs {
   poolShareAddress: string
   dex: Dex
   tokenA: string
@@ -12,6 +13,50 @@ interface CreateLpLockArgs {
   beneficiary: string
   unlockAt: number // unix seconds
   metadata?: { description?: string; projectUrl?: string; logoUrl?: string }
+}
+
+/**
+ * Approve the LP-locker contract to pull `amount` of `tokenAddress` (typically an
+ * LP/pool-share token) from `owner`'s balance, via the token's standard SEP-41
+ * `approve` entrypoint. Must be called (and confirmed) before {@link createLpLock},
+ * since `create_lock` performs a `transfer` that requires sufficient allowance.
+ *
+ * Note: this targets `tokenAddress` directly (not the lp-locker contract), so any
+ * errors surfaced come from that token contract's own implementation, not the
+ * lp-locker's `ContractError` enum.
+ *
+ * @param tokenAddress - Contract address of the pool-share/LP token to approve.
+ * @param owner - Address granting the allowance (the wallet that will create the lock).
+ * @param spender - Address allowed to spend the allowance — normally the lp-locker contract id.
+ * @param amount - Human-readable amount to approve (converted to stroops using 7 decimals).
+ * @param sourceAddress - Address submitting the transaction; must equal `owner` for `require_auth` to pass.
+ * @param signTransaction - Callback that signs the built transaction XDR and returns signed XDR.
+ * @returns Resolves with no value once the approval transaction is confirmed.
+ * @throws {Error} `Simulation error: ...` / `Send error: ...` / `Transaction failed: ...` if
+ *   `sourceAddress` fails auth as `owner`, or for RPC/network failures. The expiration ledger is
+ *   hard-coded to `0`, so a `0` allowance is effectively immediately expired if not spent promptly.
+ */
+export async function submitTokenApproval(
+  tokenAddress: string,
+  owner: string,
+  spender: string,
+  amount: number,
+  sourceAddress: string,
+  signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>,
+): Promise<void> {
+  const meta = await getOnChainTokenMeta(tokenAddress)
+  const decimals = meta?.decimals ?? 7
+  const amountStroops = parseUnits(String(amount), decimals)
+  const expirationLedger = 0
+
+  const scArgs: xdr.ScVal[] = [
+    new Address(owner).toScVal(),
+    new Address(spender).toScVal(),
+    nativeToScVal(amountStroops, { type: "i128" }),
+    nativeToScVal(expirationLedger, { type: "u32" }),
+  ]
+
+  await submitCall(tokenAddress, "approve", scArgs, sourceAddress, signTransaction)
 }
 
 /** LockMetadata is stored non-optionally on-chain; empty strings mean "not set". */
@@ -83,7 +128,6 @@ function toLpLock(raw: Record<string, unknown>, meta?: LpMeta): Lock {
   const tokenASymbol = meta?.tokenASymbol ?? tokenA.slice(0, 4)
   const tokenBSymbol = meta?.tokenBSymbol ?? tokenB.slice(0, 4)
   const poolDecimals = meta?.poolDecimals ?? 7
-  const multiplier = 10 ** poolDecimals
 
   return {
     id: String(raw.id),
@@ -99,7 +143,8 @@ function toLpLock(raw: Record<string, unknown>, meta?: LpMeta): Lock {
     poolPair: [tokenA, tokenB],
     creator: raw.creator as string,
     beneficiary: raw.beneficiary as string,
-    amount: Number(raw.amount) / multiplier,
+    // Store raw base-unit bigint; display callers use formatUnits(amount, token.decimals)
+    amount: BigInt(raw.amount as bigint | string | number),
     usdValue: 0,
     createdAt: Number(raw.created_at) * 1000,
     unlockAt: Number(raw.unlock_at) * 1000,
@@ -220,10 +265,9 @@ export async function getLpLockCountByBeneficiary(address: string): Promise<numb
 /**
  * Create a new LP (pool-share) lock on-chain: transfers `args.amount` of
  * `args.poolShareAddress` from `sourceAddress` into the contract, escrowed until
- * `args.unlockAt`. Requires only `sourceAddress`'s signature (`creator.require_auth()`
- * on-chain): the contract calls `token.transfer(&creator, contract, amount)` directly,
- * so no prior token approval/allowance is needed. Unlike token locks, LP locks have no
- * vesting option.
+ * `args.unlockAt`. Requires `sourceAddress`'s signature (`creator.require_auth()`
+ * on-chain) and a prior token allowance covering the transfer — call
+ * {@link submitTokenApproval} first. Unlike token locks, LP locks have no vesting option.
  *
  * @param args - Lock parameters:
  *   - `poolShareAddress` — contract address of the DEX pool-share/LP token to lock.
@@ -244,7 +288,7 @@ export async function getLpLockCountByBeneficiary(address: string): Promise<numb
  *   - `AmountMustBePositive` (1) — `amount` is zero or negative.
  *   - `UnlockMustBeFuture` (2) — `unlockAt` is not after the current ledger time.
  * @throws {Error} `Simulation error: ...` / `Send error: ...` / `Transaction failed: ...` for
- *   RPC/network failures or an insufficient token balance on the transfer.
+ *   RPC/network failures or an insufficient token allowance/balance on the transfer.
  */
 export async function createLpLock(
   args: CreateLpLockArgs,
@@ -252,10 +296,10 @@ export async function createLpLock(
   signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>,
   onProgress?: (phase: TxPhase) => void,
 ): Promise<{ id: string; txHash: string }> {
-  // Issue #738: fetch the pool-share token's real decimals instead of hardcoding 7
-  const { decimals } = await getOnChainTokenMeta(args.poolShareAddress)
-  const amountStroops = BigInt(Math.round(args.amount * 10 ** decimals))
-
+  // Fetch pool-share token decimals for precision-safe encoding
+  const meta = await getOnChainTokenMeta(args.poolShareAddress)
+  const decimals = meta?.decimals ?? 7
+  const amountStroops = parseUnits(String(args.amount), decimals)
   const scArgs: xdr.ScVal[] = [
     addressArg(sourceAddress),
     addressArg(args.poolShareAddress),
@@ -383,53 +427,4 @@ export async function transferLpBeneficiary(
     onProgress,
   )
   return { txHash }
-}
-
-// ── Maintenance methods ───────────────────────────────────────────────────────
-
-/**
- * Extend the on-chain TTL of an LP lock entry to prevent archival.
- * Permissionless — anyone can call this on any LP lock id.
- *
- * @param id - Numeric lock id (as a decimal string).
- * @param sourceAddress - Address paying for the transaction.
- * @param signTransaction - Wallet sign callback.
- * @param onProgress - Optional phase callback for UI progress steps.
- * @returns The submission `txHash`.
- */
-export async function bumpLpLockTtl(
-  id: string,
-  sourceAddress: string,
-  signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>,
-  onProgress?: (phase: TxPhase) => void,
-): Promise<{ txHash: string }> {
-  const { txHash } = await submitCallWithHash<void>(
-    CONTRACTS.lpLocker,
-    "bump_lock_ttl",
-    [idArg(id)],
-    sourceAddress,
-    signTransaction,
-    onProgress,
-  )
-  return { txHash }
-}
-
-/**
- * Restore an archived LP lock entry via a Soroban `RestoreFootprint`
- * transaction. After the restore completes the caller should reload the
- * lock — it will be readable again via `getLpLock`.
- *
- * @param id - Numeric lock id (as a decimal string).
- * @param sourceAddress - Address paying for the restore transaction.
- * @param signTransaction - Wallet sign callback.
- * @param onProgress - Optional phase callback for UI progress steps.
- * @returns The submission `txHash`.
- */
-export async function restoreLpLock(
-  id: string,
-  sourceAddress: string,
-  signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>,
-  onProgress?: (phase: TxPhase) => void,
-): Promise<{ txHash: string }> {
-  return submitRestoreFootprint(CONTRACTS.lpLocker, id, sourceAddress, signTransaction, onProgress)
 }

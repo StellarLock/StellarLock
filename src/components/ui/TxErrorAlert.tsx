@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next"
 import type { StructuredError } from "@/lib/errors"
 import { cn } from "@/lib/utils"
 
-interface TxErrorAlertProps {
+export interface TxErrorAlertProps {
   error: StructuredError | null
   className?: string
 }

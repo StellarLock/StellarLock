@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
-import { act, screen } from "@testing-library/react"
-import { render, expectNoRenderedContent } from "./utils"
+import { screen, waitFor } from "@testing-library/react"
+import { render } from "./utils"
 import { CostEstimate } from "@/components/locks/CostEstimate"
 import type { LockCostEstimate } from "@/lib/stellar"
 
@@ -46,8 +46,10 @@ describe("CostEstimate component", () => {
   })
 
   it("renders nothing when args is null", () => {
-    const { container } = render(<CostEstimate contractId={CONTRACT_ID} method={METHOD} args={null} />)
-    expectNoRenderedContent(container)
+    const { container } = render(
+      <CostEstimate contractId={CONTRACT_ID} method={METHOD} args={null} />,
+    )
+    expect(container.firstChild).toBeNull()
   })
 
   it("shows the loading spinner while estimating", async () => {
@@ -57,11 +59,11 @@ describe("CostEstimate component", () => {
     render(<CostEstimate contractId={CONTRACT_ID} method={METHOD} args={FAKE_ARGS} />)
 
     // Fast-forward past the 500 ms debounce
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(600)
-    })
+    vi.advanceTimersByTime(600)
 
-    expect(screen.getByText(/estimating costs/i)).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText(/estimating costs/i)).toBeInTheDocument()
+    })
   })
 
   it("shows the title header", async () => {
@@ -69,11 +71,11 @@ describe("CostEstimate component", () => {
 
     render(<CostEstimate contractId={CONTRACT_ID} method={METHOD} args={FAKE_ARGS} />)
 
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(600)
-    })
+    vi.advanceTimersByTime(600)
 
-    expect(screen.getByText("Estimated Costs")).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText("Estimated Costs")).toBeInTheDocument()
+    })
   })
 
   it("displays network fee, storage fee and total after a successful estimate", async () => {
@@ -81,19 +83,19 @@ describe("CostEstimate component", () => {
 
     render(<CostEstimate contractId={CONTRACT_ID} method={METHOD} args={FAKE_ARGS} />)
 
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(600)
+    vi.advanceTimersByTime(600)
+
+    await waitFor(() => {
+      // Fee rows
+      expect(screen.getByText("Transaction fee")).toBeInTheDocument()
+      expect(screen.getByText("Storage deposit")).toBeInTheDocument()
+      expect(screen.getByText("Total")).toBeInTheDocument()
+
+      // Formatted values (toFixed(7)) appear somewhere in the DOM
+      expect(screen.getByText(/0\.0000100 XLM/)).toBeInTheDocument()
+      expect(screen.getByText(/0\.1000000 XLM/)).toBeInTheDocument()
+      expect(screen.getByText(/~0\.1000100 XLM/)).toBeInTheDocument()
     })
-
-    // Fee rows
-    expect(screen.getByText("Transaction fee")).toBeInTheDocument()
-    expect(screen.getByText("Storage deposit")).toBeInTheDocument()
-    expect(screen.getByText("Total")).toBeInTheDocument()
-
-    // Formatted values (toFixed(7)) appear somewhere in the DOM
-    expect(screen.getByText(/0\.0000100 XLM/)).toBeInTheDocument()
-    expect(screen.getByText(/0\.1000000 XLM/)).toBeInTheDocument()
-    expect(screen.getByText(/~0\.1000100 XLM/)).toBeInTheDocument()
   })
 
   it("does not show the high-cost warning for a normal estimate", async () => {
@@ -101,11 +103,11 @@ describe("CostEstimate component", () => {
 
     render(<CostEstimate contractId={CONTRACT_ID} method={METHOD} args={FAKE_ARGS} />)
 
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(600)
-    })
+    vi.advanceTimersByTime(600)
 
-    expect(screen.queryByText(/unusually high storage cost/i)).not.toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.queryByText(/unusually high storage cost/i)).not.toBeInTheDocument()
+    })
   })
 
   it("shows the high-cost warning when total exceeds 0.5 XLM", async () => {
@@ -113,11 +115,11 @@ describe("CostEstimate component", () => {
 
     render(<CostEstimate contractId={CONTRACT_ID} method={METHOD} args={FAKE_ARGS} />)
 
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(600)
-    })
+    vi.advanceTimersByTime(600)
 
-    expect(screen.getByText(/unusually high storage cost/i)).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText(/unusually high storage cost/i)).toBeInTheDocument()
+    })
   })
 
   it("shows the error message when the estimate fails", async () => {
@@ -125,23 +127,25 @@ describe("CostEstimate component", () => {
 
     render(<CostEstimate contractId={CONTRACT_ID} method={METHOD} args={FAKE_ARGS} />)
 
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(600)
-    })
+    vi.advanceTimersByTime(600)
 
-    expect(screen.getByText(/unable to estimate cost/i)).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText(/unable to estimate cost/i)).toBeInTheDocument()
+    })
   })
 
   it("clears the estimate when args becomes null after a successful fetch", async () => {
     mockEstimate.mockResolvedValue(MOCK_ESTIMATE)
 
-    const { rerender } = render(<CostEstimate contractId={CONTRACT_ID} method={METHOD} args={FAKE_ARGS} />)
+    const { rerender } = render(
+      <CostEstimate contractId={CONTRACT_ID} method={METHOD} args={FAKE_ARGS} />,
+    )
 
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(600)
+    vi.advanceTimersByTime(600)
+
+    await waitFor(() => {
+      expect(screen.getByText("Total")).toBeInTheDocument()
     })
-
-    expect(screen.getByText("Total")).toBeInTheDocument()
 
     rerender(<CostEstimate contractId={CONTRACT_ID} method={METHOD} args={null} />)
 

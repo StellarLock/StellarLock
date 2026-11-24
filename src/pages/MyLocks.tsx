@@ -4,7 +4,7 @@ import { Plus, Wallet, Layers, Search, CheckSquare, LayoutGrid, Table2, Download
 import { Helmet } from "react-helmet-async"
 import { useTranslation } from "react-i18next"
 import { useWallet } from "@/hooks/useWallet"
-import { ALL_LOCKS_LIMIT, useMyLocks } from "@/hooks/useLocks"
+import { useMyLocks, useMyLocksStats } from "@/hooks/useLocks"
 import { extendLock, transferBeneficiary } from "@/lib/token-locker"
 import { extendLpLock, transferLpBeneficiary } from "@/lib/lp-locker"
 import { exportToCSV, exportToJSON } from "@/lib/export"
@@ -19,7 +19,7 @@ import { BulkConfirmModal } from "@/components/locks/BulkConfirmModal"
 import { ConnectGate } from "@/components/layout/ConnectGate"
 import { SkeletonLockCard, SkeletonStatCard } from "@/components/ui/Skeleton"
 import { cn, formatUsd } from "@/lib/utils"
-import { lockKey, type Lock, type LockStatus } from "@/types/lock"
+import type { Lock, LockStatus } from "@/types/lock"
 
 type Tab = "created" | "received"
 type SortKey = "unlockAt" | "amount" | "createdAt"
@@ -51,9 +51,8 @@ export function MyLocks() {
   const { address, signTransaction } = useWallet()
   const navigate = useNavigate()
   const [page, setPage] = useState(1)
-  // Fetch the full lock set so search/status/kind filters apply across every
-  // lock, not just the current page; pagination is done client-side below.
-  const { data, loading, error, reload } = useMyLocks(address, 0, ALL_LOCKS_LIMIT)
+  const { data, loading, error, reload } = useMyLocks(address, (page - 1) * PAGE_SIZE, PAGE_SIZE)
+  const { data: statsData, loading: statsLoading } = useMyLocksStats(address)
   const [tab, setTab] = useState<Tab>("created")
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState<LockStatus | "all">("all")
@@ -73,22 +72,16 @@ export function MyLocks() {
   const totalCreated = data?.totalCreated ?? 0
   const totalReceived = data?.totalReceived ?? 0
 
-  // Derived from the already-fetched `created` list (see `useMyLocks` above)
-  // instead of a second `queryMyLocks` call — the previous `useMyLocksStats`
-  // hook re-ran the same 8-simulation + USD-enrichment query a second time
-  // on every page load, doubling RPC work for no new data (issue #1083).
   const stats = useMemo(() => {
-    const now = Date.now()
-    const totalValue = created.reduce((sum, l) => sum + l.usdValue, 0)
-    const unlockable = created.filter((l) => l.unlockAt <= now && l.status !== "withdrawn").length
     return {
       count: totalCreated,
-      totalValue,
-      unlockable,
+      totalValue: statsData?.totalValue ?? 0,
+      unlockable: statsData?.unlockable ?? 0,
     }
-  }, [created, totalCreated])
+  }, [totalCreated, statsData])
 
   const rawList = tab === "created" ? created : received
+  const totalForTab = tab === "created" ? totalCreated : totalReceived
 
   function handleTabChange(v: string) {
     setTab(v as Tab)
@@ -111,35 +104,21 @@ export function MyLocks() {
         return true
       })
       .sort((a, b) => {
-        if (sortKey === "amount") return b.amount - a.amount
+        if (sortKey === "amount") return b.amount > a.amount ? 1 : b.amount < a.amount ? -1 : 0
         if (sortKey === "createdAt") return b.createdAt - a.createdAt
         return a.unlockAt - b.unlockAt
       })
   }, [rawList, search, statusFilter, kindFilter, sortKey])
 
-  // Clamp in case the filtered list shrinks (e.g. after a reload) below the current page.
-  const totalPages = Math.max(1, Math.ceil(filteredList.length / PAGE_SIZE))
-  const currentPage = Math.min(page, totalPages)
-  const pagedList = useMemo(
-    () => filteredList.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
-    [filteredList, currentPage],
-  )
+  const selectedLocks = useMemo(() => filteredList.filter((l) => selectedIds.has(l.id)), [filteredList, selectedIds])
 
-  // selectedIds holds `${kind}:${id}` composite keys (see lockKey()), not bare
-  // lock ids — token-locker and LP-locker ids are independent counters and can
-  // collide once token ids pass 5000 (#1081).
-  const selectedLocks = useMemo(
-    () => filteredList.filter((l) => selectedIds.has(lockKey(l))),
-    [filteredList, selectedIds],
-  )
+  const allSelected = filteredList.length > 0 && filteredList.every((l) => selectedIds.has(l.id))
 
-  const allSelected = pagedList.length > 0 && pagedList.every((l) => selectedIds.has(lockKey(l)))
-
-  function toggleSelect(key: string, checked: boolean) {
+  function toggleSelect(id: string, checked: boolean) {
     setSelectedIds((prev) => {
       const next = new Set(prev)
-      if (checked) next.add(key)
-      else next.delete(key)
+      if (checked) next.add(id)
+      else next.delete(id)
       return next
     })
   }
@@ -148,7 +127,7 @@ export function MyLocks() {
     if (allSelected) {
       setSelectedIds(new Set())
     } else {
-      setSelectedIds(new Set(pagedList.map(lockKey)))
+      setSelectedIds(new Set(filteredList.map((l) => l.id)))
     }
   }
 
@@ -189,7 +168,7 @@ export function MyLocks() {
       const newUnlockSecs = Math.floor(new Date(newDate).getTime() / 1000)
       for (const lock of selectedLocks) {
         if (Math.floor(lock.unlockAt / 1000) >= newUnlockSecs) {
-          onItemSettled(lockKey(lock), { status: "success" })
+          onItemSettled(lock.id, { status: "success" })
           continue
         }
         try {
@@ -198,9 +177,9 @@ export function MyLocks() {
           } else {
             await extendLock(lock.id, newUnlockSecs, address!, signTransaction)
           }
-          onItemSettled(lockKey(lock), { status: "success" })
+          onItemSettled(lock.id, { status: "success" })
         } catch {
-          onItemSettled(lockKey(lock), { status: "error", error: "Extend failed" })
+          onItemSettled(lock.id, { status: "error", error: "Extend failed" })
         }
       }
       reload()
@@ -221,9 +200,9 @@ export function MyLocks() {
           } else {
             await transferBeneficiary(lock.id, newBeneficiary.trim(), address!, signTransaction)
           }
-          onItemSettled(lockKey(lock), { status: "success" })
+          onItemSettled(lock.id, { status: "success" })
         } catch {
-          onItemSettled(lockKey(lock), { status: "error", error: "Transfer failed" })
+          onItemSettled(lock.id, { status: "error", error: "Transfer failed" })
         }
       }
       reload()
@@ -235,8 +214,8 @@ export function MyLocks() {
   return (
     <ConnectGate title={t("connectGate.title")}>
       <Helmet>
-        <title>{t("myLocks.pageTitle")}</title>
-        <meta name="description" content={t("myLocks.pageDescription")} />
+        <title>My Locks | StellarLock</title>
+        <meta name="description" content="Manage and withdraw your locked token and LP positions on StellarLock." />
       </Helmet>
       <div className="mx-auto max-w-6xl px-4 py-10 md:px-6">
         <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -292,7 +271,7 @@ export function MyLocks() {
         </header>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-3">
-          {loading ? (
+          {loading || statsLoading ? (
             <>
               <SkeletonStatCard />
               <SkeletonStatCard />
@@ -328,15 +307,15 @@ export function MyLocks() {
           {/* Card / Table toggle */}
           <div
             role="group"
-            aria-label={t("myLocks.viewMode")}
+            aria-label="View mode"
             className="ml-auto flex items-center rounded-lg border border-border bg-card p-1 gap-1"
           >
             <button
               type="button"
               onClick={() => handleViewMode("card")}
               aria-pressed={viewMode === "card"}
-              aria-label={t("myLocks.cardView")}
-              title={t("myLocks.cardView")}
+              aria-label="Card view"
+              title="Card view"
               className={cn(
                 "inline-flex items-center justify-center rounded-md p-1.5 transition-colors cursor-pointer",
                 viewMode === "card" ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground",
@@ -348,8 +327,8 @@ export function MyLocks() {
               type="button"
               onClick={() => handleViewMode("table")}
               aria-pressed={viewMode === "table"}
-              aria-label={t("myLocks.tableView")}
-              title={t("myLocks.tableView")}
+              aria-label="Table view"
+              title="Table view"
               className={cn(
                 "inline-flex items-center justify-center rounded-md p-1.5 transition-colors cursor-pointer",
                 viewMode === "table" ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground",
@@ -371,7 +350,7 @@ export function MyLocks() {
                 setSearch(e.target.value)
                 setPage(1)
               }}
-              placeholder={t("myLocks.searchPlaceholder")}
+              placeholder="Search by token symbol or lock ID…"
               className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
             />
           </div>
@@ -383,12 +362,12 @@ export function MyLocks() {
               setPage(1)
             }}
             className="rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 cursor-pointer"
-            aria-label={t("myLocks.filterByStatus")}
+            aria-label="Filter by status"
           >
-            <option value="all">{t("myLocks.allStatuses")}</option>
-            <option value="locked">{t("myLocks.statusLocked")}</option>
-            <option value="unlockable">{t("myLocks.statusUnlockable")}</option>
-            <option value="withdrawn">{t("myLocks.statusWithdrawn")}</option>
+            <option value="all">All statuses</option>
+            <option value="locked">Locked</option>
+            <option value="unlockable">Unlockable</option>
+            <option value="withdrawn">Withdrawn</option>
           </select>
 
           <select
@@ -398,27 +377,27 @@ export function MyLocks() {
               setPage(1)
             }}
             className="rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 cursor-pointer"
-            aria-label={t("myLocks.filterByType")}
+            aria-label="Filter by type"
           >
-            <option value="all">{t("myLocks.allTypes")}</option>
-            <option value="token">{t("myLocks.typeToken")}</option>
-            <option value="lp">{t("myLocks.typeLp")}</option>
+            <option value="all">All types</option>
+            <option value="token">Token</option>
+            <option value="lp">LP</option>
           </select>
 
           <select
             value={sortKey}
             onChange={(e) => setSortKey(e.target.value as SortKey)}
             className="rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 cursor-pointer"
-            aria-label={t("myLocks.sortLocks")}
+            aria-label="Sort locks"
           >
-            <option value="unlockAt">{t("myLocks.sortUnlockDate")}</option>
-            <option value="amount">{t("myLocks.sortAmount")}</option>
-            <option value="createdAt">{t("myLocks.sortCreated")}</option>
+            <option value="unlockAt">Sort: Unlock date</option>
+            <option value="amount">Sort: Amount</option>
+            <option value="createdAt">Sort: Created</option>
           </select>
         </div>
 
         <LockListView
-          locks={pagedList}
+          locks={filteredList}
           loading={loading}
           error={error}
           onRetry={reload}
@@ -430,7 +409,7 @@ export function MyLocks() {
           viewMode={viewMode}
         />
 
-        <Pagination page={currentPage} pageSize={PAGE_SIZE} total={filteredList.length} onChange={setPage} />
+        <Pagination page={page} pageSize={PAGE_SIZE} total={totalForTab} onChange={setPage} />
 
         {/* Bulk actions toolbar */}
         {selectMode && (
@@ -480,10 +459,8 @@ function LockListView({
   tab: Tab
   hasFilters: boolean
   selectable: boolean
-  // Keyed by `${kind}:${id}` (see lockKey()) — bare ids collide across
-  // token-locker and LP-locker's independent id counters (#1081).
   selectedIds: Set<string>
-  onSelect: (key: string, checked: boolean) => void
+  onSelect: (id: string, checked: boolean) => void
   viewMode: ViewMode
 }) {
   const { t } = useTranslation()
@@ -553,10 +530,10 @@ function LockListView({
     <div className="mt-6 grid gap-4 md:grid-cols-2">
       {locks.map((lock) => (
         <LockCard
-          key={lockKey(lock)}
+          key={lock.id}
           lock={lock}
           selectable={selectable}
-          selected={selectedIds.has(lockKey(lock))}
+          selected={selectedIds.has(lock.id)}
           onSelect={onSelect}
         />
       ))}

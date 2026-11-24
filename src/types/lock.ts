@@ -1,23 +1,9 @@
 export type LockKind = "token" | "lp"
 
-/**
- * Stable, collision-free identifier for a lock across kinds.
- *
- * Token-locker and LP-locker ids are independent on-chain counters (token
- * locks start at 1000, LP locks at 5000), so once either counter grows past
- * the other's starting point, a token lock and an LP lock can share the same
- * bare `id`. Any client-side Map/Set that needs to key on a lock (dedup,
- * selection, per-item status tracking, etc.) must use this composite key
- * instead of the bare id — see #1081.
- */
-export function lockKey(l: { kind: LockKind; id: string }): string {
-  return `${l.kind}:${l.id}`
-}
-
 export const DEX_VALUES = ["aquarius", "soroswap"] as const
 export type Dex = (typeof DEX_VALUES)[number]
 
-export type LockStatus = "locked" | "unlockable" | "withdrawn" | "archived"
+export type LockStatus = "locked" | "unlockable" | "withdrawn"
 
 export interface TokenMeta {
   /** Contract address of the token (C...) */
@@ -34,8 +20,11 @@ export interface VestingSchedule {
   start: number
   /** Unix ms when fully vested. */
   end: number
-  /** Amount already released to the beneficiary. */
-  released: number
+  /**
+   * Amount already released to the beneficiary, in base units (bigint).
+   * Use `formatUnits(released, token.decimals)` for display.
+   */
+  released: bigint
 }
 
 /** Optional contextual metadata attached at lock creation. Immutable after creation. */
@@ -53,12 +42,6 @@ export interface Lock {
   id: string
   kind: LockKind
   status: LockStatus
-  /**
-   * Set when this lock could no longer be read live from the contract (its
-   * withdrawn-TTL has lapsed) and was recovered from the lock indexer's
-   * archival record instead. Always `status === "withdrawn"` when true.
-   */
-  archived?: boolean
 
   /** Token being locked. For LP locks this is the pool share token. */
   token: TokenMeta
@@ -72,8 +55,13 @@ export interface Lock {
   /** Address that can withdraw once unlocked. */
   beneficiary: string
 
-  /** Total locked amount (token units, not stroops). */
-  amount: number
+  /**
+   * Total locked amount in base units (integer, token-decimals-scaled).
+   * Use `formatUnits(lock.amount, lock.token.decimals)` for display.
+   * Previously this was a JS number (whole tokens); it is now a bigint to
+   * prevent precision loss for large or high-decimal tokens (#1064).
+   */
+  amount: bigint
   /** Approx USD value at lock time, for display. */
   usdValue: number
 
@@ -91,10 +79,32 @@ export interface Lock {
   metadata?: LockMetadata
 }
 
+/** One share within a split lock. */
+export interface SplitAllocation {
+  beneficiary: string
+  /** Basis points (0–10 000). All allocations in a split lock sum to 10 000. */
+  shareBps: number
+  lockId: string
+}
+
+/** A split lock groups multiple individual locks created in one transaction. */
+export interface SplitLock {
+  groupId: string
+  token: TokenMeta
+  /** Total amount in base units (bigint, token-decimals-scaled). */
+  totalAmount: bigint
+  creator: string
+  unlockAt: number
+  createdAt: number
+  allocations: SplitAllocation[]
+  vesting?: VestingSchedule
+}
+
 /** Aggregate stats for a single token's explorer page. */
 export interface TokenLockSummary {
   token: TokenMeta
-  totalLocked: number
+  /** Total locked in base units (bigint, token-decimals-scaled). */
+  totalLocked: bigint
   totalUsdValue: number
   activeLocks: number
   /** Earliest upcoming unlock across all active locks. */

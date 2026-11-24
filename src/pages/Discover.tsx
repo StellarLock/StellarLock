@@ -27,8 +27,11 @@ export function Discover() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
       <Helmet>
-        <title>{t("discover.pageTitle")}</title>
-        <meta name="description" content={t("discover.pageDescription")} />
+        <title>Explore Locks | StellarLock</title>
+        <meta
+          name="description"
+          content="Browse all token and LP locks on StellarLock. Discover recently created locks, upcoming unlocks, and secured tokens."
+        />
       </Helmet>
 
       <div className="mb-8">
@@ -80,11 +83,6 @@ export function Discover() {
                 <SkeletonLockCard key={i} />
               ))}
             </div>
-          ) : recentLocks.length === 0 ? (
-            <Card className="p-10 text-center">
-              <Lock className="mx-auto mb-3 h-10 w-10 text-muted-foreground/40" />
-              <p className="text-sm text-muted-foreground">{t("discover.noRecentLocks")}</p>
-            </Card>
           ) : (
           <Card className="divide-y divide-border">
             {recentLocks.map((lock) => (
@@ -102,7 +100,7 @@ export function Discover() {
                     </Badge>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    {formatAmount(lock.amount)} · {formatDate(lock.createdAt)}
+                    {formatAmount(lock.amount, { tokenDecimals: lock.token.decimals })} · {formatDate(lock.createdAt)}
                   </p>
                 </div>
                 <StatusBadge status={lock.status} />
@@ -121,11 +119,6 @@ export function Discover() {
                 <SkeletonLockCard key={i} />
               ))}
             </div>
-          ) : upcomingUnlocks.length === 0 ? (
-            <Card className="p-10 text-center">
-              <CalendarClock className="mx-auto mb-3 h-10 w-10 text-muted-foreground/40" />
-              <p className="text-sm text-muted-foreground">{t("discover.noUpcomingUnlocks")}</p>
-            </Card>
           ) : (
           <Card className="divide-y divide-border">
             {upcomingUnlocks.map((lock) => (
@@ -145,7 +138,7 @@ export function Discover() {
                     </Badge>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    {formatAmount(lock.amount)} · unlocks {formatDate(lock.unlockAt)}
+                    {formatAmount(lock.amount, { tokenDecimals: lock.token.decimals })} · unlocks {formatDate(lock.unlockAt)}
                   </p>
                 </div>
                 <span className="shrink-0 text-xs text-muted-foreground">{formatDate(lock.unlockAt)}</span>

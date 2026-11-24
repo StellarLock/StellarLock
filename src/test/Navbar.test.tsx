@@ -10,9 +10,6 @@ import { addNotification, resetNotificationStore } from "@/hooks/useNotification
 
 vi.mock("@/hooks/useWallet", () => ({
   useWallet: vi.fn(),
-}))
-
-vi.mock("@/hooks/WalletProvider", () => ({
   WalletProvider: ({ children }: { children: React.ReactNode }) => children,
 }))
 

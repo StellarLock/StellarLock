@@ -28,9 +28,12 @@ export function Navbar() {
   const mod = isMac ? "⌘" : "Ctrl"
 
   const navLinks = [
-    { to: "/explore", label: t("nav.explore"), hint: `${mod}+K`, prefetchFn: prefetch.discover },
-    { to: "/app/create", label: t("nav.createLock"), hint: `${mod}+N`, prefetchFn: prefetch.createLock },
-    { to: "/app/locks", label: t("nav.myLocks"), hint: `${mod}+L`, prefetchFn: prefetch.myLocks },
+    { to: "/explore", label: t("nav.explore"), hint: `${mod}+K` },
+    { to: "/app/create", label: t("nav.createLock"), hint: `${mod}+N` },
+    { to: "/app/locks", label: t("nav.myLocks"), hint: `${mod}+L` },
+    { to: "/explore", label: t("nav.explore"), prefetchFn: prefetch.discover },
+    { to: "/app/create", label: t("nav.createLock"), prefetchFn: prefetch.createLock },
+    { to: "/app/locks", label: t("nav.myLocks"), prefetchFn: prefetch.myLocks },
     { to: "/app/history", label: t("nav.history"), prefetchFn: prefetch.history },
     { to: "/app/analytics", label: t("nav.analytics"), prefetchFn: prefetch.analytics },
   ]
@@ -47,7 +50,7 @@ export function Navbar() {
           </span>
         </Link>
 
-        <nav aria-label={t("nav.mainNavigation")} className="hidden items-center gap-1 md:flex">
+        <nav aria-label="Main navigation" className="hidden items-center gap-1 md:flex">
           {navLinks.map((link) => (
             <NavLink
               key={link.to}
@@ -133,7 +136,7 @@ export function Navbar() {
       {/* Mobile drawer */}
       {menuOpen && (
         <div id="mobile-nav" className="border-t border-border bg-background md:hidden">
-          <nav aria-label={t("nav.mobileNavigation")} className="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-3">
+          <nav aria-label="Mobile navigation" className="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-3">
             {navLinks.map((link) => (
               <NavLink
                 key={link.to}

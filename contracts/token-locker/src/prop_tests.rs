@@ -2,6 +2,7 @@
 //!
 //! Run with:  cargo test --package token-locker
 //! Set PROPTEST_CASES=10000 for extended CI runs.
+#![cfg(test)]
 
 use proptest::prelude::*;
 

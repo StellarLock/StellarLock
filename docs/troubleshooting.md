@@ -19,8 +19,9 @@ Every entry maps directly to an error case defined in `src/lib/errors.ts`.
   - [AlreadyWithdrawn](#alreadywithdrawn)
   - [CanOnlyExtend](#cononlyextend)
   - [LockDurationTooLong](#lockdurationtoolong)
-  - [LockDurationTooShort](#lockdurationtooshort)
-  - [ExtensionLimitExceeded](#extensionlimitexceeded)
+  - [UnlockTooSoon](#unlocktooson)
+  - [ExtensionLimitReached](#extensionlimitreached)
+  - [UnlockExceedsMax](#unlockexceedsmax)
   - [NothingToRelease](#nothingtorerelease)
   - [VestingEndBeforeStart](#vestingendbeforestart)
   - [TooFewBeneficiaries](#toofewbeneficiaries)
@@ -33,15 +34,6 @@ Every entry maps directly to an error case defined in `src/lib/errors.ts`.
   - [NotPendingAdmin](#notpendingadmin)
   - [ReentrancyDetected](#reentrancydetected)
   - [IdenticalTokens](#identicaltokens)
-  - [NotInitialized](#notinitialized)
-  - [LockNotFound](#locknotfound)
-  - [ContractPaused](#contractpaused)
-  - [VestingOutsideLockBounds](#vestingoutsidelockbounds)
-  - [DuplicateBeneficiary](#duplicatebeneficiary)
-  - [AlreadyInitialized](#alreadyinitialized)
-  - [InvalidPoolTokens](#invalidpooltokens)
-  - [NoPendingUpgrade](#nopendingupgrade)
-  - [TimelockNotElapsed](#timelocknotelapsed)
 - [Connection issues](#connection-issues)
   - [Freighter not detected](#freighter-not-detected)
   - [Wallet disconnected mid-session](#wallet-disconnected-mid-session)
@@ -148,13 +140,13 @@ If timeouts are frequent, the RPC node may be having issues. Check the health in
 
 ### LockDurationTooLong
 
-**Cause:** The requested lock duration exceeds the contract's maximum allowed duration (typically 10 years). This error is used for both create-time and extend-time duration checks.
+**Cause:** The requested lock duration exceeds the contract's maximum allowed duration (typically 10 years).
 
 **Fix:** Choose an unlock date closer to the present. If you genuinely need a very long lock, consider creating multiple sequential locks.
 
 ---
 
-### LockDurationTooShort
+### UnlockTooSoon
 
 **Cause:** The unlock date is too close to the current time — the contract enforces a minimum lock duration (e.g. at least 1 day).
 
@@ -162,7 +154,7 @@ If timeouts are frequent, the RPC node may be having issues. Check the health in
 
 ---
 
-### ExtensionLimitExceeded
+### ExtensionLimitReached
 
 **Cause:** The lock has already been extended the maximum number of times the contract permits.
 
@@ -170,6 +162,13 @@ If timeouts are frequent, the RPC node may be having issues. Check the health in
 
 ---
 
+### UnlockExceedsMax
+
+**Cause:** The new unlock date you chose when extending is beyond the contract's absolute maximum allowed unlock timestamp.
+
+**Fix:** Choose an earlier date. The contract's maximum is enforced globally regardless of the original lock duration.
+
+---
 
 ### NothingToRelease
 
@@ -215,11 +214,11 @@ If timeouts are frequent, the RPC node may be having issues. Check the health in
 
 ### RateLimitExceeded
 
-**Cause:** Your account called `create_lock` or `create_split_lock` again within `RATE_LIMIT_COOLDOWN` (60 seconds) of its last call. The contract enforces this per-creator cooldown to protect against spam. See [ADR-010](./adr/ADR-010-rate-limit-via-temporary-storage.md) for the design behind it.
+**Cause:** Your account has submitted too many contract invocations within a short window. The contract enforces a per-account rate limit to protect the network from spam.
 
 **Fix:**
-1. Wait about 60 seconds before retrying (not "a few minutes" — the cooldown is exactly `RATE_LIMIT_COOLDOWN`, defined in `contracts/locker-common/src/lib.rs`).
-2. If you are running automated scripts or tests, add a 60-second delay between calls from the same account.
+1. Wait a few minutes before retrying.
+2. If you are running automated scripts or tests, add a delay between calls.
 3. On Mainnet, if you legitimately need a higher throughput, contact the StellarLock team to discuss options.
 
 ---
@@ -271,78 +270,6 @@ If timeouts are frequent, the RPC node may be having issues. Check the health in
 **Cause:** You tried to create an LP (liquidity-pair) lock where both token addresses in the pair are the same. The LP locker contract requires two distinct tokens.
 
 **Fix:** Select two different token addresses for the liquidity pair. If you want to lock a single token, use the standard token locker instead.
-
----
-
-### NotInitialized
-
-**Cause:** The contract deployment has not been initialized with an admin address yet, or an admin-only operation was invoked on an uninitialized contract instance.
-
-**Fix:** If you are the contract deployer, call the `init(admin)` entry point once after deploying the contract. If you are an end user, the contract operator has not finalized the deployment — contact the contract operator or team.
-
----
-
-### LockNotFound
-
-**Cause:** The requested lock ID does not exist in the contract's storage. This can happen if an invalid ID was entered into the URL or explorer, or if the lock was created on a different contract deployment/network.
-
-**Fix:** Double-check the lock ID and contract address. Confirm that you are connected to the correct network (Testnet vs. Mainnet).
-
----
-
-### ContractPaused
-
-**Cause:** The contract is currently paused by the administrator using the emergency circuit breaker mechanism (`pause()`). All lock creations, withdrawals, extensions, and beneficiary transfers are temporarily halted.
-
-**Fix:** Wait for the contract administrator to resolve the maintenance/incident and call `unpause()`. Read queries remain operational during a pause. Check team communication channels or status updates for more details.
-
----
-
-### VestingOutsideLockBounds
-
-**Cause:** The vesting schedule's start date is before the lock was created, or either the start or end date falls after the lock's unlock date. The contract requires the entire vesting window to sit within `[created_at, unlock_at]`.
-
-**Fix:** Set the vesting start date to today (or later) and keep the vesting end date at or before the unlock date you chose. Adjust the unlock date first if you need a longer vesting window.
-
----
-
-### DuplicateBeneficiary
-
-**Cause:** The same beneficiary address was listed more than once when creating a split (multi-beneficiary) lock.
-
-**Fix:** Review the beneficiary list and remove the duplicate row so each address appears exactly once. If you want one address to receive a larger share, increase its share percentage instead of adding it twice.
-
----
-
-### AlreadyInitialized
-
-**Cause:** The contract's `init(admin)` entry point was called a second time. The contract can only be initialized once, immediately after deployment.
-
-**Fix:** No action is needed for regular users — the contract was already set up correctly during deployment. If you are the deployer and see this unexpectedly, it means initialization already succeeded in a previous call.
-
----
-
-### InvalidPoolTokens
-
-**Cause:** The LP-locker contract queried the pool share contract's own `token_a()` / `token_b()` getters and found they don't match the `tokenA` / `tokenB` addresses you supplied when creating the LP lock.
-
-**Fix:** Double-check that the pool share address and the token A/B addresses all belong to the same liquidity pool. Copy the token addresses directly from the DEX's pool page rather than typing them by hand.
-
----
-
-### NoPendingUpgrade
-
-**Cause:** An attempt was made to execute or cancel a contract upgrade, but no upgrade has been proposed via `propose_upgrade`.
-
-**Fix:** No action is needed if you are a regular user — this is an admin-only operation. If you are administering the contract, call `propose_upgrade` first before trying to execute or cancel one.
-
----
-
-### TimelockNotElapsed
-
-**Cause:** A contract upgrade was proposed, but the mandatory timelock delay (`UPGRADE_DELAY`) between proposing and executing the upgrade has not yet passed.
-
-**Fix:** Wait until the proposal's `execute_after` timestamp has passed, then retry `execute_upgrade`. This delay is a safety mechanism and cannot be bypassed.
 
 ---
 

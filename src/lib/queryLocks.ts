@@ -13,13 +13,14 @@
  * directly for read operations.
  */
 
-import { lockKey, type Lock, type TokenLockSummary, type TokenMeta } from "@/types/lock"
+import type { Lock, TokenLockSummary, TokenMeta } from "@/types/lock"
 import {
   getLock,
   getLocksByToken,
   getLocksByCreator,
   getLocksByBeneficiary,
   getLockCountByCreator,
+  getLockCountByBeneficiary,
   getLockCountByToken,
 } from "@/lib/token-locker"
 import {
@@ -27,20 +28,18 @@ import {
   getLpLocksByCreator,
   getLpLocksByBeneficiary,
   getLpLockCountByCreator,
+  getLpLockCountByBeneficiary,
 } from "@/lib/lp-locker"
-import { isArchivedError } from "@/lib/stellar"
 import {
   fetchIndexerStats,
   fetchIndexerLocksForToken,
-  fetchIndexerLockById,
   mapIndexerLocks,
-  mapIndexerLock,
   mapIndexerLocksPageToSummary,
   type IndexerStatsDTO,
 } from "@/lib/indexer-client"
 import { fetchPricesBatch } from "@/lib/prices"
 import { getOnChainTokenMeta } from "@/lib/token-metadata"
-import { CONTRACTS } from "@/lib/stellar"
+import { formatUnits } from "@/lib/utils"
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -49,69 +48,20 @@ async function withUsdValues(locks: Lock[]): Promise<Lock[]> {
   if (locks.length === 0) return locks
   const addresses = [...new Set(locks.map((l) => l.token.address))]
   const prices = await fetchPricesBatch(addresses)
-  return locks.map((l) => ({ ...l, usdValue: (prices.get(l.token.address) ?? 0) * l.amount }))
-}
-
-/**
- * Build a minimal Lock stub for an archived on-chain entry.
- * Most fields are unknown until the entry is restored, so they carry safe
- * zero/empty defaults. The important fields are `id`, `kind`, and
- * `status: "archived"` — enough for the UI to show the restore action.
- */
-function buildArchivedStub(id: string, kind: "token" | "lp"): Lock {
-  return {
-    id,
-    kind,
-    status: "archived",
-    token: { address: "", symbol: "—", name: "Archived lock", decimals: 7 },
-    creator: "",
-    beneficiary: "",
-    amount: 0,
-    usdValue: 0,
-    createdAt: 0,
-    unlockAt: 0,
-    extendedCount: 0,
-  }
+  return locks.map((l) => {
+    const wholeTokens = Number(formatUnits(l.amount, l.token.decimals))
+    return { ...l, usdValue: (prices.get(l.token.address) ?? 0) * wholeTokens }
+  })
 }
 
 // ── Single-lock queries ────────────────────────────────────────────────────────
 
 /**
- * Fall back to the lock indexer's archival record when a direct RPC lookup
- * comes back empty (#1084). Withdrawn locks get bumped to a 30-day TTL on
- * the contract (`WITHDRAWN_BUMP`); once that lapses `get_lock` returns `None`
- * forever even though the lock's final state is still meaningful history.
- * Returns null if the indexer has no record either — genuinely not found.
- */
-async function queryArchivedLock(contractId: string, id: string): Promise<Lock | null> {
-  const dto = await fetchIndexerLockById(`${contractId}:${id}`)
-  if (!dto) return null
-  const lock = await mapIndexerLock(dto)
-  const [enriched] = await withUsdValues([lock])
-  return { ...enriched, archived: true }
-}
-
-/**
  * Fetch a single token lock by id, enriched with USD value.
- * Returns null if the lock does not exist on-chain or in the indexer archive.
+ * Returns null if the lock does not exist on-chain.
  */
 export async function queryTokenLock(id: string): Promise<Lock | null> {
   const raw = await getLock(id)
-  if (!raw) return queryArchivedLock(CONTRACTS.tokenLocker, id)
- * Returns null if the lock does not exist on-chain.
- * Returns a stub with status "archived" when the on-chain entry has expired
- * from active ledger storage and needs a RestoreFootprint before it is usable.
- */
-export async function queryTokenLock(id: string): Promise<Lock | null> {
-  let raw: Lock | null
-  try {
-    raw = await getLock(id)
-  } catch (err) {
-    if (isArchivedError(err)) {
-      return buildArchivedStub(id, "token")
-    }
-    throw err
-  }
   if (!raw) return null
   const [enriched] = await withUsdValues([raw])
   return enriched
@@ -119,24 +69,10 @@ export async function queryTokenLock(id: string): Promise<Lock | null> {
 
 /**
  * Fetch a single LP lock by id, enriched with USD value.
- * Returns null if the lock does not exist on-chain or in the indexer archive.
+ * Returns null if the lock does not exist on-chain.
  */
 export async function queryLpLock(id: string): Promise<Lock | null> {
   const raw = await getLpLock(id)
-  if (!raw) return queryArchivedLock(CONTRACTS.lpLocker, id)
- * Returns null if the lock does not exist on-chain.
- * Returns a stub with status "archived" when the on-chain entry has expired.
- */
-export async function queryLpLock(id: string): Promise<Lock | null> {
-  let raw: Lock | null
-  try {
-    raw = await getLpLock(id)
-  } catch (err) {
-    if (isArchivedError(err)) {
-      return buildArchivedStub(id, "lp")
-    }
-    throw err
-  }
   if (!raw) return null
   const [enriched] = await withUsdValues([raw])
   return enriched
@@ -177,7 +113,7 @@ export async function queryLockCountByToken(tokenAddress: string): Promise<numbe
 
 // ── Per-user queries (MyLocks) ─────────────────────────────────────────────────
 
-interface UserLocks {
+export interface UserLocks {
   created: Lock[]
   received: Lock[]
   totalCreated: number
@@ -187,27 +123,8 @@ interface UserLocks {
 /**
  * Return all locks created and received by a given address, combined from
  * token-locker and lp-locker, enriched with USD values.
- * Individual list fetches that fail with an archived-entry error are silently
- * swallowed (the entry will appear in the detail page stub instead).
  */
 export async function queryMyLocks(address: string, offset = 0, limit = 50): Promise<UserLocks> {
-  // Note: there's no on-chain count for "beneficiary locks excluding
-  // self-created ones", so totalReceived below is derived from the filtered
-  // `received` list instead of a separate ByBeneficiary count call.
-  const [tCreated, lpCreated, tReceived, lpReceived, tCreatedCount, lpCreatedCount] = await Promise.all([
-    getLocksByCreator(address, offset, limit),
-    getLpLocksByCreator(address, offset, limit),
-    getLocksByBeneficiary(address, offset, limit),
-    getLpLocksByBeneficiary(address, offset, limit),
-  async function safeList<T>(fn: () => Promise<T[]>): Promise<T[]> {
-    try {
-      return await fn()
-    } catch (err) {
-      if (isArchivedError(err)) return []
-      throw err
-    }
-  }
-
   const [
     tCreated,
     lpCreated,
@@ -218,42 +135,36 @@ export async function queryMyLocks(address: string, offset = 0, limit = 50): Pro
     tReceivedCount,
     lpReceivedCount,
   ] = await Promise.all([
-    safeList(() => getLocksByCreator(address, offset, limit)),
-    safeList(() => getLpLocksByCreator(address, offset, limit)),
-    safeList(() => getLocksByBeneficiary(address, offset, limit)),
-    safeList(() => getLpLocksByBeneficiary(address, offset, limit)),
+    getLocksByCreator(address, offset, limit),
+    getLpLocksByCreator(address, offset, limit),
+    getLocksByBeneficiary(address, offset, limit),
+    getLpLocksByBeneficiary(address, offset, limit),
     getLockCountByCreator(address),
     getLpLockCountByCreator(address),
+    getLockCountByBeneficiary(address),
+    getLpLockCountByBeneficiary(address),
   ])
 
   const allLocks = [...tCreated, ...lpCreated, ...tReceived, ...lpReceived]
   const enriched = await withUsdValues(allLocks)
-  // Keyed by `${kind}:${id}`, not bare id — token-locker and LP-locker ids
-  // are independent counters and can collide once token ids pass 5000 (#1081).
-  const enrichedMap = new Map(enriched.map((l) => [lockKey(l), l]))
+  const enrichedMap = new Map(enriched.map((l) => [l.id, l]))
 
-  const created = [...tCreated, ...lpCreated].map((l) => enrichedMap.get(lockKey(l)) ?? l)
+  const created = [...tCreated, ...lpCreated].map((l) => enrichedMap.get(l.id) ?? l)
   const received = [...tReceived, ...lpReceived]
     .filter((l) => l.creator !== address)
-    .map((l) => enrichedMap.get(lockKey(l)) ?? l)
+    .map((l) => enrichedMap.get(l.id) ?? l)
 
   return {
     created,
     received,
     totalCreated: tCreatedCount + lpCreatedCount,
-    // `received` above excludes locks the address created itself (the
-    // "Received" tab never shows those rows), so the count must come from
-    // the same filtered list — otherwise the tab badge/pagination total
-    // disagrees with what's actually rendered. The raw on-chain
-    // `ByBeneficiary` index length (tReceivedCount + lpReceivedCount) still
-    // includes self-locks and must not be used here.
-    totalReceived: received.length,
+    totalReceived: tReceivedCount + lpReceivedCount,
   }
 }
 
 // ── Site-wide stats (Landing + Discover) ──────────────────────────────────────
 
-interface TokenGroup {
+export interface TokenGroup {
   token: TokenMeta
   count: number
   totalValue: number

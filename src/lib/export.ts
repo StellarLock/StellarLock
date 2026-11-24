@@ -1,5 +1,5 @@
 import { Lock } from "@/types/lock"
-import { formatDate, formatAmount, formatUsd } from "./utils"
+import { formatDate, formatAmount, formatUsd, formatUnits } from "./utils"
 
 export function exportToJSON(locks: Lock[], filename = "locks.json"): void {
   const data = locks.map((lock) => ({
@@ -14,7 +14,8 @@ export function exportToJSON(locks: Lock[], filename = "locks.json"): void {
     },
     creator: lock.creator,
     beneficiary: lock.beneficiary,
-    amount: lock.amount,
+    // Export as human-readable decimal string for readability
+    amount: formatUnits(lock.amount, lock.token.decimals),
     usdValue: lock.usdValue,
     createdAt: lock.createdAt,
     createdDate: formatDate(lock.createdAt),
@@ -23,7 +24,12 @@ export function exportToJSON(locks: Lock[], filename = "locks.json"): void {
     extendedCount: lock.extendedCount,
     dex: lock.dex,
     poolPair: lock.poolPair,
-    vesting: lock.vesting,
+    vesting: lock.vesting
+      ? {
+          ...lock.vesting,
+          released: formatUnits(lock.vesting.released, lock.token.decimals),
+        }
+      : undefined,
     metadata: lock.metadata,
   }))
 
@@ -60,7 +66,7 @@ export function exportToCSV(locks: Lock[], filename = "locks.csv"): void {
       lock.status,
       lock.token.symbol,
       lock.token.name,
-      formatAmount(lock.amount, { compact: false, decimals: lock.token.decimals }),
+      formatAmount(lock.amount, { compact: false, tokenDecimals: lock.token.decimals }),
       formatUsd(lock.usdValue),
       formatDate(lock.createdAt),
       formatDate(lock.unlockAt),
@@ -79,19 +85,8 @@ export function exportToCSV(locks: Lock[], filename = "locks.csv"): void {
       .map((row) =>
         row
           .map((cell) => {
-            let str = String(cell)
-
-            // CSV formula-injection mitigation: neutralise any cell value that
-            // starts with a spreadsheet formula-trigger character (=, +, -, @,
-            // tab, or CR).  Token symbol/name come straight from on-chain
-            // contracts and are untrusted, so a malicious deployer could embed
-            // a payload (e.g. "=cmd|' /C calc'!A1").  Prefixing with a single
-            // quote tells Excel/Sheets to treat the value as plain text.
-            if (/^[=+\-@\t\r]/.test(str)) {
-              str = `'${str}`
-            }
-
             // Escape quotes and wrap in quotes if contains comma, quote, or newline
+            const str = String(cell)
             if (str.includes(",") || str.includes('"') || str.includes("\n")) {
               return `"${str.replace(/"/g, '""')}"`
             }

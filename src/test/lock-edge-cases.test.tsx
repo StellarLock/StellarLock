@@ -8,9 +8,6 @@ import { mockWallet, VALID_CONTRACT_ADDRESS } from "./mocks"
 
 vi.mock("@/hooks/useWallet", () => ({
   useWallet: () => mockWallet,
-}))
-
-vi.mock("@/hooks/WalletProvider", () => ({
   WalletProvider: ({ children }: { children: ReactNode }) => children,
 }))
 
@@ -22,16 +19,26 @@ vi.mock("@/lib/token-locker", async (importOriginal) => {
   }
 })
 
-// CreateTokenLockForm sources its balance from useTokenBalanceSWR, not
-// useTokenBalance from @/hooks/useLocks — mocked separately below with the
-// shape the hook actually returns (stroops bigint, isLoading/isRevalidating).
-vi.mock("@/hooks/useTokenBalanceSWR", () => ({
-  useTokenBalanceSWR: vi.fn(() => ({
-    balance: BigInt(100 * 1e7),
-    isLoading: false,
-    isRevalidating: false,
-    refetch: vi.fn(),
-    clear: vi.fn(),
+vi.mock("@/lib/stellar", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/stellar")>()
+  return {
+    ...actual,
+    submitTokenApproval: vi.fn().mockResolvedValue(undefined),
+  }
+})
+
+vi.mock("@/hooks/useLocks", () => ({
+  useTokenBalance: vi.fn(() => ({
+    data: 100,
+    loading: false,
+    error: null,
+    reload: vi.fn(),
+  })),
+  useTokenAllowance: vi.fn(() => ({
+    data: 10000,
+    loading: false,
+    error: null,
+    reload: vi.fn(),
   })),
 }))
 

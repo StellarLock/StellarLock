@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { NotificationPreferences } from "@/components/ui/NotificationPreferences"
-import type { NotificationPrefs } from "@/hooks/useNotifications"
 
 describe("NotificationPreferences", () => {
   beforeEach(() => {
@@ -67,10 +66,7 @@ describe("NotificationPreferences", () => {
     const reminderCheckbox = screen.getByRole("checkbox", { name: /Unlock Reminder/ })
     await user.click(reminderCheckbox)
 
-    const stored = JSON.parse(localStorage.getItem("stellarlock:notification_prefs") ?? "{}") as Record<
-      string,
-      NotificationPrefs
-    >
+    const stored = JSON.parse(localStorage.getItem("stellarlock:notification_prefs") ?? "{}")
     expect(stored["99"].types.unlock_reminder).toBe(false)
   })
 

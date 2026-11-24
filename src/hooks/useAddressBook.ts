@@ -1,6 +1,5 @@
 import { useState, useCallback, useEffect } from "react"
 import { isValidStellarAddress } from "@/lib/stellar-address"
-import { safeStorage } from "@/lib/safe-storage"
 
 const STORAGE_KEY = "stellarlock:address-book"
 
@@ -35,13 +34,23 @@ function isAddressBookEntry(e: unknown): e is AddressBookEntry {
 }
 
 function loadEntries(): AddressBookEntry[] {
-  const parsed = safeStorage.getJson<unknown>(STORAGE_KEY)
-  if (!Array.isArray(parsed)) return []
-  return parsed.filter(isAddressBookEntry)
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) return []
+    const parsed: unknown = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return []
+    return parsed.filter(isAddressBookEntry)
+  } catch {
+    return []
+  }
 }
 
 function saveEntries(entries: AddressBookEntry[]): void {
-  safeStorage.setJson(STORAGE_KEY, entries)
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(entries))
+  } catch {
+    // Ignore storage quota errors
+  }
 }
 
 function generateId(): string {

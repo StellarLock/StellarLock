@@ -1,9 +1,10 @@
 import { Address, nativeToScVal, xdr } from "@stellar/stellar-sdk"
 import type { Lock, LockMetadata, TokenLockSummary } from "@/types/lock"
-import { CONTRACTS, simulateCall, submitCall, submitCallWithHash, submitRestoreFootprint, type TxPhase } from "@/lib/stellar"
+import { CONTRACTS, simulateCall, submitCallWithHash, type TxPhase } from "@/lib/stellar"
 import { getOnChainTokenMeta, type OnChainTokenMeta } from "@/lib/token-metadata"
+import { parseUnits } from "@/lib/utils"
 
-interface CreateTokenLockArgs {
+export interface CreateTokenLockArgs {
   tokenAddress: string
   amount: number
   beneficiary: string
@@ -18,7 +19,6 @@ interface CreateTokenLockArgs {
 function toLock(raw: Record<string, unknown>, meta?: OnChainTokenMeta): Lock {
   const token = raw.token as string
   const decimals = meta?.decimals ?? 7
-  const multiplier = 10 ** decimals
 
   // Vesting is stored non-optionally on-chain using a sentinel schedule
   // (start == 0 && end == 0) to mean "no vesting".
@@ -38,7 +38,8 @@ function toLock(raw: Record<string, unknown>, meta?: OnChainTokenMeta): Lock {
     },
     creator: raw.creator as string,
     beneficiary: raw.beneficiary as string,
-    amount: Number(raw.amount) / multiplier,
+    // Store raw base-unit bigint; display callers use formatUnits(amount, token.decimals)
+    amount: BigInt(raw.amount as bigint | string | number),
     usdValue: 0, // computed client-side if needed
     createdAt: Number(raw.created_at) * 1000,
     unlockAt: Number(raw.unlock_at) * 1000,
@@ -47,7 +48,7 @@ function toLock(raw: Record<string, unknown>, meta?: OnChainTokenMeta): Lock {
       ? {
           start: Number(vestingRaw.start) * 1000,
           end: Number(vestingRaw.end) * 1000,
-          released: Number(vestingRaw.released) / multiplier,
+          released: BigInt(vestingRaw.released),
         }
       : undefined,
     metadata,
@@ -221,7 +222,7 @@ export async function getLocksByToken(
 
   const locks = await enrichLocks(raw)
   const active = locks.filter((l) => l.status !== "withdrawn")
-  const totalLocked = active.reduce((s, l) => s + l.amount, 0)
+  const totalLocked = active.reduce((s, l) => s + l.amount, 0n)
   const upcoming = active
     .filter((l) => l.status === "locked")
     .map((l) => l.unlockAt)
@@ -242,10 +243,9 @@ export async function getLocksByToken(
 /**
  * Create a new token lock on-chain: transfers `args.amount` of `args.tokenAddress`
  * from `sourceAddress` into the contract, escrowed until `args.unlockAt`, optionally
- * released gradually per `args.vesting`. Requires only `sourceAddress`'s signature
- * (`creator.require_auth()` on-chain): the contract calls `token.transfer(&creator,
- * contract, amount)` directly, so no prior token approval/allowance is needed —
- * just a sufficient balance to cover the transfer.
+ * released gradually per `args.vesting`. Requires `sourceAddress`'s signature
+ * (`creator.require_auth()` on-chain) and prior token allowance/balance sufficient
+ * to cover the transfer.
  *
  * @param args - Lock parameters:
  *   - `tokenAddress` — contract address of the SEP-41 token to lock.
@@ -277,9 +277,10 @@ export async function createTokenLock(
   onProgress?: (phase: TxPhase) => void,
 ): Promise<{ id: string; txHash: string }> {
   const unlockAtSecs = Math.floor(args.unlockAt)
-  // Issue #737: fetch the token's real decimals instead of hardcoding 7
-  const { decimals } = await getOnChainTokenMeta(args.tokenAddress)
-  const amountStroops = BigInt(Math.round(args.amount * 10 ** decimals))
+  // Fetch token decimals so the encoded amount matches what the user typed exactly
+  const meta = await getOnChainTokenMeta(args.tokenAddress)
+  const decimals = meta?.decimals ?? 7
+  const amountStroops = parseUnits(String(args.amount), decimals)
 
   const scArgs: xdr.ScVal[] = [
     addressArg(sourceAddress),
@@ -430,60 +431,4 @@ export async function extendLock(
     onProgress,
   )
   return { txHash }
-}
-
-// ── Maintenance methods ───────────────────────────────────────────────────────
-
-/**
- * Extend the on-chain TTL of a token lock entry to prevent it from being
- * archived by the Soroban network. Permissionless — anyone can call this.
- *
- * Active locks get a 365-day TTL renewal; withdrawn locks get 30 days
- * (matching the contract's PERSISTENT_BUMP / WITHDRAWN_BUMP constants).
- *
- * @param id - Numeric lock id (as a decimal string).
- * @param sourceAddress - Address paying for the transaction.
- * @param signTransaction - Wallet sign callback.
- * @param onProgress - Optional phase callback for UI progress steps.
- * @returns The submission `txHash`.
- */
-export async function bumpTokenLockTtl(
-  id: string,
-  sourceAddress: string,
-  signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>,
-  onProgress?: (phase: TxPhase) => void,
-): Promise<{ txHash: string }> {
-  const { txHash } = await submitCallWithHash<void>(
-    CONTRACTS.tokenLocker,
-    "bump_lock_ttl",
-    [idArg(id)],
-    sourceAddress,
-    signTransaction,
-    onProgress,
-  )
-  return { txHash }
-}
-
-/**
- * Restore an archived token lock entry via a Soroban `RestoreFootprint`
- * transaction, then bump its TTL so it stays active. Call this when
- * `getLock(id)` returns `null` and `isArchivedError` confirms the entry
- * is in the cold archive rather than simply never existing.
- *
- * After the restore completes the caller should reload the lock — it will
- * be readable again via `getLock`.
- *
- * @param id - Numeric lock id (as a decimal string).
- * @param sourceAddress - Address paying for the restore transaction.
- * @param signTransaction - Wallet sign callback.
- * @param onProgress - Optional phase callback for UI progress steps.
- * @returns The submission `txHash`.
- */
-export async function restoreTokenLock(
-  id: string,
-  sourceAddress: string,
-  signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>,
-  onProgress?: (phase: TxPhase) => void,
-): Promise<{ txHash: string }> {
-  return submitRestoreFootprint(CONTRACTS.tokenLocker, id, sourceAddress, signTransaction, onProgress)
 }

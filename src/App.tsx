@@ -7,6 +7,7 @@ import { trackPageView } from "@/lib/analytics"
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts"
 import { KeyboardShortcutsModal } from "@/components/ui/KeyboardShortcutsModal"
 import { PwaUpdatePrompt } from "@/components/ui/PwaUpdatePrompt"
+export { prefetch } from "@/lib/prefetch"
 
 const Landing = lazy(() => import("./pages/Landing").then((m) => ({ default: m.Landing })))
 const CreateLock = lazy(() => import("./pages/CreateLock").then((m) => ({ default: m.CreateLock })))
@@ -40,6 +41,24 @@ export function App() {
           style: { background: "#363636", color: "#fff" },
         }}
       />
+      <Routes>
+        <Route element={<Layout />}>
+          <Route path="/" element={<Landing />} />
+          <Route path="/app/create" element={<CreateLock />} />
+          <Route path="/app/locks" element={<MyLocks />} />
+          <Route path="/app/lock/token/:id" element={<LockDetail />} />
+          <Route path="/app/lock/lp/:id" element={<LockDetail />} />
+          {/* Legacy deep-link: redirect bare id to token-locker */}
+          <Route path="/app/lock/:id" element={<LockDetail />} />
+          <Route path="/app/settings" element={<Settings />} />
+          <Route path="/health" element={<Health />} />
+          <Route path="/explore" element={<Discover />} />
+          <Route path="/explore/:token" element={<Explorer />} />
+          <Route path="*" element={<NotFound />} />
+        </Route>
+      </Routes>
+      <KeyboardShortcutsModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+      <PwaUpdatePrompt />
       <Suspense fallback={<PageSkeleton />}>
         <Routes>
           <Route element={<Layout />}>

@@ -1,5 +1,4 @@
 import { useRef, useCallback } from "react"
-import { useTranslation } from "react-i18next"
 import { useModalFocusTrap } from "@/lib/modalFocusTrap"
 import { QRCodeCanvas } from "qrcode.react"
 import { X, Download, Copy, Check } from "lucide-react"
@@ -18,7 +17,6 @@ interface QrCodeModalProps {
 const QR_SIZE = 256
 
 export function QrCodeModal({ url, title = "Share Lock", onClose }: QrCodeModalProps) {
-  const { t } = useTranslation()
   const canvasRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [copied, setCopied] = useState(false)
@@ -74,7 +72,7 @@ export function QrCodeModal({ url, title = "Share Lock", onClose }: QrCodeModalP
     <div
       role="dialog"
       aria-modal="true"
-      aria-label={t("qrCode.shareAria")}
+      aria-label="Share lock via QR code"
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
@@ -84,7 +82,7 @@ export function QrCodeModal({ url, title = "Share Lock", onClose }: QrCodeModalP
           <h2 className="text-lg font-semibold">{title}</h2>
           <button
             onClick={onClose}
-            aria-label={t("qrCode.closeAria")}
+            aria-label="Close QR code modal"
             className="rounded-md p-1 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
             autoFocus
           >
@@ -116,28 +114,28 @@ export function QrCodeModal({ url, title = "Share Lock", onClose }: QrCodeModalP
               variant="outline"
               className="flex-1"
               onClick={() => void handleCopy()}
-              aria-label={t("qrCode.copyUrlAria")}
+              aria-label="Copy URL to clipboard"
             >
               {copied ? (
                 <>
                   <Check className="h-4 w-4 text-green-500" />
-                  {t("qrCode.copied")}
+                  Copied!
                 </>
               ) : (
                 <>
                   <Copy className="h-4 w-4" />
-                  {t("qrCode.copyUrl")}
+                  Copy URL
                 </>
               )}
             </Button>
-            <Button className="flex-1" onClick={handleDownload} aria-label={t("qrCode.downloadAria")}>
+            <Button className="flex-1" onClick={handleDownload} aria-label="Download QR code as PNG">
               <Download className="h-4 w-4" />
-              {t("qrCode.downloadPng")}
+              Download PNG
             </Button>
           </div>
 
           <p className="text-center text-xs text-muted-foreground">
-            {t("qrCode.scanHint")}
+            Scan with any standard mobile camera app to open this lock&apos;s detail page.
           </p>
         </div>
       </div>

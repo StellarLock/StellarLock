@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react"
+import { useEffect, useMemo, useRef } from "react"
 import React from "react"
 
 function getFocusableElements(root: HTMLElement): HTMLElement[] {
@@ -31,6 +31,10 @@ export function useModalFocusTrap({
   onEscape?: () => void
 }) {
   const lastFocusedRef = useRef<HTMLElement | null>(null)
+
+  // Touch React types so TS knows we depend on them.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _keepMemo = useMemo(() => true, [])
 
   useEffect(() => {
     if (!active) return
@@ -86,3 +90,4 @@ export function useModalFocusTrap({
     }
   }, [active, containerRef, initialFocusRef, onEscape])
 }
+

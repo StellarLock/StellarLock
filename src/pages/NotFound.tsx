@@ -11,8 +11,8 @@ export function NotFound() {
   return (
     <div>
       <Helmet>
-        <title>{t("notfound.pageTitle")}</title>
-        <meta name="description" content={t("notfound.pageDescription")} />
+        <title>Page Not Found — StellarLock</title>
+        <meta name="description" content="The page you're looking for doesn't exist." />
       </Helmet>
 
       <div className="flex min-h-screen items-center justify-center px-4">
@@ -71,7 +71,9 @@ export function NotFound() {
                         <a href="https://github.com/StellarLock/StellarLock" className="text-primary hover:underline" />
                       ),
                     }}
-                  />
+                  >
+                    Check our <explorer>explorer</explorer> to find locks or <github>visit our GitHub</github>.
+                  </Trans>
                 </p>
               </div>
             </div>

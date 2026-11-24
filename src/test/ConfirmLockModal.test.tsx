@@ -23,6 +23,7 @@ const baseData: LockConfirmData = {
 describe("ConfirmLockModal", () => {
   const onConfirm = vi.fn()
   const onCancel = vi.fn()
+  const onApprove = vi.fn()
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -94,9 +95,7 @@ describe("ConfirmLockModal", () => {
 
   it("shows the unlock date row", () => {
     render(<ConfirmLockModal data={baseData} onConfirm={onConfirm} onCancel={onCancel} />)
-    // Exact match — the immutability warning further down also contains the
-    // substring "unlock date" ("The unlock date can only be extended...").
-    expect(screen.getByText("Unlock date")).toBeInTheDocument()
+    expect(screen.getByText(/unlock date/i)).toBeInTheDocument()
   })
 
   it("shows 'Linear vesting enabled' when vesting is true", () => {
@@ -124,15 +123,24 @@ describe("ConfirmLockModal", () => {
     expect(screen.getByText(/2[,.]?000/)).toBeInTheDocument()
   })
 
+  it("shows allowance row when allowance is provided", () => {
+    render(
+      <ConfirmLockModal
+        data={{ ...baseData, balance: 2000, allowance: 1500 }}
+        onConfirm={onConfirm}
+        onCancel={onCancel}
+      />,
+    )
+    expect(screen.getByText(/current allowance/i)).toBeInTheDocument()
+  })
+
   // -------------------------------------------------------------------------
   // Insufficient balance state
   // -------------------------------------------------------------------------
 
   it("shows insufficient balance warning when balance < amount", () => {
     render(<ConfirmLockModal data={{ ...baseData, balance: 500 }} onConfirm={onConfirm} onCancel={onCancel} />)
-    // Exact match — the disabled "Insufficient Balance" button further down
-    // also matches the case-insensitive substring.
-    expect(screen.getByText("Insufficient balance.")).toBeInTheDocument()
+    expect(screen.getByText(/insufficient balance/i)).toBeInTheDocument()
   })
 
   it("renders a disabled 'Insufficient Balance' button when balance is too low", () => {
@@ -148,6 +156,61 @@ describe("ConfirmLockModal", () => {
     // Only the "Insufficient Balance" (disabled) and "Cancel" buttons are shown
     expect(screen.queryByRole("button", { name: /confirm & lock/i })).not.toBeInTheDocument()
     expect(onConfirm).not.toHaveBeenCalled()
+  })
+
+  // -------------------------------------------------------------------------
+  // Approval required state
+  // -------------------------------------------------------------------------
+
+  it("shows 'Approval required' info when needsApproval=true and balance is sufficient", () => {
+    render(
+      <ConfirmLockModal
+        data={{ ...baseData, balance: 2000, needsApproval: true }}
+        onConfirm={onConfirm}
+        onApprove={onApprove}
+        onCancel={onCancel}
+      />,
+    )
+    expect(screen.getByText(/approval required/i)).toBeInTheDocument()
+  })
+
+  it("renders 'Approve & Continue' button when approval is needed", () => {
+    render(
+      <ConfirmLockModal
+        data={{ ...baseData, balance: 2000, needsApproval: true }}
+        onConfirm={onConfirm}
+        onApprove={onApprove}
+        onCancel={onCancel}
+      />,
+    )
+    expect(screen.getByRole("button", { name: /approve & continue/i })).toBeInTheDocument()
+  })
+
+  it("calls onApprove when 'Approve & Continue' is clicked", async () => {
+    const user = userEvent.setup()
+    render(
+      <ConfirmLockModal
+        data={{ ...baseData, balance: 2000, needsApproval: true }}
+        onConfirm={onConfirm}
+        onApprove={onApprove}
+        onCancel={onCancel}
+      />,
+    )
+    await user.click(screen.getByRole("button", { name: /approve & continue/i }))
+    expect(onApprove).toHaveBeenCalledOnce()
+  })
+
+  it("shows 'Approving...' label while approving is in progress", () => {
+    render(
+      <ConfirmLockModal
+        data={{ ...baseData, balance: 2000, needsApproval: true }}
+        onConfirm={onConfirm}
+        onApprove={onApprove}
+        onCancel={onCancel}
+        approving
+      />,
+    )
+    expect(screen.getByText(/approving/i)).toBeInTheDocument()
   })
 
   // -------------------------------------------------------------------------

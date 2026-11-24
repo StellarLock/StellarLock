@@ -1,7 +1,6 @@
 import { describe, it, expect } from "vitest"
 import { render, screen, waitFor, act } from "@testing-library/react"
-import { AnnouncerProvider } from "@/hooks/AnnouncerProvider"
-import { useAnnouncer } from "@/hooks/useAnnouncer"
+import { AnnouncerProvider, useAnnouncer } from "@/hooks/useAnnouncer"
 
 function Announcer({ message, priority }: { message: string; priority?: "polite" | "assertive" }) {
   const { announce } = useAnnouncer()

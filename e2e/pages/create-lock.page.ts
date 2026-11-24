@@ -1,10 +1,10 @@
-import { Page } from "@playwright/test"
+import { Page } from '@playwright/test'
 
 export class CreateLockPage {
   constructor(public page: Page) {}
 
   async goto() {
-    await this.page.goto("/app/create")
+    await this.page.goto('/app/create')
   }
 
   async fillTokenAddress(address: string) {
@@ -12,7 +12,7 @@ export class CreateLockPage {
   }
 
   async fillAmount(amount: string) {
-    await this.page.fill("#amount", amount)
+    await this.page.fill('input[placeholder*="amount"]', amount)
   }
 
   async setUnlockDate(date: string) {
@@ -20,35 +20,29 @@ export class CreateLockPage {
   }
 
   async switchToLpTab() {
-    await this.page.getByRole("tab", { name: "LP Lock" }).click()
+    await this.page.click('text=LP Lock')
   }
 
   async switchToTokenTab() {
-    await this.page.getByRole("tab", { name: "Token Lock" }).click()
+    await this.page.click('text=Token Lock')
   }
 
   async fillBeneficiary(address: string) {
-    await this.beneficiaryInput().fill(address)
-  }
-
-  beneficiaryInput() {
-    return this.page.locator("#beneficiary")
+    const inputs = await this.page.locator('input[placeholder*="address"]').all()
+    if (inputs.length > 1) {
+      await inputs[1].fill(address)
+    }
   }
 
   async submitForm() {
     await this.page.click('button[type="submit"]')
   }
 
-  /** Approves the review dialog that submitForm() opens, sending the transaction. */
-  async confirmLock() {
-    await this.page.getByRole("dialog").getByRole("button", { name: "Confirm & Lock" }).click()
+  async getErrorMessage() {
+    return await this.page.locator('[role="alert"]').textContent()
   }
 
-  submitButton() {
-    return this.page.locator('button[type="submit"]')
-  }
-
-  heading() {
-    return this.page.locator('h1:has-text("Create")')
+  async isVisible() {
+    return await this.page.locator('h1:has-text("Create")').isVisible()
   }
 }

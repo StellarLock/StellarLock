@@ -10,6 +10,7 @@ import {
   withdrawLpLock,
   extendLpLock,
   transferLpBeneficiary,
+  submitTokenApproval,
 } from "@/lib/lp-locker"
 import { xdr } from "@stellar/stellar-sdk"
 
@@ -199,6 +200,29 @@ describe("lp-locker", () => {
   })
 
   // ── Write methods ───────────────────────────────────────────────────────────
+
+  describe("submitTokenApproval", () => {
+    it("submits approve on the token contract with stroops amount and zero expiration ledger", async () => {
+      submitCall.mockResolvedValue(undefined)
+      const signTx = vi.fn().mockResolvedValue({ signedTxXdr: "AAAA" })
+
+      await submitTokenApproval(VALID_TOKEN, VALID_ADDRESS, LP_LOCKER_ADDR, 250, VALID_ADDRESS, signTx)
+
+      expect(submitCall).toHaveBeenCalledTimes(1)
+      expect(submitCall.mock.calls[0][0]).toBe(VALID_TOKEN)
+      expect(submitCall.mock.calls[0][1]).toBe("approve")
+      expect(submitCall.mock.calls[0][3]).toBe(VALID_ADDRESS)
+      expect(submitCall.mock.calls[0][4]).toBe(signTx)
+
+      const scArgs = submitCall.mock.calls[0][2] as xdr.ScVal[]
+      expect(scArgs).toHaveLength(4)
+      // owner, spender, amount (i128 stroops), expiration (u32 = 0)
+      expect(scValToNative(scArgs[0])).toBe(VALID_ADDRESS)
+      expect(scValToNative(scArgs[1])).toBe(LP_LOCKER_ADDR)
+      expect(scValToNative(scArgs[2])).toBe(250_0000000n)
+      expect(scValToNative(scArgs[3])).toBe(0)
+    })
+  })
 
   describe("createLpLock", () => {
     it("submits create_lock with all args and returns the id as a string", async () => {

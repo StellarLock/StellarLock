@@ -10,9 +10,7 @@
     "dismiss": "Descartar",
     "you": "Tú",
     "stellar": "Stellar",
-    "skipToContent": "Ir al contenido principal",
-    "pause": "Pausar",
-    "resume": "Reanudar"
+    "skipToContent": "Ir al contenido principal"
   },
   "nav": {
     "createLock": "Crear bloqueo",
@@ -23,9 +21,7 @@
     "openMenu": "Abrir menú",
     "closeMenu": "Cerrar menú",
     "history": "Historial",
-    "analytics": "Analítica",
-    "mainNavigation": "Navegación principal",
-    "mobileNavigation": "Navegación móvil"
+    "analytics": "Analítica"
   },
   "landing": {
     "badge": "Construido en Stellar · Contratos inteligentes Soroban",
@@ -57,9 +53,7 @@
     "ctaTitle": "Gana la confianza de tu comunidad en una transacción",
     "ctaDesc": "Bloquea tu liquidez, comparte la prueba, y deja que la cadena hable por ti.",
     "ctaButton": "Crea tu primer bloqueo",
-    "step": "Paso {{n}}",
-    "pageTitle": "StellarLock — Bloqueos de Tokens y LP en Stellar",
-    "pageDescription": "Bloquea tokens y liquidez en Stellar. Demuestra a tu comunidad que no has hecho rug pull con un explorador de bloqueos público y verificable."
+    "step": "Paso {{n}}"
   },
   "createLock": {
     "title": "Crear un bloqueo",
@@ -67,9 +61,7 @@
     "modeSimple": "Simple",
     "modeWizard": "Asistente",
     "tabToken": "Bloqueo de Token",
-    "tabLp": "Bloqueo de LP",
-    "pageTitle": "Crear un bloqueo | StellarLock",
-    "pageDescription": "Bloquea tokens o posiciones LP en un contrato inteligente Soroban inmutable en Stellar."
+    "tabLp": "Bloqueo de LP"
   },
   "tokenForm": {
     "tokenAddress": "Dirección del contrato del token",
@@ -105,11 +97,10 @@
     "metadataTitle": "Información del proyecto (opcional)",
     "metadataDesc": "Se muestra en la página de detalle y explorador del bloqueo para que tu comunidad pueda verificar quién lo creó.",
     "description": "Descripción",
-    "descriptionPlaceholder": "¿Por qué se crea este bloqueo? (ej. Tokens de equipo bloqueados por 2 años)",
+    "descriptionPlaceholder": "¿Para qué es este bloqueo?",
     "projectUrl": "URL del proyecto",
     "logoUrl": "URL del logo",
-    "approving": "Aprobando…",
-    "openAddressBook": "Abrir libreta de direcciones"
+    "approving": "Aprobando…"
   },
   "lpForm": {
     "dex": "DEX",
@@ -134,13 +125,7 @@
     "insufficientBalance": "Saldo insuficiente. Tienes {{balance}} pero necesitas {{amount}}.",
     "needsApproval": "Necesitas aprobar el contrato para transferir tus tokens LP antes de bloquear.",
     "approveAndContinue": "Aprobar y continuar",
-    "approving": "Aprobando…",
-    "openAddressBook": "Abrir libreta de direcciones",
-    "beneficiaryHint": "Deja en blanco para usar tu billetera conectada como beneficiario.",
-    "description": "Descripción",
-    "descriptionPlaceholder": "¿Por qué se crea este bloqueo? (ej. Liquidez bloqueada por 2 años)",
-    "projectUrl": "URL del proyecto",
-    "logoUrl": "URL del logo"
+    "approving": "Aprobando…"
   },
   "myLocks": {
     "title": "Mis bloqueos",
@@ -158,36 +143,11 @@
     "noLocksCreatedDesc": "Crea tu primer bloqueo para demostrar que tus tokens o liquidez están asegurados.",
     "noBeneficiary": "No hay bloqueos donde seas el beneficiario",
     "noBeneficiaryDesc": "Los bloqueos creados para ti por otros aparecerán aquí.",
-    "createLock": "Crear un bloqueo",
-    "viewMode": "Modo de vista",
-    "cardView": "Vista de tarjetas",
-    "tableView": "Vista de tabla",
-    "searchPlaceholder": "Buscar por símbolo de token o ID de bloqueo…",
-    "filterByStatus": "Filtrar por estado",
-    "filterByType": "Filtrar por tipo",
-    "allStatuses": "Todos los estados",
-    "allTypes": "Todos los tipos",
-    "typeToken": "Token",
-    "typeLp": "LP",
-    "sortUnlockDate": "Ordenar: Fecha de desbloqueo",
-    "sortAmount": "Ordenar: Cantidad",
-    "sortCreated": "Ordenar: Creado",
-    "noResults": "Ningún bloqueo coincide con tus filtros.",
-    "clearFilters": "Borrar filtros",
-    "loadMore": "Cargar más",
-    "loadingMore": "Cargando más…",
-    "refreshing": "Actualizando…",
-    "refresh": "Actualizar",
-    "exportCsv": "Exportar CSV",
-    "totalCount": "{{count}} bloqueo",
-    "totalCount_other": "{{count}} bloqueos"
-    "pageTitle": "Mis bloqueos | StellarLock",
-    "pageDescription": "Gestiona y retira tus posiciones bloqueadas de tokens y LP en StellarLock."
+    "createLock": "Crear un bloqueo"
   },
   "lockDetail": {
     "notFoundTitle": "Bloqueo no encontrado",
     "notFoundDesc": "No pudimos encontrar un bloqueo con id #{{id}}.",
-    "archivedNotice": "Este bloqueo se retiró hace tiempo y su registro en cadena ya expiró. Los detalles anteriores provienen del archivo del indexador de bloqueos.",
     "backToLocks": "Volver a mis bloqueos",
     "lpLock": "Bloqueo LP",
     "tokenLock": "Bloqueo de Token",
@@ -204,7 +164,6 @@
     "extendLock": "Extender bloqueo",
     "newUnlockDate": "Nueva fecha de desbloqueo",
     "extendHint": "Debe ser posterior a la fecha de desbloqueo actual. Los bloqueos solo pueden extenderse, nunca acortarse.",
-    "extendDateMustBeAfter": "Debe ser posterior a la fecha de desbloqueo actual ({{date}}).",
     "confirmExtension": "Confirmar extensión",
     "transferBeneficiary": "Transferir beneficiario",
     "newBeneficiary": "Nueva dirección de beneficiario",
@@ -214,50 +173,7 @@
     "viewExplorer": "Ver explorador de tokens",
     "extendSuccess": "Bloqueo extendido.",
     "transferSuccess": "Beneficiario transferido.",
-    "withdrawSuccess": "Retiro confirmado.",
-    "shareViaQr": "Compartir mediante código QR",
-    "downloadReport": "Descargar informe del bloqueo",
-    "vestingSchedule": "Calendario de vesting",
-    "vestingLinear": "Lineal",
-    "vestingStart": "Inicio del vesting",
-    "vestingEnd": "Fin del vesting",
-    "vestingProgress": "Progreso",
-    "vestingTotal": "Total",
-    "vestingReleased": "Liberado",
-    "lockDetails": "Detalles del bloqueo",
-    "projectLogoAlt": "Logo del proyecto",
-    "vestingClaimed": "Reclamado",
-    "vestingRemaining": "Restante",
-    "claimSuccess": "Tokens adquiridos reclamados.",
-    "claimNothing": "No hay tokens adquiridos para reclamar todavía.",
-    "extendWarning": "Extender el bloqueo retrasa el desbloqueo de todos los tokens restantes.",
-    "transferWarning": "Transferir el beneficiario es irreversible. Verifica la nueva dirección cuidadosamente.",
-    "copyLockId": "Copiar ID del bloqueo",
-    "copied": "¡Copiado!",
-    "viewOnStellarExpert": "Ver en Stellar Expert",
-    "contractAddress": "Dirección del contrato",
-    "tokenContract": "Contrato del token",
-    "poolContract": "Contrato del pool",
-    "createdAt": "Creado el",
-    "lastExtendedAt": "Última extensión",
-    "status": "Estado",
-    "amount": "Cantidad",
-    "unlockDate": "Fecha de desbloqueo",
-    "withdrawable": "Retirable",
-    "notYetUnlocked": "Aún no desbloqueado",
-    "withdrawHint": "Una vez desbloqueado, cualquiera puede retirar los tokens a la dirección del beneficiario.",
-    "connectToWithdraw": "Conecta la billetera del beneficiario para retirar.",
-    "wrongBeneficiary": "Tu billetera conectada no es el beneficiario de este bloqueo.",
-    "extendLockHint": "Elige una nueva fecha de desbloqueo posterior a la actual.",
-    "transferBeneficiaryHint": "Introduce la nueva dirección de beneficiario que podrá retirar los tokens.",
-    "invalidAddress": "Introduce una dirección Stellar válida.",
-    "sameBeneficiary": "La nueva dirección debe ser diferente de la actual.",
-    "transactionPending": "Transacción pendiente…",
-    "waitingForWallet": "Esperando a tu billetera…",
-    "confirmInWallet": "Confirma la transacción en tu billetera.",
-    "viewTransaction": "Ver transacción"
-    "pageTitle": "Bloqueo #{{id}} — {{amount}} {{symbol}} bloqueado hasta {{date}} | StellarLock",
-    "pageDescription": "Bloqueo #{{id}}: {{amount}} {{symbol}} bloqueado hasta {{date}} en StellarLock."
+    "withdrawSuccess": "Retiro confirmado."
   },
   "explorer": {
     "backToSearch": "Volver a la búsqueda",
@@ -276,16 +192,7 @@
     "allLocks": "Todos los bloqueos ({{count}})",
     "noLocksTitle": "No se encontraron bloqueos",
     "noLocksDesc": "No pudimos encontrar bloqueos para <1>{{query}}</1>. Verifica el símbolo del token o la dirección del contrato, o crea el primer bloqueo para este token.",
-    "createLock": "Crear un bloqueo",
-    "badge": {
-      "title": "Bloqueado con StellarLock",
-      "summary": "{{count}} bloqueo activo · {{value}} asegurado",
-      "summary_other": "{{count}} bloqueos activos · {{value}} asegurados",
-      "copyUrl": "Copiar enlace para compartir",
-      "copyBadge": "Copiar insignia de README"
-    },
-    "pageTitle": "Bloqueos de Liquidez de {{symbol}} | StellarLock",
-    "pageDescription": "{{amount}} {{symbol}} bloqueado en {{activeLocks}} bloqueos activos en StellarLock."
+    "createLock": "Crear un bloqueo"
   },
   "discover": {
     "title": "Explorar bloqueos",
@@ -300,9 +207,7 @@
     "noLocks": "No se encontraron bloqueos para este token.",
     "recentActivity": "Actividad reciente",
     "noRecentActivity": "Aún no hay actividad reciente.",
-    "searchHint": "Busca por símbolo de token o dirección de contrato para encontrar bloqueos específicos.",
-    "pageTitle": "Explorar Bloqueos | StellarLock",
-    "pageDescription": "Explora todos los bloqueos de tokens y LP en StellarLock. Descubre bloqueos recién creados, próximos desbloqueos y tokens asegurados."
+    "searchHint": "Busca por símbolo de token o dirección de contrato para encontrar bloqueos específicos."
   },
   "search": {
     "placeholder": "Buscar un token por símbolo o dirección de contrato…",
@@ -397,9 +302,7 @@
     "statusPending": "Pendiente",
     "statusSuccess": "Éxito",
     "statusFailed": "Fallida",
-    "cleanupNote": "Las transacciones de más de 90 días se eliminan automáticamente.",
-    "pageTitle": "Historial de Transacciones | StellarLock",
-    "pageDescription": "Consulta tu historial de transacciones de StellarLock."
+    "cleanupNote": "Las transacciones de más de 90 días se eliminan automáticamente."
   },
   "splitLock": {
     "toggle": "Múltiples beneficiarios",
@@ -521,16 +424,6 @@
       "recovery": "Elige una fecha más cercana dentro del rango permitido.",
       "title": "Extensión demasiado larga"
     },
-    "lockDurationTooShort": {
-      "message": "La fecha de desbloqueo está demasiado cerca de la hora actual. Se requiere una duración mínima de bloqueo.",
-      "recovery": "Elige una fecha de desbloqueo al menos 24 horas en el futuro.",
-      "title": "Duración del bloqueo demasiado corta"
-    },
-    "extensionLimitExceeded": {
-      "message": "Este bloqueo ya ha alcanzado el límite máximo de extensiones permitidas.",
-      "recovery": "No se pueden realizar más extensiones para este bloqueo.",
-      "title": "Límite de extensiones superado"
-    },
     "unlockTooSoon": {
       "message": "La nueva fecha de desbloqueo debe ser suficientemente posterior a la actual para contar como una extensión.",
       "recovery": "Elige una fecha más lejana en el futuro.",
@@ -565,51 +458,6 @@
       "title": "Identical Tokens",
       "message": "Token A and Token B must be different addresses.",
       "recovery": "Choose two distinct token addresses for your LP pair."
-    },
-    "notInitialized": {
-      "title": "Contrato no inicializado",
-      "message": "Este contrato aún no ha sido inicializado con un administrador.",
-      "recovery": "Ponte en contacto con el operador del contrato para inicializar el despliegue."
-    },
-    "lockNotFound": {
-      "title": "Bloqueo no encontrado",
-      "message": "No se encontró ningún registro de bloqueo que coincida con este ID.",
-      "recovery": "Verifica el ID del bloqueo y la dirección del contrato e inténtalo de nuevo."
-    },
-    "contractPaused": {
-      "title": "Contrato pausado",
-      "message": "El contrato está actualmente pausado por el administrador por mantenimiento o emergencia.",
-      "recovery": "Por favor, vuelve a intentarlo más tarde una vez que se hayan reanudado las operaciones."
-    },
-    "vestingOutsideLockBounds": {
-      "title": "Ventana de vesting inválida",
-      "message": "La fecha de inicio del vesting no puede ser anterior a la creación del bloqueo, y ni la fecha de inicio ni la de fin pueden ser posteriores a la fecha de desbloqueo.",
-      "recovery": "Elige una fecha de inicio y fin de vesting que estén dentro de las fechas de creación y desbloqueo del bloqueo."
-    },
-    "duplicateBeneficiary": {
-      "title": "Beneficiario duplicado",
-      "message": "La misma dirección de beneficiario se indicó más de una vez en este bloqueo dividido.",
-      "recovery": "Elimina la entrada duplicada para que cada dirección de beneficiario aparezca solo una vez."
-    },
-    "alreadyInitialized": {
-      "title": "Ya inicializado",
-      "message": "Este contrato ya ha sido inicializado con un administrador.",
-      "recovery": "No se necesita ninguna acción: el contrato ya se configuró durante el despliegue."
-    },
-    "invalidPoolTokens": {
-      "title": "Tokens de pool inválidos",
-      "message": "Las direcciones de token A/B del propio contrato del pool no coinciden con las direcciones de token proporcionadas para este bloqueo de LP.",
-      "recovery": "Verifica la dirección de las acciones del pool y las direcciones de token A/B, y asegúrate de que pertenezcan al mismo pool."
-    },
-    "noPendingUpgrade": {
-      "title": "Sin actualización pendiente",
-      "message": "No hay ninguna actualización de contrato pendiente para ejecutar o cancelar.",
-      "recovery": "Pide al administrador del contrato que proponga una actualización primero."
-    },
-    "timelockNotElapsed": {
-      "title": "Tiempo de espera de actualización no transcurrido",
-      "message": "El período de espera obligatorio para esta actualización del contrato aún no ha transcurrido.",
-      "recovery": "Espera hasta que haya transcurrido el período de espera de la actualización antes de ejecutarla."
     }
   },
   "notfound": {
@@ -618,9 +466,7 @@
     "goHome": "Volver al inicio",
     "explore": "Explorar bloqueos",
     "helpTitle": "¿Necesitas ayuda?",
-    "helpDesc": "Consulta nuestro <explorer>explorador</explorer> para encontrar bloqueos o <github>visita nuestro GitHub</github>.",
-    "pageTitle": "Página no encontrada — StellarLock",
-    "pageDescription": "La página que buscas no existe."
+    "helpDesc": "Consulta nuestro <explorer>explorador</explorer> para encontrar bloqueos o <github>visita nuestro GitHub</github>."
   },
   "countdown": {
     "unlocked": "Desbloqueado",
@@ -640,201 +486,5 @@
     "title": "Algo salió mal",
     "message": "Algo salió mal. Por favor, inténtelo de nuevo.",
     "tryAgain": "Intentar de nuevo"
-  },
-  "lockStatus": {
-    "locked": "Bloqueado",
-    "unlockable": "Desbloqueable",
-    "withdrawn": "Retirado",
-    "withdrawnArchived": "Retirado (archivado)"
-  },
-  "lockCreated": {
-    "title": "Bloqueo creado | StellarLock",
-    "description": "Tu bloqueo se ha creado correctamente en Stellar.",
-    "heading": "¡Bloqueo creado con éxito!",
-    "subheading": "Tus tokens ahora están bloqueados en la cadena.",
-    "vestingActive": "El calendario de vesting está activo.",
-    "lockSummary": "Resumen del bloqueo",
-    "lockId": "ID del bloqueo",
-    "copyLockId": "Copiar ID del bloqueo",
-    "type": "Tipo",
-    "lpLock": "Bloqueo LP",
-    "tokenLock": "Bloqueo de token",
-    "token": "Token",
-    "amount": "Cantidad",
-    "beneficiary": "Beneficiario",
-    "creator": "Creador",
-    "unlockDate": "Fecha de desbloqueo",
-    "vesting": "Vesting",
-    "vestingEnabled": "Vesting lineal activado",
-    "createdAt": "Creado el",
-    "transactionDetails": "Detalles de la transacción",
-    "txHash": "Hash de TX",
-    "copyTxHash": "Copiar hash de la transacción",
-    "viewTxStellarExpert": "Ver transacción en Stellar Expert",
-    "network": "Red",
-    "shareTitle": "Compartir este bloqueo",
-    "copyShareLink": "Copiar enlace para compartir",
-    "viewLockDetail": "Ver detalles del bloqueo",
-    "createAnother": "Crear otro bloqueo",
-    "copied": "¡{{label}} copiado!"
-  },
-  "txProgress": {
-    "simulating": "Simulando transacción…",
-    "signing": "Por favor, firma en tu billetera…",
-    "submitting": "Enviando a la red…",
-    "confirming": "Esperando confirmación…"
-  },
-  "onboardingTour": {
-    "tourAriaLabel": "Tour de introducción de StellarLock",
-    "closeAriaLabel": "Cerrar tour",
-    "next": "Siguiente",
-    "previous": "Anterior",
-    "skip": "Omitir tour",
-    "finish": "Finalizar",
-    "stepCounter": "Paso {{current}} de {{total}}",
-    "welcomeTitle": "Bienvenido a StellarLock",
-    "welcomeDesc": "Aprende a bloquear tokens y liquidez en unos pocos pasos.",
-    "createTitle": "Crea un bloqueo",
-    "createDesc": "Elige un token o posición LP, establece el monto y la fecha de desbloqueo, y firma.",
-    "shareTitle": "Comparte la prueba",
-    "shareDesc": "Comparte el enlace público del explorador para que tu comunidad verifique el bloqueo.",
-    "doneTitle": "Todo listo",
-    "doneDesc": "Ya sabes lo esencial. ¡Feliz bloqueo!"
-  },
-  "rpcStatus": {
-    "unreachable": "La red Stellar no está disponible. Algunas funciones pueden no estar disponibles…",
-    "slow": "Conexión de red lenta. Las respuestas pueden tardar más de lo habitual.",
-    "unreachableIndicator": "RPC no disponible",
-    "slowIndicator": "RPC lento"
-  },
-  "qrCode": {
-    "shareAria": "Compartir bloqueo mediante código QR",
-    "closeAria": "Cerrar el modal del código QR",
-    "copyUrlAria": "Copiar URL al portapapeles",
-    "downloadAria": "Descargar código QR como PNG",
-    "copied": "¡URL copiada!",
-    "copyUrl": "Copiar URL",
-    "downloadPng": "Descargar PNG",
-    "scanHint": "Escanea este código para abrir el bloqueo."
-  },
-  "keyboardShortcuts": {
-    "title": "Atajos de teclado",
-    "closeAria": "Cerrar",
-    "description": "Usa estos atajos para navegar más rápido por StellarLock.",
-    "actions": {
-      "openShortcuts": "Abrir atajos de teclado",
-      "closeModal": "Cerrar el diálogo actual",
-      "focusSearch": "Enfocar la búsqueda",
-      "goHome": "Ir al inicio",
-      "goMyLocks": "Ir a mis bloqueos",
-      "goDiscover": "Ir a explorar",
-      "goCreateLock": "Ir a crear bloqueo",
-      "toggleTheme": "Cambiar tema",
-      "submitForm": "Enviar formulario"
-    }
-  },
-  "health": {
-    "monitoring": "Monitoreo",
-    "systemHealth": "Estado del sistema",
-    "checkingDependencies": "Comprobando dependencias…",
-    "statusHealthy": "Saludable",
-    "statusUnhealthy": "No saludable",
-    "statusChecking": "Comprobando",
-    "environmentLabel": "Entorno",
-    "networkLabel": "Red",
-    "healthCheckFailed": "La comprobación de estado falló.",
-    "unreachable": "No se puede acceder al servicio de estado.",
-    "extensionAvailable": "Extensión disponible",
-    "extensionNotDetected": "Extensión no detectada"
-  },
-  "verifiedBadge": {
-    "verified": "Verificado",
-    "unverified": "No verificado",
-    "verifiedTooltip": "Token verificado — incluido en la lista de permitidos de la comunidad StellarLock",
-    "unverifiedTooltip": "Token no verificado — no está en la lista de permitidos de la comunidad. Procede con precaución."
-  },
-  "addressBook": {
-    "title": "Libreta de direcciones",
-    "close": "Cerrar libreta de direcciones",
-    "searchPlaceholder": "Buscar direcciones…",
-    "export": "Exportar libreta de direcciones",
-    "import": "Importar libreta de direcciones",
-    "add": "Agregar dirección",
-    "label": "Etiqueta",
-    "stellarAddress": "Dirección Stellar",
-    "address": "Dirección",
-    "empty": "Aún no hay direcciones guardadas.",
-    "noResults": "Ninguna dirección coincide con tu búsqueda.",
-    "save": "Guardar",
-    "cancel": "Cancelar",
-    "delete": "Eliminar",
-    "invalidAddress": "Introduce una dirección Stellar válida.",
-    "labelRequired": "La etiqueta es obligatoria.",
-    "importError": "No se pudo importar la libreta de direcciones. Verifica el formato del archivo.",
-    "exportSuccess": "Libreta de direcciones exportada.",
-    "importSuccess": "Libreta de direcciones importada."
-  },
-  "tokenLockList": {
-    "amount": "Cantidad",
-    "beneficiary": "Beneficiario",
-    "unlockDate": "Fecha de desbloqueo",
-    "unlocksIn": "Se desbloquea en",
-    "status": "Estado",
-    "empty": "No se encontraron bloqueos para este token"
-  },
-  "notificationCenter": {
-    "title": "Notificaciones",
-    "markAllAsRead": "Marcar todo como leído",
-    "clearAll": "Borrar todo",
-    "empty": "Aún no hay notificaciones",
-    "unreadCount": "{{count}} sin leer",
-    "unreadCount_other": "{{count}} sin leer",
-    "markAsRead": "Marcar como leído",
-    "dismiss": "Descartar",
-    "viewAll": "Ver todas las notificaciones",
-    "closeAria": "Cerrar el centro de notificaciones",
-    "openAria": "Abrir el centro de notificaciones"
-  },
-  "confirmLockModal": {
-    "title": "Confirmar bloqueo",
-    "review": "Revisa los detalles antes de firmar.",
-    "reviewText": "Revisa los detalles a continuación. Esta acción no se puede deshacer.",
-    "invalidUnlockDate": "Fecha de desbloqueo inválida.",
-    "insufficientBalance": "Saldo insuficiente.",
-    "approvalRequired": "Aprobación requerida",
-    "confirm": "Confirmar y firmar",
-    "cancel": "Cancelar",
-    "closeAria": "Cerrar el diálogo de confirmación",
-    "tokenLabel": "Token",
-    "amountLabel": "Cantidad",
-    "beneficiaryLabel": "Beneficiario",
-    "unlockDateLabel": "Fecha de desbloqueo",
-    "vestingLabel": "Vesting",
-    "vestingEnabled": "Activado",
-    "vestingDisabled": "Desactivado",
-    "networkFeeLabel": "Comisión de red",
-    "storageFeeLabel": "Depósito de almacenamiento",
-    "totalLabel": "Total",
-    "irreversibleNotice": "Los bloqueos son inmutables y no pueden acortarse una vez creados."
-  },
-  "settings": {
-    "title": "Configuración",
-    "addressBook": "Libreta de direcciones",
-    "newAddress": "Nueva dirección",
-    "notificationPreferences": "Preferencias de notificaciones",
-    "label": "Etiqueta",
-    "stellarAddress": "Dirección Stellar",
-    "address": "Dirección",
-    "actions": "Acciones",
-    "exportJson": "Exportar como JSON",
-    "importJson": "Importar desde JSON",
-    "searchPlaceholder": "Buscar por etiqueta o dirección…"
-  },
-  "breadcrumb": {
-    "ariaLabel": "Miga de pan"
-  },
-  "lockTable": {
-    "select": "Seleccionar",
-    "actions": "Acciones"
   }
 }

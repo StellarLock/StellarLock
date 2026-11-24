@@ -1,37 +1,35 @@
-import { Page } from "@playwright/test"
+import { Page } from '@playwright/test'
 
 export class ExplorerPage {
   constructor(public page: Page) {}
 
-  // Explorer is only mounted at /explore/:token — bare /explore is Discover
-  // (see DiscoverPage).
-  async goto(tokenAddress: string) {
-    await this.page.goto(`/explore/${tokenAddress}`)
+  async goto(tokenAddress?: string) {
+    if (tokenAddress) {
+      await this.page.goto(`/explore/${tokenAddress}`)
+    } else {
+      await this.page.goto('/explore')
+    }
   }
 
-  /** The page's main h1 — use with expect().toBeVisible() / toHaveText(). */
-  tokenHeading() {
-    return this.page.locator("h1").first()
+  async searchToken(address: string) {
+    await this.page.fill('input[placeholder*="token"]', address)
+    await this.page.keyboard.press('Enter')
   }
 
-  /** @deprecated Use tokenHeading() with expect() instead. */
   async waitForTokenHeader() {
-    await this.tokenHeading().waitFor()
+    await this.page.locator('h1').first().waitFor()
   }
 
-  lockList() {
-    return this.page.locator('a[href^="/app/lock/"]')
+  async getTokenName() {
+    return await this.page.locator('h1').first().textContent()
   }
 
-  notFoundHeading() {
-    return this.page.getByRole("heading", { level: 1, name: "No locks found" })
+  async getLockCount() {
+    const cards = await this.page.locator('[class*="LockCard"]').count()
+    return cards
   }
 
-  emptyOrNotFound() {
-    return this.page.locator("text=/not found|no locks/i").first()
-  }
-
-  loadingSkeleton() {
-    return this.page.locator('[class*="animate-pulse"]').first()
+  async isLoading() {
+    return await this.page.locator('[class*="animate-pulse"]').isVisible()
   }
 }

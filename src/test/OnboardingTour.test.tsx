@@ -1,8 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
-import { act, render, screen } from "@testing-library/react"
+import { act, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { OnboardingTour } from "@/components/onboarding/OnboardingTour"
-import { startOnboardingTour } from "@/components/onboarding/startOnboardingTour"
+import { OnboardingTour, startOnboardingTour } from "@/components/onboarding/OnboardingTour"
 
 const STORAGE_KEY = "stellarlock:onboarding_tour_completed"
 const AUTO_OPEN_DELAY_MS = 600
@@ -35,7 +34,9 @@ describe("OnboardingTour", () => {
       await vi.advanceTimersByTimeAsync(AUTO_OPEN_DELAY_MS)
     })
 
-    expect(screen.getByRole("dialog", { name: /onboarding tour/i })).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByRole("dialog", { name: /onboarding tour/i })).toBeInTheDocument()
+    })
     expect(screen.getByText("Connect your wallet")).toBeInTheDocument()
   })
 
@@ -55,7 +56,7 @@ describe("OnboardingTour", () => {
     await act(async () => {
       await vi.advanceTimersByTimeAsync(AUTO_OPEN_DELAY_MS)
     })
-    expect(screen.getByText("Connect your wallet")).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByText("Connect your wallet")).toBeInTheDocument())
 
     await user.click(screen.getByRole("button", { name: "Next" }))
     expect(screen.getByText("Choose a lock type")).toBeInTheDocument()
@@ -69,7 +70,7 @@ describe("OnboardingTour", () => {
     await act(async () => {
       await vi.advanceTimersByTimeAsync(AUTO_OPEN_DELAY_MS)
     })
-    expect(screen.getByRole("dialog")).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByRole("dialog")).toBeInTheDocument())
 
     await user.click(screen.getByRole("button", { name: "Skip" }))
 
@@ -82,7 +83,7 @@ describe("OnboardingTour", () => {
     await act(async () => {
       await vi.advanceTimersByTimeAsync(AUTO_OPEN_DELAY_MS)
     })
-    expect(screen.getByRole("dialog")).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByRole("dialog")).toBeInTheDocument())
 
     await user.click(screen.getByRole("button", { name: "Close tour" }))
 
@@ -95,7 +96,7 @@ describe("OnboardingTour", () => {
     await act(async () => {
       await vi.advanceTimersByTimeAsync(AUTO_OPEN_DELAY_MS)
     })
-    expect(screen.getByRole("dialog")).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByRole("dialog")).toBeInTheDocument())
 
     await user.keyboard("{Escape}")
 
@@ -107,7 +108,7 @@ describe("OnboardingTour", () => {
     await act(async () => {
       await vi.advanceTimersByTimeAsync(AUTO_OPEN_DELAY_MS)
     })
-    expect(screen.getByRole("dialog")).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByRole("dialog")).toBeInTheDocument())
 
     // 4 steps total: Connect wallet -> Choose lock type -> Understand vesting -> Find explorer
     await user.click(screen.getByRole("button", { name: "Next" }))
@@ -127,7 +128,7 @@ describe("OnboardingTour", () => {
     await act(async () => {
       await vi.advanceTimersByTimeAsync(AUTO_OPEN_DELAY_MS)
     })
-    expect(screen.getByRole("dialog")).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByRole("dialog")).toBeInTheDocument())
 
     await user.click(screen.getByRole("button", { name: "Next" }))
     expect(screen.getByText("Choose a lock type")).toBeInTheDocument()
@@ -139,7 +140,7 @@ describe("OnboardingTour", () => {
       startOnboardingTour()
     })
 
-    expect(screen.getByRole("dialog")).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByRole("dialog")).toBeInTheDocument())
     expect(screen.getByText("Connect your wallet")).toBeInTheDocument()
   })
 })

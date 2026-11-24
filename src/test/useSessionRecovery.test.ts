@@ -7,7 +7,7 @@
  *  - Does nothing when there is no prior session (never connects)
  *  - Does not dispatch again on unrelated re-renders while still connected
  */
-import { describe, it, expect, vi, beforeEach, afterEach, type MockInstance } from "vitest"
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 import { renderHook } from "@testing-library/react"
 
 vi.mock("@/hooks/useWallet", () => ({
@@ -24,7 +24,7 @@ function mockConnected(isConnected: boolean) {
 }
 
 describe("useSessionRecovery", () => {
-  let dispatchSpy: MockInstance<typeof window.dispatchEvent>
+  let dispatchSpy: ReturnType<typeof vi.spyOn>
 
   beforeEach(() => {
     dispatchSpy = vi.spyOn(window, "dispatchEvent")

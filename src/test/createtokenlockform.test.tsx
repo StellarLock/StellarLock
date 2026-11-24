@@ -19,25 +19,20 @@ vi.mock("@stellar/stellar-sdk", () => ({
 const mockUseWallet = vi.fn()
 vi.mock("@/hooks/useWallet", () => ({
   useWallet: () => mockUseWallet() as unknown as Record<string, unknown>,
-}))
-
-vi.mock("@/hooks/WalletProvider", () => ({
   WalletProvider: ({ children }: { children: ReactNode }) => children,
 }))
 
 const mockUseTokenBalance = vi.fn()
+const mockUseTokenAllowance = vi.fn()
 vi.mock("@/hooks/useLocks", () => ({
   useTokenBalance: () => mockUseTokenBalance() as unknown as Record<string, unknown>,
+  useTokenAllowance: () => mockUseTokenAllowance() as unknown as Record<string, unknown>,
 }))
 
 vi.mock("@/lib/stellar", () => ({
   CONTRACTS: { tokenLocker: "CONTRACT_LOCKER" },
   isValidStellarAddress: (addr: string) => addr.startsWith("G") && addr.length === 56,
   isValidStellarContractAddress: (addr: string) => addr.startsWith("C") && addr.length === 56,
-  getTokenBalance: vi.fn().mockResolvedValue(0),
-  // Token metadata lookups (getOnChainTokenMeta) go through simulateCall; a null
-  // result makes them fall back to defaults.
-  simulateCall: vi.fn().mockResolvedValue(null),
 }))
 
 describe("CreateTokenLockForm Validation Rules", () => {
@@ -45,6 +40,7 @@ describe("CreateTokenLockForm Validation Rules", () => {
     localStorage.clear()
     mockUseWallet.mockReturnValue({ address: VALID_PUBLIC_KEY })
     mockUseTokenBalance.mockReturnValue({ data: 500, loading: false })
+    mockUseTokenAllowance.mockReturnValue({ data: 0, loading: false })
   })
 
   it("should evaluate the form state changes synchronously as valid strings are provided", async () => {
@@ -150,6 +146,7 @@ describe("CreateTokenLockForm lock-creation cooldown", () => {
   beforeEach(() => {
     localStorage.clear()
     mockUseTokenBalance.mockReturnValue({ data: 500, loading: false })
+    mockUseTokenAllowance.mockReturnValue({ data: 0, loading: false })
   })
 
   it("does not apply wallet A's cooldown to wallet B", () => {

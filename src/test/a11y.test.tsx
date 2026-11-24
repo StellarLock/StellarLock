@@ -37,9 +37,6 @@ vi.mock("@/hooks/useWallet", () => ({
     disconnect: vi.fn(),
     signTransaction: vi.fn(),
   }),
-}))
-
-vi.mock("@/hooks/WalletProvider", () => ({
   WalletProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }))
 
@@ -58,7 +55,8 @@ vi.mock("@/lib/stellar", async (importOriginal) => {
     getRpc: vi.fn(),
     invalidateRpcCache: vi.fn(),
     simulateCall: vi.fn().mockResolvedValue(null),
-    explorerLink: (addr: string) => `https://stellar.expert/explorer/testnet/contract/${addr}`,
+    explorerLink: (addr: string) =>
+      `https://stellar.expert/explorer/testnet/contract/${addr}`,
   }
 })
 
@@ -68,18 +66,15 @@ vi.mock("@/lib/analytics", () => ({
 }))
 
 vi.mock("@/lib/env", () => ({
-  ENV: {
-    network: "testnet",
-    rpcUrl: "https://soroban-testnet.stellar.org",
-    horizonUrl: "https://horizon-testnet.stellar.org",
-    contractEnv: "testnet",
-    contractVersion: "v1",
-    tokenLockerContract: "CBFCKEOQRQIXKLGU4QBUQVOINOKFBOXJ37LXEKLKNUO6TW4FNGDU26AW",
-    lpLockerContract: "CA3WYETNIF5IAF3VUNQ3SYKZFV45TOFBF7CEZ46I7QEBPWTRM73WLEI4",
-    appUrl: "",
-    isDev: false,
-    showEnvBadge: false,
-  },
+  getEnv: () => ({
+    VITE_NETWORK: "testnet",
+    VITE_RPC_URL: "https://soroban-testnet.stellar.org",
+    VITE_HORIZON_URL: "https://horizon-testnet.stellar.org",
+    VITE_TOKEN_LOCKER_CONTRACT: "CBFCKEOQRQIXKLGU4QBUQVOINOKFBOXJ37LXEKLKNUO6TW4FNGDU26AW",
+    VITE_LP_LOCKER_CONTRACT: "CA3WYETNIF5IAF3VUNQ3SYKZFV45TOFBF7CEZ46I7QEBPWTRM73WLEI4",
+    VITE_CONTRACT_ENV: "testnet",
+    VITE_CONTRACT_VERSION: "v1",
+  }),
 }))
 
 vi.mock("@/lib/sentry", () => ({
@@ -92,12 +87,11 @@ vi.mock("@/lib/web-vitals", () => ({
 }))
 
 vi.mock("@/hooks/useLocks", () => ({
-  ALL_LOCKS_LIMIT: 10_000,
   useMyLocks: () => ({ data: { created: [], received: [] }, loading: false, error: null }),
-  useMyLocksStats: () => ({ data: { totalValue: 0, unlockable: 0 }, loading: false, error: null }),
   useLocksByToken: () => ({ data: null, loading: false, error: null }),
   useLockCountByToken: () => ({ data: 0, loading: false }),
   useTokenBalance: () => ({ data: null, loading: false }),
+  useTokenAllowance: () => ({ data: null, loading: false }),
   useDiscoverStats: () => ({
     data: {
       source: "mock",
@@ -119,6 +113,7 @@ vi.mock("@/hooks/useRpcHealth", () => ({
 
 vi.mock("@/hooks/useContractEventContext", () => ({
   useContractEventContext: () => ({ events: [] }),
+  ContractEventProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }))
 
 // Stub the form components that have pre-existing parse issues so they render

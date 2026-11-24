@@ -1,5 +1,4 @@
 import { useCallback, useState, useSyncExternalStore } from "react"
-import { getJson, setJson, getItem, setItem, removeItem } from "../lib/safe-storage"
 
 const STORAGE_KEY_PREFS = "stellarlock:notification_prefs"
 const STORAGE_KEY_HISTORY = "stellarlock:notification_history"
@@ -30,10 +29,6 @@ export interface Notification {
 export interface NotificationPrefs {
   lockId?: string
   browser: boolean
-  /** Unix-ms timestamp of the lock's unlock time — persisted so reminders can
-   *  be re-armed after a page reload without requiring the lock data to be
-   *  fetched first (issue #752). */
-  unlockAt?: number
   email?: string
   webhookUrl?: string
   types: Partial<Record<NotificationType, boolean>>
@@ -43,96 +38,13 @@ export interface NotificationPrefs {
 // Subscription API helpers
 // ---------------------------------------------------------------------------
 
-const API_BASE = import.meta.env.VITE_API_BASE ?? ""
-const STORAGE_KEY_SESSION = "stellarlock:notification_session"
-/** Refresh the session this long before it actually expires. */
-const SESSION_EXPIRY_MARGIN_S = 60
+const API_BASE = (import.meta.env.VITE_API_BASE as string | undefined) ?? ""
 
-/** Signs a message with the connected wallet (SEP-53) and returns the base64 signature. */
-export type SignMessageFn = (message: string) => Promise<string>
-
-interface StoredSession {
-  address: string
-  token: string
-  expiresAt: number
-}
-
-function loadSession(address: string): string | null {
-  try {
-    const raw = getItem(STORAGE_KEY_SESSION)
-    if (!raw) return null
-    const session = JSON.parse(raw) as StoredSession
-    if (session.address !== address) return null
-    if (session.expiresAt - SESSION_EXPIRY_MARGIN_S <= Date.now() / 1000) return null
-    return session.token
-  } catch {
-    return null
-  }
-}
-
-function saveSession(session: StoredSession | null) {
-  if (session) setItem(STORAGE_KEY_SESSION, JSON.stringify(session))
-  else removeItem(STORAGE_KEY_SESSION)
-}
-
-/**
- * Obtain a notification API session for `address`, proving ownership by
- * signing a server-issued nonce with the wallet. Cached in sessionStorage
- * until shortly before it expires.
- */
-async function getNotificationSession(address: string, signMessage: SignMessageFn | undefined): Promise<string> {
-  const cached = loadSession(address)
-  if (cached) return cached
-  if (!signMessage) throw new Error("Wallet does not support message signing")
-
-  const challengeRes = await fetch(
-    `${API_BASE}/api/notifications/challenge?${new URLSearchParams({ address }).toString()}`,
-  )
-  if (!challengeRes.ok) throw new Error(`Challenge failed (${challengeRes.status})`)
-  const { nonce, message } = (await challengeRes.json()) as { nonce: string; message: string }
-
-  const signature = await signMessage(message)
-
-  const sessionRes = await fetch(`${API_BASE}/api/notifications/session`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ address, nonce, signature }),
-  })
-  if (!sessionRes.ok) {
-    const body = (await sessionRes.json().catch(() => ({}))) as { error?: string }
-    throw new Error(body.error ?? `Sign-in failed (${sessionRes.status})`)
-  }
-  const { token, expiresAt } = (await sessionRes.json()) as { token: string; expiresAt: number }
-  saveSession({ address, token, expiresAt })
-  return token
-}
-
-/**
- * fetch() with a notification session for `address`. If the server rejects a
- * cached session (e.g. secret rotated), re-sign once and retry.
- */
-async function authedFetch(
-  address: string,
-  signMessage: SignMessageFn | undefined,
-  url: string,
-  init: RequestInit,
-): Promise<Response> {
-  const send = (token: string) =>
-    fetch(url, { ...init, headers: { ...(init.headers as Record<string, string>), Authorization: `Bearer ${token}` } })
-
-  const res = await send(await getNotificationSession(address, signMessage))
-  if (res.status !== 401) return res
-  saveSession(null)
-  return send(await getNotificationSession(address, signMessage))
-}
-
-interface SubscribeParams {
+export interface SubscribeParams {
   lockId: string
   address: string
   email?: string
   webhookUrl?: string
-  /** Wallet signer used to prove ownership of `address`. */
-  signMessage?: SignMessageFn
 }
 
 /**
@@ -140,7 +52,7 @@ interface SubscribeParams {
  * Returns the subscription id on success, throws on network or validation error.
  */
 export async function subscribeNotifications(params: SubscribeParams): Promise<string> {
-  const res = await authedFetch(params.address, params.signMessage, `${API_BASE}/api/notifications/subscribe`, {
+  const res = await fetch(`${API_BASE}/api/notifications/subscribe`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -161,13 +73,9 @@ export async function subscribeNotifications(params: SubscribeParams): Promise<s
 /**
  * Remove an email / webhook subscription for a lock.
  */
-export async function unsubscribeNotifications(
-  lockId: string,
-  address: string,
-  signMessage?: SignMessageFn,
-): Promise<void> {
+export async function unsubscribeNotifications(lockId: string, address: string): Promise<void> {
   const params = new URLSearchParams({ lockId, address })
-  const res = await authedFetch(address, signMessage, `${API_BASE}/api/notifications/unsubscribe?${params.toString()}`, {
+  const res = await fetch(`${API_BASE}/api/notifications/subscribe?${params.toString()}`, {
     method: "DELETE",
   })
   if (!res.ok && res.status !== 404) {
@@ -176,19 +84,27 @@ export async function unsubscribeNotifications(
 }
 
 function loadPrefs(): Record<string, NotificationPrefs> {
-  return getJson<Record<string, NotificationPrefs>>(STORAGE_KEY_PREFS, {})
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY_PREFS) ?? "{}") as Record<string, NotificationPrefs>
+  } catch {
+    return {}
+  }
 }
 
 function savePrefs(prefs: Record<string, NotificationPrefs>) {
-  setJson(STORAGE_KEY_PREFS, prefs)
+  localStorage.setItem(STORAGE_KEY_PREFS, JSON.stringify(prefs))
 }
 
 function loadNotifications(): Notification[] {
-  return getJson<Notification[]>(STORAGE_KEY_HISTORY, [])
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY_HISTORY) ?? "[]") as Notification[]
+  } catch {
+    return []
+  }
 }
 
 function saveNotifications(notifications: Notification[]) {
-  setJson(STORAGE_KEY_HISTORY, notifications)
+  localStorage.setItem(STORAGE_KEY_HISTORY, JSON.stringify(notifications))
 }
 
 export function useNotificationPrefs(lockId?: string) {
@@ -263,14 +179,6 @@ export function scheduleUnlockReminder(lockId: string, unlockAt: number) {
   if (globalPrefs.browser === false) return
   const types = globalPrefs.types ?? getDefaultPrefs()
 
-  // Persist the unlockAt timestamp into the per-lock prefs entry so that
-  // rearmAllReminders() can reconstruct timers after a page reload without
-  // needing to fetch the lock from the chain (issue #752).
-  const all = loadPrefs()
-  const existing = all[lockId] ?? { lockId, browser: true, types: getDefaultPrefs() }
-  all[lockId] = { ...existing, browser: true, unlockAt }
-  savePrefs(all)
-
   const now = Date.now()
   const oneDay = 24 * 60 * 60 * 1000
   const sevenDays = 7 * oneDay
@@ -294,31 +202,6 @@ export function scheduleUnlockReminder(lockId: string, unlockAt: number) {
         })
       }, delay)
     }
-  }
-}
-
-interface WebhookPayload {
-/**
- * Re-arm unlock reminder timers for every lock that has browser notifications
- * enabled in stored prefs. Call once on app bootstrap so reminders survive
- * tab closes and page reloads (issue #752).
- *
- * Only locks whose stored `unlockAt` is still in the future are re-armed;
- * already-elapsed entries are silently skipped.
- */
-export function rearmAllReminders(): void {
-  if (typeof Notification === "undefined" || Notification.permission !== "granted") return
-
-  const all = loadPrefs()
-  for (const [key, prefs] of Object.entries(all)) {
-    // Skip the global settings entry and any lock entries without browser
-    // notifications enabled or without a persisted unlock timestamp.
-    if (key === "global") continue
-    if (!prefs.browser) continue
-    if (typeof prefs.unlockAt !== "number") continue
-    if (prefs.unlockAt <= Date.now()) continue
-
-    scheduleUnlockReminder(key, prefs.unlockAt)
   }
 }
 
@@ -393,15 +276,15 @@ export function addNotification(notif: Omit<Notification, "id" | "timestamp" | "
   return created
 }
 
-function markNotificationAsRead(id: string) {
+export function markNotificationAsRead(id: string) {
   setNotificationStore(notificationStore.map((n) => (n.id === id ? { ...n, read: true } : n)))
 }
 
-function markAllNotificationsAsRead() {
+export function markAllNotificationsAsRead() {
   setNotificationStore(notificationStore.map((n) => ({ ...n, read: true })))
 }
 
-function clearNotificationHistory() {
+export function clearNotificationHistory() {
   setNotificationStore([])
 }
 

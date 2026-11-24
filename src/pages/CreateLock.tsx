@@ -20,8 +20,11 @@ export function CreateLock() {
   return (
     <div className="mx-auto max-w-xl px-4 py-10">
       <Helmet>
-        <title>{t("createLock.pageTitle")}</title>
-        <meta name="description" content={t("createLock.pageDescription")} />
+        <title>Create a Lock | StellarLock</title>
+        <meta
+          name="description"
+          content="Lock tokens or LP positions in an immutable Soroban smart contract on Stellar."
+        />
       </Helmet>
       <div className="mb-6 text-center">
         <h1 className="text-2xl font-bold tracking-tight">{t("createLock.title")}</h1>

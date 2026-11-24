@@ -10,9 +10,7 @@
     "dismiss": "关闭",
     "you": "你",
     "stellar": "Stellar",
-    "skipToContent": "跳转到主要内容",
-    "pause": "暂停",
-    "resume": "继续"
+    "skipToContent": "跳转到主要内容"
   },
   "nav": {
     "createLock": "创建锁定",
@@ -23,9 +21,7 @@
     "openMenu": "打开菜单",
     "closeMenu": "关闭菜单",
     "history": "历史",
-    "analytics": "分析",
-    "mainNavigation": "主导航",
-    "mobileNavigation": "移动端导航"
+    "analytics": "分析"
   },
   "landing": {
     "badge": "基于 Stellar 构建 · Soroban 智能合约",
@@ -57,9 +53,7 @@
     "ctaTitle": "一笔交易赢得社区信任",
     "ctaDesc": "锁定你的流动性，分享证明，让链来说话。",
     "ctaButton": "创建你的第一个锁定",
-    "step": "步骤 {{n}}",
-    "pageTitle": "StellarLock — Stellar 上的代币与 LP 锁定",
-    "pageDescription": "在 Stellar 上锁定代币和流动性。通过公开、可验证的锁定浏览器向你的社区证明你没有跑路。"
+    "step": "步骤 {{n}}"
   },
   "createLock": {
     "title": "创建锁定",
@@ -67,9 +61,7 @@
     "modeSimple": "简单",
     "modeWizard": "向导",
     "tabToken": "代币锁定",
-    "tabLp": "LP 锁定",
-    "pageTitle": "创建锁定 | StellarLock",
-    "pageDescription": "在 Stellar 上的不可变 Soroban 智能合约中锁定代币或 LP 仓位。"
+    "tabLp": "LP 锁定"
   },
   "tokenForm": {
     "tokenAddress": "代币合约地址",
@@ -105,11 +97,10 @@
     "metadataTitle": "项目信息（可选）",
     "metadataDesc": "显示在锁定的详细页面和浏览器上，以便社区验证谁锁定了此项目。",
     "description": "描述",
-    "descriptionPlaceholder": "为何创建此锁定？（例如：团队代币锁定 2 年）",
+    "descriptionPlaceholder": "这个锁定是为了什么？",
     "projectUrl": "项目网址",
     "logoUrl": "Logo 网址",
-    "approving": "授权中…",
-    "openAddressBook": "打开地址簿"
+    "approving": "授权中…"
   },
   "lpForm": {
     "dex": "DEX",
@@ -134,13 +125,7 @@
     "insufficientBalance": "余额不足。你有 {{balance}}，但需要 {{amount}}。",
     "needsApproval": "在锁定之前，你需要授权合约转移你的 LP 代币。",
     "approveAndContinue": "授权并继续",
-    "approving": "授权中…",
-    "openAddressBook": "打开地址簿",
-    "beneficiaryHint": "留空则使用已连接的钱包作为受益人。",
-    "description": "描述",
-    "descriptionPlaceholder": "为何创建此锁定？（例如：流动性锁定 2 年）",
-    "projectUrl": "项目网址",
-    "logoUrl": "Logo 网址"
+    "approving": "授权中…"
   },
   "myLocks": {
     "title": "我的锁定",
@@ -158,39 +143,11 @@
     "noLocksCreatedDesc": "创建你的第一个锁定，证明你的代币或流动性是安全的。",
     "noBeneficiary": "没有你作为受益人的锁定",
     "noBeneficiaryDesc": "其他人为你创建的锁定将显示在这里。",
-    "createLock": "创建锁定",
-    "viewMode": "视图模式",
-    "cardView": "卡片视图",
-    "tableView": "表格视图",
-    "searchPlaceholder": "按代币符号或锁定 ID 搜索…",
-    "filterByStatus": "按状态筛选",
-    "filterByType": "按类型筛选",
-    "allStatuses": "所有状态",
-    "statusLocked": "已锁定",
-    "statusUnlockable": "可解锁",
-    "statusWithdrawn": "已提取",
-    "allTypes": "所有类型",
-    "typeToken": "代币",
-    "typeLp": "LP",
-    "sortUnlockDate": "排序：解锁日期",
-    "sortAmount": "排序：数量",
-    "sortCreated": "排序：创建时间",
-    "clearFilters": "清除筛选",
-    "exportCsv": "导出 CSV",
-    "noResults": "没有符合筛选条件的锁定",
-    "noResultsDesc": "请尝试调整搜索或筛选条件。",
-    "selectedCount": "已选择 {{count}} 项",
-    "bulkWithdraw": "批量提取",
-    "bulkExtend": "批量延长",
-    "selectAll": "全选",
-    "deselectAll": "取消全选"
-    "pageTitle": "我的锁定 | StellarLock",
-    "pageDescription": "管理和提取你在 StellarLock 上锁定的代币和 LP 仓位。"
+    "createLock": "创建锁定"
   },
   "lockDetail": {
     "notFoundTitle": "锁定未找到",
     "notFoundDesc": "找不到 id 为 #{{id}} 的锁定。",
-    "archivedNotice": "该锁定早已被提取，其链上实时记录已过期。以上详情来自锁定索引器的归档记录。",
     "backToLocks": "返回我的锁定",
     "lpLock": "LP 锁定",
     "tokenLock": "代币锁定",
@@ -207,7 +164,6 @@
     "extendLock": "延长锁定",
     "newUnlockDate": "新解锁日期",
     "extendHint": "必须晚于当前解锁日期。锁定只能延长，不能缩短。",
-    "extendDateMustBeAfter": "必须晚于当前解锁日期（{{date}}）。",
     "confirmExtension": "确认延长",
     "transferBeneficiary": "转移受益人",
     "newBeneficiary": "新受益人地址",
@@ -217,36 +173,7 @@
     "viewExplorer": "查看代币浏览器",
     "extendSuccess": "锁定已延长。",
     "transferSuccess": "受益人已转移。",
-    "withdrawSuccess": "提取已确认。",
-    "shareViaQr": "通过二维码分享",
-    "downloadReport": "下载锁定报告",
-    "vestingSchedule": "归属计划",
-    "vestingLinear": "线性",
-    "vestingStart": "归属开始",
-    "vestingEnd": "归属结束",
-    "vestingProgress": "进度",
-    "vestingTotal": "总计",
-    "vestingReleased": "已释放",
-    "lockDetails": "锁定详情",
-    "projectLogoAlt": "项目 Logo",
-    "copyLockId": "复制锁定 ID",
-    "copyLink": "复制链接",
-    "linkCopied": "链接已复制",
-    "withdrawUnavailable": "尚未到达解锁日期。",
-    "withdrawPending": "正在提取…",
-    "extendPending": "正在延长…",
-    "transferPending": "正在转移…",
-    "vestingNotStarted": "归属尚未开始。",
-    "vestingComplete": "归属已完成。",
-    "viewOnStellarExpert": "在 Stellar Expert 上查看",
-    "transactionHistory": "交易历史",
-    "noTransactions": "此锁定暂无交易。",
-    "lockedBy": "锁定者",
-    "unlockCountdown": "解锁倒计时",
-    "statusLabel": "状态",
-    "typeLabel": "类型"
-    "pageTitle": "锁定 #{{id}} — {{amount}} {{symbol}} 锁定至 {{date}} | StellarLock",
-    "pageDescription": "锁定 #{{id}}：{{amount}} {{symbol}} 在 StellarLock 上锁定至 {{date}}。"
+    "withdrawSuccess": "提取已确认。"
   },
   "explorer": {
     "backToSearch": "返回搜索",
@@ -265,16 +192,7 @@
     "allLocks": "所有锁定 ({{count}})",
     "noLocksTitle": "未找到锁定",
     "noLocksDesc": "未找到 <1>{{query}}</1> 的任何锁定。请检查代币符号或合约地址，或为此代币创建第一个锁定。",
-    "createLock": "创建锁定",
-    "badge": {
-      "title": "已通过 StellarLock 锁定",
-      "summary": "{{count}} 个活跃锁定 · 已锁定 {{value}}",
-      "summary_other": "{{count}} 个活跃锁定 · 已锁定 {{value}}",
-      "copyUrl": "复制分享链接",
-      "copyBadge": "复制 README 徽章"
-    },
-    "pageTitle": "{{symbol}} 流动性锁定 | StellarLock",
-    "pageDescription": "StellarLock 上 {{activeLocks}} 个活跃锁定中共锁定了 {{amount}} {{symbol}}。"
+    "createLock": "创建锁定"
   },
   "discover": {
     "title": "浏览锁定",
@@ -289,9 +207,7 @@
     "noLocks": "未找到此代币的锁定。",
     "recentActivity": "近期活动",
     "noRecentActivity": "暂无近期活动。",
-    "searchHint": "按代币符号或合约地址搜索特定锁定。",
-    "pageTitle": "浏览锁定 | StellarLock",
-    "pageDescription": "浏览 StellarLock 上的所有代币和 LP 锁定。发现最近创建的锁定、即将到来的解锁和受保护的代币。"
+    "searchHint": "按代币符号或合约地址搜索特定锁定。"
   },
   "search": {
     "placeholder": "通过符号或合约地址搜索代币…",
@@ -386,9 +302,7 @@
     "statusPending": "待处理",
     "statusSuccess": "成功",
     "statusFailed": "失败",
-    "cleanupNote": "超过 90 天的交易将自动删除。",
-    "pageTitle": "交易历史 | StellarLock",
-    "pageDescription": "查看你的 StellarLock 交易历史。"
+    "cleanupNote": "超过 90 天的交易将自动删除。"
   },
   "splitLock": {
     "toggle": "多受益人",
@@ -510,16 +424,6 @@
       "recovery": "请在允许范围内选择更早的日期。",
       "title": "延长时间过长"
     },
-    "lockDurationTooShort": {
-      "message": "解锁日期距当前时间过近。必须满足最小锁定时长要求。",
-      "recovery": "请选择至少在24小时后的解锁日期。",
-      "title": "锁定持续时间过短"
-    },
-    "extensionLimitExceeded": {
-      "message": "此锁定已达到允许的最大延长次数。",
-      "recovery": "无法对此锁定进行更多延长。",
-      "title": "已超出延长限制"
-    },
     "unlockTooSoon": {
       "message": "新的解锁日期必须比当前日期晚出足够的时间才能算作延长。",
       "recovery": "请选择一个更靠后的日期。",
@@ -554,51 +458,6 @@
       "title": "Identical Tokens",
       "message": "Token A and Token B must be different addresses.",
       "recovery": "Choose two distinct token addresses for your LP pair."
-    },
-    "notInitialized": {
-      "title": "合约未初始化",
-      "message": "该合约尚未初始化，也未设置管理员。",
-      "recovery": "请联系合约运营方完成部署初始化。"
-    },
-    "lockNotFound": {
-      "title": "未找到锁定",
-      "message": "未找到与此锁定 ID 匹配的锁定记录。",
-      "recovery": "请核对锁定 ID 和合约地址后重试。"
-    },
-    "contractPaused": {
-      "title": "合约已暂停",
-      "message": "管理员因维护或紧急情况已暂停该合约。",
-      "recovery": "请待合约恢复运行后再试。"
-    },
-    "vestingOutsideLockBounds": {
-      "title": "归属期窗口无效",
-      "message": "归属开始日期不能早于锁仓创建时间，开始和结束日期也不能晚于解锁日期。",
-      "recovery": "请选择一个介于锁仓创建日期和解锁日期之间的归属开始和结束日期。"
-    },
-    "duplicateBeneficiary": {
-      "title": "受益人重复",
-      "message": "在此拆分锁仓中，同一受益人地址被列出了多次。",
-      "recovery": "请删除重复项，确保每个受益人地址只出现一次。"
-    },
-    "alreadyInitialized": {
-      "title": "已初始化",
-      "message": "该合约已使用管理员地址完成初始化。",
-      "recovery": "无需操作——该合约在部署期间已完成设置。"
-    },
-    "invalidPoolTokens": {
-      "title": "资金池代币无效",
-      "message": "资金池合约自身的代币 A/B 地址与为此 LP 锁仓提供的代币地址不匹配。",
-      "recovery": "请仔细核对资金池份额地址及代币 A/B 地址，并确认它们属于同一个资金池。"
-    },
-    "noPendingUpgrade": {
-      "title": "没有待处理的升级",
-      "message": "没有待执行或取消的合约升级。",
-      "recovery": "请让合约管理员先提出升级提案。"
-    },
-    "timelockNotElapsed": {
-      "title": "升级时间锁尚未到期",
-      "message": "此次合约升级所需的强制等待期尚未结束。",
-      "recovery": "请等待升级的时间锁期限结束后再执行。"
     }
   },
   "notfound": {
@@ -607,9 +466,7 @@
     "goHome": "返回首页",
     "explore": "浏览锁定",
     "helpTitle": "需要帮助？",
-    "helpDesc": "查看我们的 <explorer>浏览器</explorer> 查找锁定或 <github>访问我们的 GitHub</github>。",
-    "pageTitle": "找不到页面 — StellarLock",
-    "pageDescription": "你查找的页面不存在。"
+    "helpDesc": "查看我们的 <explorer>浏览器</explorer> 查找锁定或 <github>访问我们的 GitHub</github>。"
   },
   "countdown": {
     "unlocked": "已解锁",
@@ -629,198 +486,5 @@
     "title": "出了点问题",
     "message": "出了点问题。请重试。",
     "tryAgain": "重试"
-  },
-  "lockStatus": {
-    "locked": "已锁定",
-    "unlockable": "可解锁",
-    "withdrawn": "已提取",
-    "withdrawnArchived": "已提取（已归档）"
-  },
-  "lockCreated": {
-    "title": "锁定已创建 | StellarLock",
-    "description": "你的锁定已在 Stellar 上成功创建。",
-    "heading": "锁定创建成功！",
-    "subheading": "你的代币现已在链上锁定。",
-    "vestingActive": "归属计划已启用。",
-    "lockSummary": "锁定概览",
-    "lockId": "锁定 ID",
-    "copyLockId": "复制锁定 ID",
-    "type": "类型",
-    "lpLock": "LP 锁定",
-    "tokenLock": "代币锁定",
-    "token": "代币",
-    "amount": "数量",
-    "beneficiary": "受益人",
-    "creator": "创建者",
-    "unlockDate": "解锁日期",
-    "vesting": "归属",
-    "vestingEnabled": "已启用线性归属",
-    "createdAt": "创建时间",
-    "transactionDetails": "交易详情",
-    "txHash": "交易哈希",
-    "copyTxHash": "复制交易哈希",
-    "viewTxStellarExpert": "在 Stellar Expert 上查看交易",
-    "network": "网络",
-    "shareTitle": "分享此锁定",
-    "copyShareLink": "复制分享链接",
-    "viewLockDetail": "查看锁定详情",
-    "createAnother": "再创建一个锁定",
-    "copied": "{{label}} 已复制！"
-  },
-  "txProgress": {
-    "simulating": "正在模拟交易…",
-    "signing": "请在钱包中签名…",
-    "submitting": "正在提交到网络…",
-    "confirming": "正在等待确认…"
-  },
-  "onboardingTour": {
-    "tourAriaLabel": "StellarLock 新手引导",
-    "closeAriaLabel": "关闭引导",
-    "next": "下一步",
-    "previous": "上一步",
-    "finish": "完成",
-    "skip": "跳过引导",
-    "stepOf": "第 {{current}} 步，共 {{total}} 步",
-    "welcomeTitle": "欢迎使用 StellarLock",
-    "welcomeDesc": "让我们快速了解一下如何锁定代币和流动性。",
-    "createLockTitle": "创建锁定",
-    "createLockDesc": "选择代币或 LP 仓位，设置金额和解锁日期。",
-    "connectWalletTitle": "连接钱包",
-    "connectWalletDesc": "连接你的 Stellar 钱包以签署交易。",
-    "exploreTitle": "浏览锁定",
-    "exploreDesc": "查看并验证 StellarLock 上的任何公开锁定。",
-    "myLocksTitle": "管理锁定",
-    "myLocksDesc": "在一个地方跟踪、延长和提取你的锁定。"
-  },
-  "rpcStatus": {
-    "unreachable": "Stellar 网络无法访问。部分功能可能不可用…",
-    "slow": "网络连接缓慢。响应时间可能比平时更长。",
-    "unreachableIndicator": "网络不可访问",
-    "slowIndicator": "网络缓慢"
-  },
-  "qrCode": {
-    "shareAria": "通过二维码分享锁定",
-    "closeAria": "关闭二维码弹窗",
-    "copyUrlAria": "复制链接到剪贴板",
-    "downloadAria": "下载二维码为 PNG",
-    "copied": "已复制！",
-    "copyUrl": "复制链接",
-    "downloadPng": "下载 PNG",
-    "scanHint": "扫描此二维码以查看锁定。"
-  },
-  "keyboardShortcuts": {
-    "title": "键盘快捷键",
-    "closeAria": "关闭",
-    "actions": {
-      "openShortcuts": "打开键盘快捷键",
-      "closeModal": "关闭弹窗",
-      "search": "聚焦搜索",
-      "createLock": "创建锁定",
-      "myLocks": "前往我的锁定",
-      "explore": "前往浏览",
-      "history": "前往历史",
-      "analytics": "前往分析",
-      "settings": "前往设置",
-      "toggleTheme": "切换主题",
-      "nextPage": "下一页",
-      "prevPage": "上一页"
-    }
-  },
-  "health": {
-    "monitoring": "监控中",
-    "systemHealth": "系统健康",
-    "checkingDependencies": "正在检查依赖…",
-    "statusHealthy": "健康",
-    "statusUnhealthy": "异常",
-    "statusChecking": "检查中",
-    "environmentLabel": "环境",
-    "networkLabel": "网络",
-    "healthCheckFailed": "健康检查失败。",
-    "unreachable": "无法访问",
-    "extensionAvailable": "扩展可用",
-    "extensionNotDetected": "未检测到扩展"
-  },
-  "verifiedBadge": {
-    "verifiedTooltip": "已验证代币 — 已列入 StellarLock 社区白名单",
-    "unverifiedTooltip": "未验证代币 — 不在社区白名单中。请谨慎操作。",
-    "verified": "已验证",
-    "unverified": "未验证"
-  },
-  "addressBook": {
-    "title": "地址簿",
-    "close": "关闭地址簿",
-    "searchPlaceholder": "搜索地址…",
-    "export": "导出地址簿",
-    "import": "导入地址簿",
-    "add": "添加地址",
-    "label": "标签",
-    "stellarAddress": "Stellar 地址",
-    "address": "地址",
-    "empty": "地址簿中还没有地址。",
-    "noResults": "没有匹配的地址。",
-    "save": "保存",
-    "cancel": "取消",
-    "delete": "删除",
-    "invalidAddress": "请输入有效的 Stellar 地址。",
-    "labelRequired": "请输入标签。",
-    "importError": "导入地址簿失败。请检查文件格式。",
-    "exportSuccess": "地址簿已导出。",
-    "importSuccess": "地址簿已导入。"
-  },
-  "tokenLockList": {
-    "amount": "数量",
-    "beneficiary": "受益人",
-    "unlockDate": "解锁日期",
-    "unlocksIn": "解锁倒计时",
-    "status": "状态",
-    "empty": "未找到此代币的锁定"
-  },
-  "notificationCenter": {
-    "title": "通知",
-    "markAllAsRead": "全部标记为已读",
-    "clearAll": "清除全部",
-    "empty": "暂无通知",
-    "emptyDesc": "当你的锁定发生事件时，你会在这里看到通知。",
-    "unreadCount": "{{count}} 条未读",
-    "markAsRead": "标记为已读",
-    "viewAll": "查看全部通知",
-    "filterAll": "全部",
-    "filterUnread": "未读",
-    "filterRead": "已读"
-  },
-  "confirmLockModal": {
-    "review": "签名前请核对详情。",
-    "invalidUnlockDate": "解锁日期无效。",
-    "insufficientBalance": "余额不足。",
-    "approvalRequired": "需要授权",
-    "title": "确认锁定",
-    "confirm": "确认并签名",
-    "cancel": "取消",
-    "tokenAmount": "代币数量",
-    "unlockDateLabel": "解锁日期",
-    "beneficiaryLabel": "受益人",
-    "vestingEnabled": "已启用线性归属",
-    "networkFee": "网络费用",
-    "total": "合计"
-  },
-  "settings": {
-    "title": "设置",
-    "addressBook": "地址簿",
-    "newAddress": "新地址",
-    "notificationPreferences": "通知偏好",
-    "label": "标签",
-    "stellarAddress": "Stellar 地址",
-    "address": "地址",
-    "actions": "操作",
-    "exportJson": "导出为 JSON",
-    "importJson": "从 JSON 导入",
-    "searchPlaceholder": "按标签或地址搜索…"
-  },
-  "breadcrumb": {
-    "ariaLabel": "面包屑导航"
-  },
-  "lockTable": {
-    "select": "选择",
-    "actions": "操作"
   }
 }

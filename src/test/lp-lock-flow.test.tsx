@@ -4,7 +4,7 @@ import { screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { render } from "./utils"
 import { CreateLpLockForm } from "@/components/locks/CreateLpLockForm"
-import { mockWallet, VALID_CONTRACT_ADDRESS, VALID_CONTRACT_ADDRESS_B } from "./mocks"
+import { mockWallet, VALID_CONTRACT_ADDRESS } from "./mocks"
 
 const mockNavigate = vi.fn()
 
@@ -15,19 +15,23 @@ vi.mock("react-router-dom", async (importOriginal) => {
 
 vi.mock("@/hooks/useWallet", () => ({
   useWallet: () => mockWallet,
-}))
-
-vi.mock("@/hooks/WalletProvider", () => ({
   WalletProvider: ({ children }: { children: ReactNode }) => children,
 }))
 
 vi.mock("@/lib/lp-locker", () => ({
   createLpLock: vi.fn().mockResolvedValue({ id: "2", txHash: "mock-tx-hash" }),
+  submitTokenApproval: vi.fn().mockResolvedValue(undefined),
 }))
 
 vi.mock("@/hooks/useLocks", () => ({
   useTokenBalance: vi.fn(() => ({
     data: 1000,
+    loading: false,
+    error: null,
+    reload: vi.fn(),
+  })),
+  useTokenAllowance: vi.fn(() => ({
+    data: 10000,
     loading: false,
     error: null,
     reload: vi.fn(),
@@ -75,7 +79,7 @@ describe("LP Lock Creation Flow", () => {
     // Fill amount
     await user.type(screen.getByLabelText(/pool share token address/i), VALID_CONTRACT_ADDRESS)
     await user.type(screen.getByLabelText(/token a address/i), VALID_CONTRACT_ADDRESS)
-    await user.type(screen.getByLabelText(/token b address/i), VALID_CONTRACT_ADDRESS_B)
+    await user.type(screen.getByLabelText(/token b address/i), VALID_CONTRACT_ADDRESS)
     await user.type(screen.getByLabelText(/lp amount/i), "100")
 
     // Fill unlock date
@@ -132,7 +136,7 @@ describe("LP Lock Creation Flow", () => {
 
     await user.type(screen.getByLabelText(/pool share token address/i), VALID_CONTRACT_ADDRESS)
     await user.type(screen.getByLabelText(/token a address/i), VALID_CONTRACT_ADDRESS)
-    await user.type(screen.getByLabelText(/token b address/i), VALID_CONTRACT_ADDRESS_B)
+    await user.type(screen.getByLabelText(/token b address/i), VALID_CONTRACT_ADDRESS)
     await user.type(screen.getByLabelText(/lp amount/i), "100")
 
     const dateInput = screen.getByLabelText(/unlock date/i)
@@ -161,7 +165,7 @@ describe("LP Lock Creation Flow", () => {
 
     await user.type(screen.getByLabelText(/pool share token address/i), VALID_CONTRACT_ADDRESS)
     await user.type(screen.getByLabelText(/token a address/i), VALID_CONTRACT_ADDRESS)
-    await user.type(screen.getByLabelText(/token b address/i), VALID_CONTRACT_ADDRESS_B)
+    await user.type(screen.getByLabelText(/token b address/i), VALID_CONTRACT_ADDRESS)
     await user.type(screen.getByLabelText(/lp amount/i), "100")
 
     const dateInput = screen.getByLabelText(/unlock date/i)
@@ -191,7 +195,7 @@ describe("LP Lock Creation Flow", () => {
 
     await user.type(screen.getByLabelText(/pool share token address/i), VALID_CONTRACT_ADDRESS)
     await user.type(screen.getByLabelText(/token a address/i), VALID_CONTRACT_ADDRESS)
-    await user.type(screen.getByLabelText(/token b address/i), VALID_CONTRACT_ADDRESS_B)
+    await user.type(screen.getByLabelText(/token b address/i), VALID_CONTRACT_ADDRESS)
     await user.type(screen.getByLabelText(/lp amount/i), "100")
     await user.type(screen.getByLabelText(/beneficiary/i), OVERRIDE_BENEFICIARY)
 
@@ -228,7 +232,7 @@ describe("LP Lock Creation Flow", () => {
 
     await user.type(screen.getByLabelText(/pool share token address/i), VALID_CONTRACT_ADDRESS)
     await user.type(screen.getByLabelText(/token a address/i), VALID_CONTRACT_ADDRESS)
-    await user.type(screen.getByLabelText(/token b address/i), VALID_CONTRACT_ADDRESS_B)
+    await user.type(screen.getByLabelText(/token b address/i), VALID_CONTRACT_ADDRESS)
     await user.type(screen.getByLabelText(/lp amount/i), "100")
 
     const futureDate = new Date()
@@ -260,7 +264,7 @@ describe("LP Lock Creation Flow", () => {
 
     await user.type(screen.getByLabelText(/pool share token address/i), VALID_CONTRACT_ADDRESS)
     await user.type(screen.getByLabelText(/token a address/i), VALID_CONTRACT_ADDRESS)
-    await user.type(screen.getByLabelText(/token b address/i), VALID_CONTRACT_ADDRESS_B)
+    await user.type(screen.getByLabelText(/token b address/i), VALID_CONTRACT_ADDRESS)
     await user.type(screen.getByLabelText(/lp amount/i), "100")
 
     const dateInput = screen.getByLabelText(/unlock date/i)

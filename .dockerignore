@@ -43,4 +43,9 @@ playwright-report
 *.png
 *.jpg
 *.jpeg
-docs/screenshots/
+landing.png
+explorer.png
+mylocks.png
+detail.png
+create.png
+create-connected.png

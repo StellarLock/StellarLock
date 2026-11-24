@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom"
 import { ArrowRight, Repeat } from "lucide-react"
 import { useTranslation } from "react-i18next"
-import { lockKey, type Lock } from "@/types/lock"
+import type { Lock } from "@/types/lock"
 import { Card } from "@/components/ui/Card"
 import { TokenAvatar } from "@/components/ui/TokenAvatar"
 import { StatusBadge } from "@/components/ui/StatusBadge"
@@ -10,16 +10,14 @@ import { CountdownTimer } from "@/components/ui/CountdownTimer"
 import { LockProgressBar } from "@/components/ui/LockProgressBar"
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge"
 import { useVerifiedToken } from "@/hooks/useVerifiedToken"
-import { formatAmount, formatUsdValue, shortAddress } from "@/lib/utils"
+import { formatAmount, formatUsd, shortAddress } from "@/lib/utils"
 import { cn } from "@/lib/utils"
 
 interface LockCardProps {
   lock: Lock
   selectable?: boolean
   selected?: boolean
-  // Keyed by `${kind}:${id}` (see lockKey()) — bare ids collide across
-  // token-locker and LP-locker's independent id counters (#1081).
-  onSelect?: (key: string, checked: boolean) => void
+  onSelect?: (id: string, checked: boolean) => void
 }
 
 export function LockCard({ lock, selectable = false, selected = false, onSelect }: LockCardProps) {
@@ -41,7 +39,7 @@ export function LockCard({ lock, selectable = false, selected = false, onSelect 
               checked={selected}
               onChange={(e) => {
                 e.stopPropagation()
-                onSelect?.(lockKey(lock), e.target.checked)
+                onSelect?.(lock.id, e.target.checked)
               }}
               onClick={(e) => e.stopPropagation()}
               className="h-4 w-4 shrink-0 accent-[oklch(0.78_0.16_175)] cursor-pointer"
@@ -65,10 +63,8 @@ export function LockCard({ lock, selectable = false, selected = false, onSelect 
         <div>
           <p className="text-xs text-muted-foreground">{t("lockCard.lockedAmount")}</p>
           <p className="text-lg font-semibold tabular-nums">
-            {formatAmount(lock.amount, { compact: true })}{" "}
-            <span className="text-sm font-normal text-muted-foreground">
-              ({formatUsdValue(lock.token.address, lock.usdValue)})
-            </span>
+            {formatAmount(lock.amount, { compact: true, tokenDecimals: lock.token.decimals })}{" "}
+            <span className="text-sm font-normal text-muted-foreground">({formatUsd(lock.usdValue)})</span>
           </p>
         </div>
         <div className="text-end">
@@ -103,11 +99,11 @@ export function LockCard({ lock, selectable = false, selected = false, onSelect 
     return (
       <div
         className="group block cursor-pointer"
-        onClick={() => onSelect?.(lockKey(lock), !selected)}
+        onClick={() => onSelect?.(lock.id, !selected)}
         role="checkbox"
         aria-checked={selected}
         tabIndex={0}
-        onKeyDown={(e) => e.key === " " && onSelect?.(lockKey(lock), !selected)}
+        onKeyDown={(e) => e.key === " " && onSelect?.(lock.id, !selected)}
       >
         {inner}
       </div>

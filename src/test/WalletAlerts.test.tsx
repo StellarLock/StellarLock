@@ -7,9 +7,6 @@ import { mockWallet } from "./mocks"
 
 vi.mock("@/hooks/useWallet", () => ({
   useWallet: vi.fn(),
-}))
-
-vi.mock("@/hooks/WalletProvider", () => ({
   WalletProvider: ({ children }: { children: React.ReactNode }) => children,
 }))
 
@@ -44,7 +41,7 @@ describe("WalletAlerts Component", () => {
 
     expect(screen.queryByText("Wallet disconnected")).not.toBeInTheDocument()
     expect(screen.queryByText("Network changed")).not.toBeInTheDocument()
-    expect(screen.queryByRole("button", { name: /dismiss/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: /back/i })).not.toBeInTheDocument()
   })
 
   it("shows the disconnected alert when the wallet disconnects", () => {
@@ -106,7 +103,7 @@ describe("WalletAlerts Component", () => {
 
     render(<WalletAlerts />)
 
-    await user.click(screen.getByRole("button", { name: /dismiss/i }))
+    await user.click(screen.getByRole("button", { name: /back/i }))
 
     expect(dismissDisconnectAlert).toHaveBeenCalledOnce()
   })
@@ -125,7 +122,7 @@ describe("WalletAlerts Component", () => {
 
     render(<WalletAlerts />)
 
-    await user.click(screen.getByRole("button", { name: /dismiss/i }))
+    await user.click(screen.getByRole("button", { name: /back/i }))
 
     expect(dismissNetworkAlert).toHaveBeenCalledOnce()
   })

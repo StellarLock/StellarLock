@@ -2,9 +2,6 @@ import { vi } from "vitest"
 
 export const VALID_PUBLIC_KEY = "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF"
 export const VALID_CONTRACT_ADDRESS = "CBFCKEOQRQIXKLGU4QBUQVOINOKFBOXJ37LXEKLKNUO6TW4FNGDU26AW"
-// A second, distinct contract id for cases that need two different tokens
-// (e.g. LP token A/B, which must not be identical).
-export const VALID_CONTRACT_ADDRESS_B = "CA3WYETNIF5IAF3VUNQ3SYKZFV45TOFBF7CEZ46I7QEBPWTRM73WLEI4"
 
 export const mockWallet = {
   address: VALID_PUBLIC_KEY,
@@ -15,7 +12,6 @@ export const mockWallet = {
   signTransaction: vi.fn().mockResolvedValue({
     signedTxXdr: "AAAAAgAAAAB7D4kmWHhYN8LD0gCTiROgXqrwOlZqvGH7JcYYvEL8AAAAZAA4IjAAAAABAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAA",
   }),
-  signMessage: vi.fn().mockResolvedValue("c2lnbmF0dXJl"),
 }
 
 export const mockLock = {
@@ -43,4 +39,35 @@ export const mockLpLock = {
   kind: "lp" as const,
   dex: "aquarius" as const,
   poolPair: [VALID_CONTRACT_ADDRESS, "native"] as [string, string],
+}
+
+export function mockFetch(responses: Record<string, Response>) {
+  return vi.fn((url: string) => {
+    const key = Object.keys(responses).find((k) => url.includes(k))
+    if (key) {
+      return Promise.resolve(responses[key])
+    }
+    return Promise.reject(new Error(`No mock for ${url}`))
+  })
+}
+
+export function mockSuccessResponse(data: unknown) {
+  return new Response(JSON.stringify(data), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  })
+}
+
+export function mockErrorResponse(status = 500) {
+  return new Response(null, { status })
+}
+
+export const mockRpcResponse = {
+  getLedger: () => mockSuccessResponse({ ledger_sequence: 12345 }),
+  getBalance: () => mockSuccessResponse({ amount: "1000.0000000" }),
+  submitTransaction: () => mockSuccessResponse({ hash: "abc123" }),
+  getContractData: () =>
+    mockSuccessResponse({
+      xdr: "AAAAAgo=",
+    }),
 }

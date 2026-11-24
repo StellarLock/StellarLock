@@ -1,5 +1,5 @@
 [workspace]
-members = ["token-locker", "lp-locker", "locker-common"]
+members = ["token-locker", "lp-locker"]
 resolver = "2"
 
 [workspace.dependencies]

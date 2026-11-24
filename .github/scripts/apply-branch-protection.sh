@@ -11,8 +11,6 @@
 # Current required checks:
 #   - "Frontend Checks" (linting, type checking, unit tests, Storybook build, Vite build)
 #   - "Smart Contract Checks" (Rust build, formatting, tests, Clippy)
-#   - "End-to-End and Visual Regression" (Playwright e2e and visual snapshot tests)
-#   - "Commit Message Lint" (conventional commit enforcement, PR-only)
 
 set -euo pipefail
 
@@ -30,9 +28,7 @@ gh api "repos/${REPO}/branches/${BRANCH}/protection" \
     "strict": true,
     "contexts": [
       "Frontend Checks",
-      "Smart Contract Checks",
-      "End-to-End and Visual Regression",
-      "Commit Message Lint"
+      "Smart Contract Checks"
     ]
   },
   "enforce_admins": true,

@@ -7,9 +7,6 @@ import { mockWallet } from "./mocks"
 
 vi.mock("@/hooks/useWallet", () => ({
   useWallet: vi.fn(),
-}))
-
-vi.mock("@/hooks/WalletProvider", () => ({
   WalletProvider: ({ children }: { children: React.ReactNode }) => children,
 }))
 

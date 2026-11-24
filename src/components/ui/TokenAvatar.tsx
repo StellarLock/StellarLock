@@ -43,17 +43,9 @@ export function TokenAvatar({
 
   useEffect(() => {
     if (!contractId) return
-    let active = true
     getTokenMetadata(contractId)
-      .then((data) => {
-        if (active) setMetadata(data)
-      })
-      .catch(() => {
-        if (active) setMetadata(null)
-      })
-    return () => {
-      active = false
-    }
+      .then(setMetadata)
+      .catch(() => setMetadata(null))
   }, [contractId])
 
   const hasLogo = metadata?.logo && !imageError

@@ -5,11 +5,6 @@ import { useState, useEffect, useRef } from "react"
 
 const languages = [
   { code: "en", label: "English" },
-  { code: "es", label: "Español" },
-  { code: "ko", label: "한국어" },
-  { code: "tr", label: "Türkçe" },
-  { code: "zh", label: "中文" },
-  { code: "ar", label: "العربية" },
 ]
 
 export function LanguageSelector() {

@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from "@storybook/react"
-import { fn } from "@storybook/test"
 import type { Lock } from "@/types/lock"
 import { LockCard } from "./LockCard"
 import { BrowserRouter } from "react-router-dom"
@@ -135,7 +134,7 @@ export const Selectable: Story = {
     lock: tokenLockLocked,
     selectable: true,
     selected: false,
-    onSelect: fn(),
+    onSelect: (id, checked) => console.log(`Lock ${id} selected: ${checked}`),
   },
 }
 
@@ -144,6 +143,6 @@ export const SelectableSelected: Story = {
     lock: tokenLockLocked,
     selectable: true,
     selected: true,
-    onSelect: fn(),
+    onSelect: (id, checked) => console.log(`Lock ${id} selected: ${checked}`),
   },
 }

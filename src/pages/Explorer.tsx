@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react"
 import { useParams, Link } from "react-router-dom"
-import { Lock, Coins, CalendarClock, PieChart, ShieldCheck, ShieldAlert, ArrowLeft, ExternalLink, SearchX } from "lucide-react"
+import { Lock, Coins, CalendarClock, PieChart, ShieldCheck, ArrowLeft, ExternalLink, SearchX } from "lucide-react"
 import { Helmet } from "react-helmet-async"
 import { Trans, useTranslation } from "react-i18next"
 import { useLocksByToken, useLockCountByToken } from "@/hooks/useLocks"
-import { useVerifiedPool } from "@/hooks/useVerifiedPool"
 import { TokenAvatar } from "@/components/ui/TokenAvatar"
 import { StatCard } from "@/components/ui/StatCard"
 import { Button } from "@/components/ui/Button"
@@ -31,22 +30,15 @@ export function Explorer() {
 
   const { data, loading, error } = useLocksByToken(token, (page - 1) * PAGE_SIZE, PAGE_SIZE)
   const { data: totalCount } = useLockCountByToken(token)
-  const isLpPool = Boolean(data?.locks.some((l) => l.poolShare))
-  const { data: poolVerification } = useVerifiedPool(isLpPool ? token : undefined)
-  const showUnverifiedPool = isLpPool && poolVerification?.verified === false
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
       {data && (
         <Helmet>
-          <title>{t("explorer.pageTitle", { symbol: data.token.symbol })}</title>
+          <title>{data.token.symbol} Liquidity Locks | StellarLock</title>
           <meta
             name="description"
-            content={t("explorer.pageDescription", {
-              amount: formatAmount(data.totalLocked),
-              symbol: data.token.symbol,
-              activeLocks: data.activeLocks,
-            })}
+            content={`${formatAmount(data.totalLocked, { tokenDecimals: data.token.decimals, tokenDecimals: data.token.decimals })} ${data.token.symbol} locked across ${data.activeLocks} active locks on StellarLock.`}
           />
         </Helmet>
       )}
@@ -100,21 +92,11 @@ export function Explorer() {
             </div>
           </div>
 
-          {showUnverifiedPool && (
-            <div className="flex items-start gap-3 rounded-xl border border-warning/40 bg-warning/10 px-4 py-3">
-              <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-warning" />
-              <div className="leading-tight">
-                <p className="text-sm font-semibold text-warning">{t("explorer.unverifiedPoolTitle")}</p>
-                <p className="text-xs text-muted-foreground">{t("explorer.unverifiedPoolWarning")}</p>
-              </div>
-            </div>
-          )}
-
           {/* Stats */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard
               label={t("explorer.totalLocked")}
-              value={formatAmount(data.totalLocked, { compact: true })}
+              value={formatAmount(data.totalLocked, { tokenDecimals: data.token.decimals, compact: true })}
               hint={t("explorer.acrossAllLocks", { symbol: data.token.symbol })}
               icon={<Coins className="h-4 w-4" />}
             />

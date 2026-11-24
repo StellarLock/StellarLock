@@ -7,7 +7,7 @@ import type { Dex } from "@/types/lock"
 import { Input, Label } from "@/components/ui/Input"
 import { Button } from "@/components/ui/Button"
 import { TxProgressSteps } from "@/components/ui/TxProgressSteps"
-import { cn, formatDate, notify } from "@/lib/utils"
+import { cn, formatDate, notify, parseUnits } from "@/lib/utils"
 import { isValidStellarAddress } from "@/lib/stellar-address"
 import { validateLpLockForm, type FieldKey } from "@/lib/validation/lockFormValidation"
 import { FormValidationErrors } from "@/components/locks/FormValidationErrors"
@@ -16,8 +16,8 @@ import type { StructuredError } from "@/lib/errors"
 import { TxErrorAlert } from "@/components/ui/TxErrorAlert"
 import { useAnnouncer } from "@/hooks/useAnnouncer"
 import { useWallet } from "@/hooks/useWallet"
-import { useTokenBalance } from "@/hooks/useLocks"
-import { createLpLock } from "@/lib/lp-locker"
+import { useTokenBalance, useTokenAllowance } from "@/hooks/useLocks"
+import { createLpLock, submitTokenApproval } from "@/lib/lp-locker"
 import { CONTRACTS, type TxPhase } from "@/lib/stellar"
 import { trackEvent } from "@/lib/analytics"
 import { addTransaction } from "@/lib/transaction-history"
@@ -28,6 +28,8 @@ import { BookUser } from "lucide-react"
 import { createLogger } from "@/lib/logger"
 import { useDraftAutoSave } from "@/hooks/useDraftStorage"
 import { addNotification } from "@/hooks/useNotifications"
+import { useEffect } from "react"
+import { getOnChainTokenMeta } from "@/lib/token-metadata"
 
 const log = createLogger("CreateLpLockForm")
 
@@ -46,6 +48,7 @@ export function CreateLpLockForm() {
   const [amount, setAmount] = useState("")
   const [unlockDate, setUnlockDate] = useState("")
   const [submitting, setSubmitting] = useState(false)
+  const [approving, setApproving] = useState(false)
   const [txPhase, setTxPhase] = useState<TxPhase | "idle">("idle")
   const [showConfirm, setShowConfirm] = useState(false)
   const [error, setError] = useState<StructuredError | null>(null)
@@ -55,6 +58,9 @@ export function CreateLpLockForm() {
   const [logoUrl, setLogoUrl] = useState("")
   const [beneficiaryOverride, setBeneficiaryOverride] = useState("")
   const [addressBookOpen, setAddressBookOpen] = useState(false)
+  // Pool-share token's on-chain decimals — fetched once per valid address so costArgs
+  // uses the correct scale factor instead of the hardcoded 1e7 (#1061).
+  const [poolShareDecimals, setPoolShareDecimals] = useState<number>(7)
 
   useDraftAutoSave("lp", {
     poolShareAddress,
@@ -63,6 +69,13 @@ export function CreateLpLockForm() {
     amount,
     unlockDate,
   })
+
+  // Fetch pool-share token decimals once per valid address.
+  const validPoolShareForDecimals = poolShareAddress.trim().length > 4 ? poolShareAddress.trim() : undefined
+  useEffect(() => {
+    if (!validPoolShareForDecimals) { setPoolShareDecimals(7); return }
+    void getOnChainTokenMeta(validPoolShareForDecimals).then((m) => setPoolShareDecimals(m?.decimals ?? 7))
+  }, [validPoolShareForDecimals])
 
   const dexes: { value: Dex; label: string; desc: string }[] = [
     { value: "aquarius", label: t("lpForm.aquarius"), desc: t("lpForm.aquariusDesc") },
@@ -89,6 +102,9 @@ export function CreateLpLockForm() {
   // Single source of truth for this form's validity — the same module backs
   // CreateTokenLockForm, so the two forms can't drift apart. Memoized because
   // FormValidationErrors keys its screen-reader announcement off the result.
+  //
+  // `allowance` is deliberately not passed: a low allowance is recoverable from
+  // the confirm modal's Approve button, so it must not block reaching it.
   const validation = useMemo(
     () =>
       validateLpLockForm({
@@ -119,6 +135,11 @@ export function CreateLpLockForm() {
 
   const validPoolShareAddress = hasIssue("poolShareAddress") ? undefined : trimmedPoolShareAddress
   const { data: balance, loading: balanceLoading } = useTokenBalance(validPoolShareAddress, address ?? null)
+  const { data: allowance, loading: allowanceLoading } = useTokenAllowance(
+    validPoolShareAddress,
+    address ?? null,
+    CONTRACTS.lpLocker,
+  )
   // Build the contract args for cost estimation when form is sufficiently filled in
   const costArgs = useMemo((): xdr.ScVal[] | null => {
     try {
@@ -132,7 +153,8 @@ export function CreateLpLockForm() {
       ) {
         return null
       }
-      const amountStroops = BigInt(Math.round(Number(amount) * 1e7))
+      // Use the same decimals-aware encoding as the submit path (#1061)
+      const amountStroops = parseUnits(amount, poolShareDecimals)
       const dexScVal = xdr.ScVal.scvVec([xdr.ScVal.scvSymbol(dex === "aquarius" ? "Aquarius" : "Soroswap")])
       return [
         new Address(address).toScVal(),
@@ -147,7 +169,7 @@ export function CreateLpLockForm() {
     } catch {
       return null
     }
-  }, [address, dex, poolShareAddress, tokenA, tokenB, amount, unlockTs, effectiveBeneficiary])
+  }, [address, dex, poolShareAddress, tokenA, tokenB, amount, unlockTs, effectiveBeneficiary, poolShareDecimals])
 
   function applyPreset(days: number) {
     setUnlockDate(new Date(Date.now() + days * DAY).toISOString().slice(0, 10))
@@ -156,7 +178,7 @@ export function CreateLpLockForm() {
   // Sanitize before display so raw RPC/Soroban text never reaches the UI, and
   // announce the failure for screen readers.
   function reportFailure(err: unknown) {
-    const structured = sanitizeError(err, "lp-locker")
+    const structured = sanitizeError(err)
     setError(structured)
     announce(`${t(structured.title)}. ${t(structured.message)}`, "assertive")
   }
@@ -209,6 +231,26 @@ export function CreateLpLockForm() {
     } finally {
       setSubmitting(false)
       setTxPhase("idle")
+    }
+  }
+
+  async function handleApprove() {
+    setApproving(true)
+    try {
+      await submitTokenApproval(
+        poolShareAddress.trim(),
+        address!,
+        CONTRACTS.lpLocker,
+        Number(amount),
+        address!,
+        signTransaction,
+      )
+      trackEvent("token_approve")
+    } catch (err: unknown) {
+      log.error("[approve error]", err)
+      reportFailure(err)
+    } finally {
+      setApproving(false)
     }
   }
 
@@ -311,7 +353,7 @@ export function CreateLpLockForm() {
           </div>
           {validPoolShareAddress && (
             <span className="flex items-center gap-1 text-xs text-muted-foreground">
-              {balanceLoading ? (
+              {balanceLoading || allowanceLoading ? (
                 <Loader2 className="h-3 w-3 animate-spin" />
               ) : balance != null ? (
                 <>Balance: {balance.toLocaleString(undefined, { maximumFractionDigits: 7 })}</>
@@ -329,7 +371,7 @@ export function CreateLpLockForm() {
               type="button"
               onClick={() => setAddressBookOpen(true)}
               className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-              title={t("lpForm.openAddressBook")}
+              title="Open address book"
             >
               <BookUser className="h-3.5 w-3.5" />
               Address Book
@@ -342,7 +384,7 @@ export function CreateLpLockForm() {
             onChange={(e) => setBeneficiaryOverride(e.target.value)}
             className={beneficiaryOverride && !isValidStellarAddress(beneficiaryOverride) ? "border-destructive" : ""}
           />
-          <p className="text-xs text-muted-foreground">{t("lpForm.beneficiaryHint")}</p>
+          <p className="text-xs text-muted-foreground">Leave blank to use your connected wallet as beneficiary.</p>
         </div>
         {addressBookOpen && (
           <AddressBookModal
@@ -395,12 +437,12 @@ export function CreateLpLockForm() {
           {metaOpen && (
             <div className="flex flex-col gap-4 border-t border-border px-4 pb-4 pt-3">
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="lp-meta-desc">{t("lpForm.description")}</Label>
+                <Label htmlFor="lp-meta-desc">Description</Label>
                 <textarea
                   id="lp-meta-desc"
                   rows={3}
                   maxLength={280}
-                  placeholder={t("lpForm.descriptionPlaceholder")}
+                  placeholder="Why is this lock being created? (e.g. Liquidity locked for 2 years)"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
@@ -408,7 +450,7 @@ export function CreateLpLockForm() {
                 <p className="text-end text-xs text-muted-foreground">{description.length}/280</p>
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="lp-meta-url">{t("lpForm.projectUrl")}</Label>
+                <Label htmlFor="lp-meta-url">Project URL</Label>
                 <Input
                   id="lp-meta-url"
                   type="url"
@@ -418,7 +460,7 @@ export function CreateLpLockForm() {
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="lp-meta-logo">{t("lpForm.logoUrl")}</Label>
+                <Label htmlFor="lp-meta-logo">Logo URL</Label>
                 <Input
                   id="lp-meta-logo"
                   type="url"
@@ -474,10 +516,14 @@ export function CreateLpLockForm() {
               dex: dex,
               poolShareAddress: poolShareAddress.trim(),
               balance,
+              allowance,
+              needsApproval: allowance != null && allowance < Number(amount),
             }}
             onConfirm={() => void confirmLock()}
+            onApprove={() => void handleApprove()}
             onCancel={() => setShowConfirm(false)}
             loading={submitting}
+            approving={approving}
           />
           <div className="fixed bottom-6 left-1/2 z-50 w-full max-w-sm -translate-x-1/2 px-4">
             <TxProgressSteps phase={txPhase} />

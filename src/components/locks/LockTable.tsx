@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom"
 import { ArrowRight, Repeat } from "lucide-react"
 import { useTranslation } from "react-i18next"
-import { lockKey, type Lock } from "@/types/lock"
+import type { Lock } from "@/types/lock"
 import { Card } from "@/components/ui/Card"
 import { StatusBadge } from "@/components/ui/StatusBadge"
 import { DexBadge } from "@/components/ui/DexBadge"
@@ -9,16 +9,14 @@ import { CountdownTimer } from "@/components/ui/CountdownTimer"
 import { TokenAvatar } from "@/components/ui/TokenAvatar"
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge"
 import { useVerifiedToken } from "@/hooks/useVerifiedToken"
-import { formatAmount, formatDate, formatUsdValue, shortAddress, cn } from "@/lib/utils"
+import { formatAmount, formatDate, formatUsd, shortAddress, cn } from "@/lib/utils"
 import { CopyButton } from "@/components/ui/CopyButton"
 
 interface LockTableRowProps {
   lock: Lock
   selectable: boolean
   selected: boolean
-  // Keyed by `${kind}:${id}` (see lockKey()) — bare ids collide across
-  // token-locker and LP-locker's independent id counters (#1081).
-  onSelect: (key: string, checked: boolean) => void
+  onSelect: (id: string, checked: boolean) => void
 }
 
 function LockTableRow({ lock, selectable, selected, onSelect }: LockTableRowProps) {
@@ -32,10 +30,10 @@ function LockTableRow({ lock, selectable, selected, onSelect }: LockTableRowProp
         selected ? "bg-primary/5" : "hover:bg-secondary/40",
         selectable && "cursor-pointer",
       )}
-      onClick={selectable ? () => onSelect(lockKey(lock), !selected) : undefined}
+      onClick={selectable ? () => onSelect(lock.id, !selected) : undefined}
       aria-selected={selectable ? selected : undefined}
       tabIndex={selectable ? 0 : undefined}
-      onKeyDown={selectable ? (e) => e.key === " " && onSelect(lockKey(lock), !selected) : undefined}
+      onKeyDown={selectable ? (e) => e.key === " " && onSelect(lock.id, !selected) : undefined}
     >
       {selectable && (
         <td className="w-10 px-4 py-3.5">
@@ -44,7 +42,7 @@ function LockTableRow({ lock, selectable, selected, onSelect }: LockTableRowProp
             checked={selected}
             onChange={(e) => {
               e.stopPropagation()
-              onSelect(lockKey(lock), e.target.checked)
+              onSelect(lock.id, e.target.checked)
             }}
             onClick={(e) => e.stopPropagation()}
             className="h-4 w-4 accent-[oklch(0.78_0.16_175)] cursor-pointer"
@@ -70,8 +68,8 @@ function LockTableRow({ lock, selectable, selected, onSelect }: LockTableRowProp
 
       {/* Amount */}
       <td className="px-4 py-3.5 tabular-nums">
-        <span className="font-semibold text-sm">{formatAmount(lock.amount, { compact: true })}</span>
-        <p className="text-xs text-muted-foreground">{formatUsdValue(lock.token.address, lock.usdValue)}</p>
+        <span className="font-semibold text-sm">{formatAmount(lock.amount, { compact: true, tokenDecimals: lock.token.decimals })}</span>
+        <p className="text-xs text-muted-foreground">{formatUsd(lock.usdValue)}</p>
       </td>
 
       {/* Beneficiary */}
@@ -83,7 +81,9 @@ function LockTableRow({ lock, selectable, selected, onSelect }: LockTableRowProp
       </td>
 
       {/* Unlock date */}
-      <td className="hidden px-4 py-3.5 text-sm text-muted-foreground md:table-cell">{formatDate(lock.unlockAt)}</td>
+      <td className="hidden px-4 py-3.5 text-sm text-muted-foreground md:table-cell">
+        {formatDate(lock.unlockAt)}
+      </td>
 
       {/* Countdown */}
       <td className="hidden px-4 py-3.5 lg:table-cell">
@@ -129,31 +129,22 @@ function LockTableRow({ lock, selectable, selected, onSelect }: LockTableRowProp
 interface LockTableProps {
   locks: Lock[]
   selectable?: boolean
-  // Keyed by `${kind}:${id}` (see lockKey()) — bare ids collide across
-  // token-locker and LP-locker's independent id counters (#1081).
   selectedIds?: Set<string>
-  onSelect?: (key: string, checked: boolean) => void
+  onSelect?: (id: string, checked: boolean) => void
 }
 
 export function LockTable({ locks, selectable = false, selectedIds = new Set(), onSelect = () => {} }: LockTableProps) {
-  const { t } = useTranslation()
   return (
     <Card className="overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-left" role="table">
           <thead>
             <tr className="border-b border-border bg-secondary/30">
-              {selectable && <th className="w-10 px-4 py-3" scope="col" aria-label={t("lockTable.select")} />}
-              <th
-                className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground"
-                scope="col"
-              >
+              {selectable && <th className="w-10 px-4 py-3" scope="col" aria-label="Select" />}
+              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground" scope="col">
                 Token
               </th>
-              <th
-                className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground"
-                scope="col"
-              >
+              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground" scope="col">
                 Amount
               </th>
               <th
@@ -174,22 +165,19 @@ export function LockTable({ locks, selectable = false, selectedIds = new Set(), 
               >
                 Unlocks in
               </th>
-              <th
-                className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground"
-                scope="col"
-              >
+              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground" scope="col">
                 Status
               </th>
-              {!selectable && <th className="pr-4 py-3" scope="col" aria-label={t("lockTable.actions")} />}
+              {!selectable && <th className="pr-4 py-3" scope="col" aria-label="Actions" />}
             </tr>
           </thead>
           <tbody>
             {locks.map((lock) => (
               <LockTableRow
-                key={lockKey(lock)}
+                key={lock.id}
                 lock={lock}
                 selectable={selectable}
-                selected={selectedIds.has(lockKey(lock))}
+                selected={selectedIds.has(lock.id)}
                 onSelect={onSelect}
               />
             ))}

@@ -1,7 +1,6 @@
 import { jsPDF } from "jspdf"
 import type { Lock } from "@/types/lock"
 import { formatAmount, formatDateTime, formatUsd, shortAddress } from "@/lib/utils"
-import { calculateVestingClaimable } from "@/lib/vesting"
 
 const MARGIN = 14
 const PAGE_W = 210 // A4 mm
@@ -78,7 +77,7 @@ export function downloadLockReport(lock: Lock): void {
   y = drawRow(doc, y, "Lock ID", `#${lock.id}`)
   y = drawRow(doc, y, "Token", `${lock.token.symbol} — ${lock.token.name}`)
   y = drawRow(doc, y, "Token contract", lock.token.address)
-  y = drawRow(doc, y, "Locked amount", `${formatAmount(lock.amount)} ${lock.token.symbol}`)
+  y = drawRow(doc, y, "Locked amount", `${formatAmount(lock.amount, { tokenDecimals: lock.token.decimals })} ${lock.token.symbol}`)
   y = drawRow(doc, y, "USD value at lock time", formatUsd(lock.usdValue))
   y = drawRow(doc, y, "Status", lock.status)
   y = drawRow(doc, y, "Created on", formatDateTime(lock.createdAt))
@@ -97,9 +96,7 @@ export function downloadLockReport(lock: Lock): void {
     y = drawHeading(doc, y, "Vesting Schedule")
     y = drawRow(doc, y, "Vesting start", formatDateTime(lock.vesting.start))
     y = drawRow(doc, y, "Vesting end", formatDateTime(lock.vesting.end))
-    y = drawRow(doc, y, "Released", `${formatAmount(lock.vesting.released)} ${lock.token.symbol}`)
-    const claimableNow = calculateVestingClaimable(lock.amount, lock.token.decimals, lock.vesting)
-    y = drawRow(doc, y, "Claimable now", `${formatAmount(claimableNow)} ${lock.token.symbol}`)
+    y = drawRow(doc, y, "Released", `${formatAmount(lock.vesting.released, { tokenDecimals: lock.token.decimals })} ${lock.token.symbol}`)
   }
 
   // ── On-Chain Verification ─────────────────────────────────────────────────

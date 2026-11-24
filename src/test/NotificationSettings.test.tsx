@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { render, expectNoRenderedContent, getComponentAlert } from "./utils"
+import { render } from "./utils"
 import { NotificationSettings } from "@/components/locks/NotificationSettings"
 import { VALID_PUBLIC_KEY } from "./mocks"
 
@@ -12,12 +12,7 @@ import { VALID_PUBLIC_KEY } from "./mocks"
 const mockUpdate = vi.fn()
 const mockRequestPermission = vi.fn()
 
-let mockPrefs = {
-  browser: false,
-  types: {},
-  email: undefined as string | undefined,
-  webhookUrl: undefined as string | undefined,
-}
+let mockPrefs = { browser: false, types: {}, email: undefined as string | undefined, webhookUrl: undefined as string | undefined }
 let mockPermission: NotificationPermission = "default"
 
 vi.mock("@/hooks/useNotifications", () => ({
@@ -28,8 +23,8 @@ vi.mock("@/hooks/useNotifications", () => ({
   unsubscribeNotifications: vi.fn().mockResolvedValue(undefined),
 }))
 
-const FUTURE_UNLOCK = Date.now() + 86400000 * 30 // 30 days in the future
-const PAST_UNLOCK = Date.now() - 1000 // already unlocked
+const FUTURE_UNLOCK = Date.now() + 86400000 * 30   // 30 days in the future
+const PAST_UNLOCK   = Date.now() - 1000             // already unlocked
 
 describe("NotificationSettings", () => {
   beforeEach(() => {
@@ -45,17 +40,14 @@ describe("NotificationSettings", () => {
 
   it("renders the panel when the lock has not yet unlocked", () => {
     render(<NotificationSettings lockId="lock-1" unlockAt={FUTURE_UNLOCK} address={VALID_PUBLIC_KEY} />)
-    // "Unlock Notifications" (the panel heading) and "Browser notifications"
-    // (a section label further down) both match /notifications/i — scope to
-    // the heading specifically.
-    expect(screen.getByRole("heading", { name: /notifications/i })).toBeInTheDocument()
+    expect(screen.getByText(/notifications/i)).toBeInTheDocument()
   })
 
   it("renders nothing when the lock is already unlocked", () => {
     const { container } = render(
       <NotificationSettings lockId="lock-1" unlockAt={PAST_UNLOCK} address={VALID_PUBLIC_KEY} />,
     )
-    expectNoRenderedContent(container)
+    expect(container).toBeEmptyDOMElement()
   })
 
   // -------------------------------------------------------------------------
@@ -129,7 +121,9 @@ describe("NotificationSettings", () => {
     const saveButtons = screen.getAllByRole("button", { name: /save/i })
     await user.click(saveButtons[0])
 
-    await waitFor(() => expect(getComponentAlert()).toBeInTheDocument())
+    await waitFor(() =>
+      expect(screen.getByRole("alert")).toBeInTheDocument()
+    )
   })
 
   it("calls subscribeNotifications and updates prefs on successful email save", async () => {
@@ -144,7 +138,9 @@ describe("NotificationSettings", () => {
     await user.click(saveButtons[0])
 
     await waitFor(() => expect(subscribeNotifications).toHaveBeenCalledOnce())
-    await waitFor(() => expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({ email: "user@example.com" })))
+    await waitFor(() =>
+      expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({ email: "user@example.com" }))
+    )
   })
 
   it("displays an error message when subscribeNotifications fails", async () => {
@@ -159,10 +155,8 @@ describe("NotificationSettings", () => {
     const saveButtons = screen.getAllByRole("button", { name: /save/i })
     await user.click(saveButtons[0])
 
-    await waitFor(() => expect(getComponentAlert()).toBeInTheDocument())
-    // The component never surfaces the raw thrown error text to the UI —
-    // it always shows the generic translated emailError message instead.
-    expect(screen.getByText(/failed to save email subscription/i)).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByRole("alert")).toBeInTheDocument())
+    expect(screen.getByText(/network error/i)).toBeInTheDocument()
   })
 
   it("marks the email input as invalid when there is an error", async () => {
@@ -200,7 +194,7 @@ describe("NotificationSettings", () => {
     await user.click(saveButtons[saveButtons.length - 1])
 
     expect(mockUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({ webhookUrl: "https://my-webhook.example.com/hook" }),
+      expect.objectContaining({ webhookUrl: "https://my-webhook.example.com/hook" })
     )
   })
 

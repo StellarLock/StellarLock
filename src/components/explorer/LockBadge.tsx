@@ -1,6 +1,5 @@
 import { useState } from "react"
 import { Lock, Copy, Check, Code } from "lucide-react"
-import { useTranslation } from "react-i18next"
 import type { TokenLockSummary } from "@/types/lock"
 import { Button } from "@/components/ui/Button"
 import { formatUsd } from "@/lib/utils"
@@ -10,7 +9,6 @@ import { formatUsd } from "@/lib/utils"
  * README / Telegram / website to prove their liquidity is locked.
  */
 export function LockBadge({ summary }: { summary: TokenLockSummary }) {
-  const { t } = useTranslation()
   const [copied, setCopied] = useState<"none" | "url" | "md">("none")
 
   const url = `${typeof window !== "undefined" ? window.location.origin : "https://stellarlock.app"}/explore/${summary.token.address}`
@@ -36,24 +34,22 @@ export function LockBadge({ summary }: { summary: TokenLockSummary }) {
           <Lock className="h-4 w-4" />
         </span>
         <div className="leading-tight">
-          <p className="text-sm font-semibold text-success">{t("explorer.badge.title")}</p>
+          <p className="text-sm font-semibold text-success">Locked on StellarLock</p>
           <p className="text-xs text-muted-foreground">
-            {t("explorer.badge.summary", { 
-              count: summary.activeLocks, 
-              value: formatUsd(summary.totalUsdValue) 
-            })}
+            {summary.activeLocks} active lock{summary.activeLocks === 1 ? "" : "s"} · {formatUsd(summary.totalUsdValue)}{" "}
+            secured
           </p>
         </div>
       </div>
 
       <div className="flex flex-col gap-2 sm:flex-row">
-        <Button variant="outline" size="sm" onClick={() => void copy("url", url)}>
+        <Button variant="outline" size="sm" onClick={() => copy("url", url)}>
           {copied === "url" ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
-          {t("explorer.badge.copyUrl")}
+          Copy share link
         </Button>
-        <Button variant="outline" size="sm" onClick={() => void copy("md", markdown)}>
+        <Button variant="outline" size="sm" onClick={() => copy("md", markdown)}>
           {copied === "md" ? <Check className="h-4 w-4 text-success" /> : <Code className="h-4 w-4" />}
-          {t("explorer.badge.copyBadge")}
+          Copy README badge
         </Button>
       </div>
     </div>

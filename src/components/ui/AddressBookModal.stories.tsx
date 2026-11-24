@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from "@storybook/react"
-import { fn } from "@storybook/test"
 import { AddressBookModal } from "./AddressBookModal"
 
 const meta = {
@@ -26,7 +25,9 @@ export const Default: Story = {
 
 export const WithSelectCallback: Story = {
   args: {
-    onSelect: fn(),
+    onSelect: (entry) => {
+      console.log("Selected:", entry)
+    },
     onClose: () => {},
   },
 }

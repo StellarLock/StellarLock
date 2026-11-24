@@ -10,9 +10,7 @@
     "dismiss": "Dismiss",
     "you": "You",
     "stellar": "Stellar",
-    "skipToContent": "Skip to main content",
-    "pause": "Pause",
-    "resume": "Resume"
+    "skipToContent": "Skip to main content"
   },
   "nav": {
     "createLock": "Create Lock",
@@ -23,9 +21,7 @@
     "openMenu": "Open menu",
     "closeMenu": "Close menu",
     "history": "History",
-    "analytics": "Analytics",
-    "mainNavigation": "Main navigation",
-    "mobileNavigation": "Mobile navigation"
+    "analytics": "Analytics"
   },
   "landing": {
     "badge": "Built on Stellar · Soroban smart contracts",
@@ -57,9 +53,7 @@
     "ctaTitle": "Earn your community's trust in one transaction",
     "ctaDesc": "Lock your liquidity, share the proof, and let the chain speak for you.",
     "ctaButton": "Create your first lock",
-    "step": "Step {{n}}",
-    "pageTitle": "StellarLock — Token & LP Locks on Stellar",
-    "pageDescription": "Lock tokens and liquidity on Stellar. Prove to your community you haven't rugged with a public, verifiable lock explorer."
+    "step": "Step {{n}}"
   },
   "createLock": {
     "title": "Create a lock",
@@ -67,9 +61,7 @@
     "modeSimple": "Simple",
     "modeWizard": "Wizard",
     "tabToken": "Token Lock",
-    "tabLp": "LP Lock",
-    "pageTitle": "Create a Lock | StellarLock",
-    "pageDescription": "Lock tokens or LP positions in an immutable Soroban smart contract on Stellar."
+    "tabLp": "LP Lock"
   },
   "tokenForm": {
     "tokenAddress": "Token contract address",
@@ -102,14 +94,13 @@
     "metadataTitle": "Project info (optional)",
     "metadataDesc": "Shown on the lock's detail and explorer pages so your community can verify who locked this.",
     "description": "Description",
-    "descriptionPlaceholder": "Why is this lock being created? (e.g. Team tokens locked for 2 years)",
+    "descriptionPlaceholder": "What is this lock for?",
     "projectUrl": "Project URL",
     "logoUrl": "Logo URL",
     "insufficientBalance": "Insufficient balance. You have {{balance}} but need {{amount}}.",
     "needsApproval": "You need to approve the contract to transfer your tokens before locking.",
     "approveAndContinue": "Approve & Continue",
-    "approving": "Approving…",
-    "openAddressBook": "Open address book"
+    "approving": "Approving…"
   },
   "lpForm": {
     "dex": "DEX",
@@ -134,13 +125,7 @@
     "insufficientBalance": "Insufficient balance. You have {{balance}} but need {{amount}}.",
     "needsApproval": "You need to approve the contract to transfer your LP tokens before locking.",
     "approveAndContinue": "Approve & Continue",
-    "approving": "Approving…",
-    "openAddressBook": "Open address book",
-    "beneficiaryHint": "Leave blank to use your connected wallet as beneficiary.",
-    "description": "Description",
-    "descriptionPlaceholder": "Why is this lock being created? (e.g. Liquidity locked for 2 years)",
-    "projectUrl": "Project URL",
-    "logoUrl": "Logo URL"
+    "approving": "Approving…"
   },
   "myLocks": {
     "title": "My Locks",
@@ -158,32 +143,11 @@
     "noLocksCreatedDesc": "Create your first lock to prove your tokens or liquidity are secured.",
     "noBeneficiary": "No locks where you're the beneficiary",
     "noBeneficiaryDesc": "Locks created for you by others will appear here.",
-    "createLock": "Create a Lock",
-    "viewMode": "View mode",
-    "cardView": "Card view",
-    "tableView": "Table view",
-    "searchPlaceholder": "Search by token symbol or lock ID…",
-    "filterByStatus": "Filter by status",
-    "filterByType": "Filter by type",
-    "sortLocks": "Sort locks",
-    "allStatuses": "All statuses",
-    "statusLocked": "Locked",
-    "statusUnlockable": "Unlockable",
-    "statusWithdrawn": "Withdrawn",
-    "statusArchived": "Archived",
-    "allTypes": "All types",
-    "typeToken": "Token",
-    "typeLp": "LP",
-    "sortUnlockDate": "Sort: Unlock date",
-    "sortAmount": "Sort: Amount",
-    "sortCreated": "Sort: Created",
-    "pageTitle": "My Locks | StellarLock",
-    "pageDescription": "Manage and withdraw your locked token and LP positions on StellarLock."
+    "createLock": "Create a Lock"
   },
   "lockDetail": {
     "notFoundTitle": "Lock not found",
     "notFoundDesc": "We couldn't find a lock with id #{{id}}.",
-    "archivedNotice": "This lock was withdrawn long ago and its live on-chain record has expired. The details above are from the lock indexer's archive.",
     "backToLocks": "Back to my locks",
     "lpLock": "LP Lock",
     "tokenLock": "Token Lock",
@@ -200,7 +164,6 @@
     "extendLock": "Extend lock",
     "newUnlockDate": "New unlock date",
     "extendHint": "Must be later than the current unlock date. Locks can only be extended, never shortened.",
-    "extendDateMustBeAfter": "Must be later than the current unlock date ({{date}}).",
     "confirmExtension": "Confirm extension",
     "transferBeneficiary": "Transfer beneficiary",
     "newBeneficiary": "New beneficiary address",
@@ -208,67 +171,9 @@
     "confirmTransfer": "Confirm transfer",
     "securityNotice": "These tokens are secured by the StellarLock contract until the unlock date. Neither the creator nor StellarLock can move them early.",
     "viewExplorer": "View token explorer",
-    "unverifiedWarning": "Unverified token — not on the community allowlist. Proceed with caution.",
     "withdrawSuccess": "Withdrawal confirmed.",
     "extendSuccess": "Lock extended.",
-    "transferSuccess": "Beneficiary transferred.",
-    "restoreLock": "Restore entry",
-    "restoreSuccess": "Lock entry restored. You can now interact with this lock.",
-    "bumpTtl": "Renew storage",
-    "bumpTtlSuccess": "Storage TTL renewed. This lock is safe from archival for another year.",
-    "archivedNotice": "This lock entry has been archived by the Stellar network because its storage TTL expired. Restore it to regain access — your tokens are still safe inside the contract.",
-    "shareViaQr": "Share via QR code",
-    "downloadReport": "Download lock report",
-    "vestingSchedule": "Vesting Schedule",
-    "linear": "Linear",
-    "vestingStart": "Vesting start",
-    "vestingEnd": "Vesting end",
-    "progress": "Progress",
-    "total": "Total",
-    "released": "Released",
-    "claimable": "Claimable",
-    "lockDetails": "Lock Details",
-    "projectLogoAlt": "Project logo",
-    "pageTitle": "Lock #{{id}} — {{amount}} {{symbol}} locked until {{date}} | StellarLock",
-    "pageDescription": "Lock #{{id}}: {{amount}} {{symbol}} locked until {{date}} on StellarLock."
-  },
-  "lockStatus": {
-    "locked": "Locked",
-    "unlockable": "Unlockable",
-    "withdrawn": "Withdrawn",
-    "withdrawnArchived": "Withdrawn (archived)"
-    "archived": "Archived"
-  },
-  "lockCreated": {
-    "title": "Lock Created | StellarLock",
-    "description": "Your lock has been created successfully on Stellar.",
-    "heading": "Lock Created!",
-    "subheading": "Your tokens are now locked on-chain.",
-    "vestingActive": "A vesting schedule is active.",
-    "lockSummary": "Lock Summary",
-    "lockId": "Lock ID",
-    "copyLockId": "Copy lock ID",
-    "type": "Type",
-    "lpLock": "LP Lock",
-    "tokenLock": "Token Lock",
-    "token": "Token",
-    "amount": "Amount",
-    "beneficiary": "Beneficiary",
-    "creator": "Creator",
-    "unlockDate": "Unlock date",
-    "vesting": "Vesting",
-    "vestingEnabled": "Linear vesting enabled",
-    "createdAt": "Created at",
-    "transactionDetails": "Transaction Details",
-    "txHash": "TX Hash",
-    "copyTxHash": "Copy transaction hash",
-    "viewTxStellarExpert": "View transaction on Stellar Expert",
-    "network": "Network",
-    "shareTitle": "Share this lock",
-    "copyShareLink": "Copy shareable link",
-    "viewLockDetail": "View Lock Detail",
-    "createAnother": "Create Another",
-    "copied": "{{label}} copied!"
+    "transferSuccess": "Beneficiary transferred."
   },
   "explorer": {
     "backToSearch": "Back to search",
@@ -287,16 +192,7 @@
     "allLocks": "All locks ({{count}})",
     "noLocksTitle": "No locks found",
     "noLocksDesc": "We couldn't find any locks for <1>{{query}}</1>. Double-check the token symbol or contract address, or create the first lock for this token.",
-    "createLock": "Create a lock",
-    "badge": {
-      "title": "Locked on StellarLock",
-      "summary": "{{count}} active lock · {{value}} secured",
-      "summary_other": "{{count}} active locks · {{value}} secured",
-      "copyUrl": "Copy share link",
-      "copyBadge": "Copy README badge"
-    },
-    "pageTitle": "{{symbol}} Liquidity Locks | StellarLock",
-    "pageDescription": "{{amount}} {{symbol}} locked across {{activeLocks}} active locks on StellarLock."
+    "createLock": "Create a lock"
   },
   "discover": {
     "title": "Explore Locks",
@@ -311,9 +207,7 @@
     "tokensSecured": "Tokens Secured",
     "viewAll": "View all locks",
     "noLocks": "No locks found for this token.",
-    "searchHint": "Search by token symbol or contract address to find specific locks.",
-    "pageTitle": "Explore Locks | StellarLock",
-    "pageDescription": "Browse all token and LP locks on StellarLock. Discover recently created locks, upcoming unlocks, and secured tokens."
+    "searchHint": "Search by token symbol or contract address to find specific locks."
   },
   "search": {
     "placeholder": "Search a token by symbol or contract address…",
@@ -408,9 +302,7 @@
     "statusPending": "Pending",
     "statusSuccess": "Success",
     "statusFailed": "Failed",
-    "cleanupNote": "Transactions older than 90 days are removed automatically.",
-    "pageTitle": "Transaction History | StellarLock",
-    "pageDescription": "View your StellarLock transaction history."
+    "cleanupNote": "Transactions older than 90 days are removed automatically."
   },
   "splitLock": {
     "toggle": "Multiple beneficiaries",
@@ -470,16 +362,6 @@
       "title": "Too Many Requests",
       "message": "You've exceeded the rate limit for creating locks. Please wait before creating another lock.",
       "recovery": "Wait a moment and try again."
-    },
-    "lockDurationTooShort": {
-      "title": "Lock Duration Too Short",
-      "message": "The unlock date is too close to the current time. A minimum lock duration is required.",
-      "recovery": "Choose an unlock date at least 24 hours in the future."
-    },
-    "extensionLimitExceeded": {
-      "title": "Extension Limit Exceeded",
-      "message": "This lock has already been extended the maximum number of times allowed.",
-      "recovery": "No further extensions are possible for this lock."
     },
     "unlockTooSoon": {
       "title": "Extension Too Short",
@@ -565,51 +447,6 @@
       "title": "Identical Tokens",
       "message": "Token A and Token B must be different addresses.",
       "recovery": "Choose two distinct token addresses for your LP pair."
-    },
-    "notInitialized": {
-      "title": "Contract Not Initialized",
-      "message": "The contract has not been initialized with an administrator yet.",
-      "recovery": "Contact the contract operator to initialize the deployment."
-    },
-    "lockNotFound": {
-      "title": "Lock Not Found",
-      "message": "No lock record was found matching this lock ID.",
-      "recovery": "Verify the lock ID and contract address and try again."
-    },
-    "contractPaused": {
-      "title": "Contract Paused",
-      "message": "The contract is currently paused by the administrator for maintenance or emergency.",
-      "recovery": "Please try again later once operations have been resumed."
-    },
-    "vestingOutsideLockBounds": {
-      "title": "Invalid Vesting Window",
-      "message": "The vesting start date must not be before the lock was created, and must not be after the unlock date.",
-      "recovery": "Choose a vesting start and end date that both fall within the lock's creation and unlock dates."
-    },
-    "duplicateBeneficiary": {
-      "title": "Duplicate Beneficiary",
-      "message": "The same beneficiary address was listed more than once in this split lock.",
-      "recovery": "Remove the duplicate entry so each beneficiary address appears only once."
-    },
-    "alreadyInitialized": {
-      "title": "Already Initialized",
-      "message": "This contract has already been initialized with an administrator.",
-      "recovery": "No action is needed — the contract was already set up during deployment."
-    },
-    "invalidPoolTokens": {
-      "title": "Invalid Pool Tokens",
-      "message": "The pool contract's own token A/B addresses do not match the token addresses supplied for this LP lock.",
-      "recovery": "Double-check the pool share address and the token A/B addresses, and make sure they belong to the same pool."
-    },
-    "noPendingUpgrade": {
-      "title": "No Pending Upgrade",
-      "message": "There is no pending contract upgrade to execute or cancel.",
-      "recovery": "Ask the contract admin to propose an upgrade first."
-    },
-    "timelockNotElapsed": {
-      "title": "Upgrade Timelock Not Elapsed",
-      "message": "The mandatory waiting period for this contract upgrade has not passed yet.",
-      "recovery": "Wait until the upgrade's timelock period has elapsed before executing it."
     }
   },
   "analytics": {
@@ -629,9 +466,7 @@
     "goHome": "Back to Home",
     "explore": "Explore Locks",
     "helpTitle": "Need Help?",
-    "helpDesc": "Check our <explorer>explorer</explorer> to find locks or <github>visit our GitHub</github>.",
-    "pageTitle": "Page Not Found — StellarLock",
-    "pageDescription": "The page you're looking for doesn't exist."
+    "helpDesc": "Check our <explorer>explorer</explorer> to find locks or <github>visit our GitHub</github>."
   },
   "countdown": {
     "unlocked": "Unlocked",
@@ -651,121 +486,5 @@
     "title": "Something went wrong",
     "message": "Something went wrong. Please try again.",
     "tryAgain": "Try again"
-  },
-  "txProgress": {
-    "simulating": "Simulating transaction…",
-    "signing": "Please sign in your wallet…",
-    "submitting": "Submitting to network…",
-    "confirming": "Waiting for confirmation…"
-  },
-  "onboardingTour": {
-    "tourAriaLabel": "StellarLock onboarding tour",
-    "closeAriaLabel": "Close tour"
-  },
-  "rpcStatus": {
-    "unreachable": "Stellar network is unreachable. Some features may be unavailable…",
-    "slow": "Slow network connection. Responses may take longer than usual.",
-    "unreachableIndicator": "Network unreachable",
-    "slowIndicator": "Slow network"
-  },
-  "qrCode": {
-    "shareAria": "Share lock via QR code",
-    "closeAria": "Close QR code modal",
-    "copyUrlAria": "Copy URL to clipboard",
-    "downloadAria": "Download QR code as PNG",
-    "copied": "Copied!",
-    "copyUrl": "Copy URL",
-    "downloadPng": "Download PNG",
-    "scanHint": "Scan to open this lock"
-  },
-  "keyboardShortcuts": {
-    "title": "Keyboard shortcuts",
-    "closeAria": "Close",
-    "actions": {
-      "openShortcuts": "Show keyboard shortcuts",
-      "closeModal": "Close dialog",
-      "search": "Focus search",
-      "createLock": "Create a new lock",
-      "myLocks": "Go to my locks",
-      "explore": "Go to explore",
-      "history": "Go to transaction history",
-      "analytics": "Go to analytics",
-      "toggleTheme": "Toggle theme",
-      "submit": "Submit form",
-      "nextField": "Next field",
-      "previousField": "Previous field"
-    }
-  },
-  "health": {
-    "monitoring": "Monitoring",
-    "systemHealth": "System health",
-    "checkingDependencies": "Checking dependencies…",
-    "statusHealthy": "All systems operational",
-    "statusUnhealthy": "Some systems are degraded",
-    "statusChecking": "Checking…",
-    "environmentLabel": "Environment",
-    "networkLabel": "Network",
-    "healthCheckFailed": "Health check failed",
-    "unreachable": "Unreachable",
-    "extensionAvailable": "Available",
-    "extensionNotDetected": "Not detected"
-  },
-  "verifiedBadge": {
-    "verifiedTooltip": "Verified token — listed on the StellarLock community allowlist",
-    "unverifiedTooltip": "Unverified token — not on the community allowlist. Proceed with caution.",
-    "verified": "Verified",
-    "unverified": "Unverified"
-  },
-  "addressBook": {
-    "title": "Address Book",
-    "close": "Close address book",
-    "searchPlaceholder": "Search addresses…",
-    "export": "Export address book",
-    "import": "Import address book",
-    "add": "Add address",
-    "label": "Label",
-    "stellarAddress": "Stellar Address",
-    "address": "Address",
-    "empty": "No saved addresses yet",
-    "noResults": "No matching addresses",
-    "save": "Save address",
-    "cancel": "Cancel",
-    "delete": "Delete address",
-    "invalidAddress": "Enter a valid Stellar address.",
-    "labelRequired": "Enter a label for this address.",
-    "importError": "Could not import the address book file.",
-    "exportSuccess": "Address book exported.",
-    "importSuccess": "Address book imported."
-  },
-  "tokenLockList": {
-    "amount": "Amount",
-    "beneficiary": "Beneficiary",
-    "unlockDate": "Unlock date",
-    "unlocksIn": "Unlocks in",
-    "status": "Status",
-    "empty": "No locks found for this token"
-  },
-  "notificationCenter": {
-    "title": "Notifications",
-    "markAllRead": "Mark all as read",
-    "clearAll": "Clear all",
-    "empty": "No notifications yet"
-  },
-  "confirmLockModal": {
-    "review": "Review the details before signing.",
-    "invalidUnlockDate": "Invalid unlock date.",
-    "linearVesting": "Linear vesting enabled",
-    "insufficientBalance": "Insufficient balance.",
-    "approvalRequired": "Approval required",
-    "title": "Confirm lock",
-    "confirm": "Confirm",
-    "cancel": "Cancel"
-  },
-  "breadcrumb": {
-    "ariaLabel": "Breadcrumb"
-  },
-  "lockTable": {
-    "select": "Select",
-    "actions": "Actions"
   }
 }

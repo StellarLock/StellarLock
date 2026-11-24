@@ -1,5 +1,4 @@
 import { Link } from "react-router-dom"
-import { useTranslation } from "react-i18next"
 import { ExternalLink, Inbox } from "lucide-react"
 import type { Lock } from "@/types/lock"
 import { Card } from "@/components/ui/Card"
@@ -7,28 +6,27 @@ import { StatusBadge } from "@/components/ui/StatusBadge"
 import { DexBadge } from "@/components/ui/DexBadge"
 import { CountdownTimer } from "@/components/ui/CountdownTimer"
 import { Badge } from "@/components/ui/Badge"
-import { formatAmount, formatDate, formatUsdValue, shortAddress } from "@/lib/utils"
+import { formatAmount, formatDate, formatUsd, shortAddress } from "@/lib/utils"
 import { CopyButton } from "@/components/ui/CopyButton"
 
 export function TokenLockList({ locks }: { locks: Lock[] }) {
-  const { t } = useTranslation()
   const sorted = [...locks].sort((a, b) => a.unlockAt - b.unlockAt)
 
   return (
     <Card className="overflow-hidden">
       {/* header row (desktop) */}
       <div className="hidden grid-cols-12 gap-4 border-b border-border px-5 py-3 text-xs font-medium uppercase tracking-wider text-muted-foreground md:grid">
-        <span className="col-span-3">{t("tokenLockList.amount")}</span>
-        <span className="col-span-3">{t("tokenLockList.beneficiary")}</span>
-        <span className="col-span-2">{t("tokenLockList.unlockDate")}</span>
-        <span className="col-span-2">{t("tokenLockList.unlocksIn")}</span>
-        <span className="col-span-2 text-right">{t("tokenLockList.status")}</span>
+        <span className="col-span-3">Amount</span>
+        <span className="col-span-3">Beneficiary</span>
+        <span className="col-span-2">Unlock date</span>
+        <span className="col-span-2">Unlocks in</span>
+        <span className="col-span-2 text-right">Status</span>
       </div>
 
       {locks.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-3 py-16 text-muted-foreground">
           <Inbox className="h-10 w-10 opacity-40" />
-          <p className="text-sm">{t("tokenLockList.empty")}</p>
+          <p className="text-sm">No locks found for this token</p>
         </div>
       ) : (
         <ul>
@@ -38,15 +36,11 @@ export function TokenLockList({ locks }: { locks: Lock[] }) {
               className="grid grid-cols-1 gap-3 border-b border-border px-5 py-4 last:border-b-0 transition-colors hover:bg-secondary/40 md:grid-cols-12 md:items-center md:gap-4"
             >
               <div className="col-span-3 flex flex-col gap-1">
-                <span className="font-semibold tabular-nums">{formatAmount(lock.amount, { compact: true })}</span>
+                <span className="font-semibold tabular-nums">{formatAmount(lock.amount, { compact: true, tokenDecimals: lock.token.decimals })}</span>
                 <span className="flex items-center gap-2 text-xs text-muted-foreground">
-                  {formatUsdValue(lock.token.address, lock.usdValue)}
+                  {formatUsd(lock.usdValue)}
                   {lock.kind === "lp" && lock.dex && <DexBadge dex={lock.dex} />}
-                  {lock.extendedCount > 0 && (
-                    <Badge variant="outline">
-                      {t("tokenLockList.extended", { count: lock.extendedCount })}
-                    </Badge>
-                  )}
+                  {lock.extendedCount > 0 && <Badge variant="outline">{lock.extendedCount}x extended</Badge>}
                 </span>
                 {lock.metadata?.description && (
                   <span className="text-xs text-muted-foreground line-clamp-1">{lock.metadata.description}</span>
@@ -54,13 +48,13 @@ export function TokenLockList({ locks }: { locks: Lock[] }) {
               </div>
 
               <div className="col-span-3 flex items-center gap-1 font-mono text-sm">
-                <span className="md:hidden text-xs text-muted-foreground">{t("tokenLockList.beneficiaryLabel")}</span>
+                <span className="md:hidden text-xs text-muted-foreground">Beneficiary: </span>
                 {shortAddress(lock.beneficiary, 6, 6)}
                 <CopyButton text={lock.beneficiary} />
               </div>
 
               <div className="col-span-2 text-sm text-muted-foreground">
-                <span className="md:hidden text-xs">{t("tokenLockList.unlockLabel")}</span>
+                <span className="md:hidden text-xs">Unlock: </span>
                 {formatDate(lock.unlockAt)}
               </div>
 
@@ -73,7 +67,7 @@ export function TokenLockList({ locks }: { locks: Lock[] }) {
                 <Link
                   to={`/app/lock/${lock.kind ?? "token"}/${lock.id}`}
                   className="text-muted-foreground transition-colors hover:text-primary"
-                  aria-label={t("tokenLockList.viewLock", { id: lock.id })}
+                  aria-label={`View lock ${lock.id}`}
                 >
                   <ExternalLink className="h-4 w-4" />
                 </Link>

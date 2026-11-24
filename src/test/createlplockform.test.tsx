@@ -4,7 +4,7 @@ import { screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { render } from "./utils"
 import { CreateLpLockForm } from "../components/locks/CreateLpLockForm"
-import { VALID_PUBLIC_KEY, VALID_CONTRACT_ADDRESS, VALID_CONTRACT_ADDRESS_B } from "./mocks"
+import { VALID_PUBLIC_KEY, VALID_CONTRACT_ADDRESS } from "./mocks"
 
 vi.mock("@stellar/stellar-sdk", () => ({
   Address: class {
@@ -17,15 +17,14 @@ vi.mock("@stellar/stellar-sdk", () => ({
 const mockUseWallet = vi.fn()
 vi.mock("@/hooks/useWallet", () => ({
   useWallet: () => mockUseWallet() as unknown as Record<string, unknown>,
-}))
-
-vi.mock("@/hooks/WalletProvider", () => ({
   WalletProvider: ({ children }: { children: ReactNode }) => children,
 }))
 
 const mockUseTokenBalance = vi.fn()
+const mockUseTokenAllowance = vi.fn()
 vi.mock("@/hooks/useLocks", () => ({
   useTokenBalance: () => mockUseTokenBalance() as unknown as Record<string, unknown>,
+  useTokenAllowance: () => mockUseTokenAllowance() as unknown as Record<string, unknown>,
 }))
 
 vi.mock("@/lib/stellar", () => ({
@@ -44,6 +43,7 @@ describe("CreateLpLockForm Validation Requirements", () => {
       signTransaction: vi.fn(),
     })
     mockUseTokenBalance.mockReturnValue({ data: 100, loading: false })
+    mockUseTokenAllowance.mockReturnValue({ data: 0, loading: false })
   })
 
   it("should enable submission exclusively when all Stellar contract paths and amounts match parameters", async () => {
@@ -62,7 +62,7 @@ describe("CreateLpLockForm Validation Requirements", () => {
     expect(submitBtn).toBeDisabled()
 
     // 3. Enter Token B Contract Address
-    await user.type(screen.getByLabelText(/token b address/i), VALID_CONTRACT_ADDRESS_B)
+    await user.type(screen.getByLabelText(/token b address/i), VALID_CONTRACT_ADDRESS)
     expect(submitBtn).toBeDisabled()
 
     // 4. Enter Valid Number Amount
